@@ -33,3 +33,6 @@ backend/uploads/
 # Drafts
 *.draft
 input/
+
+# Local Netlify folder
+.netlify
