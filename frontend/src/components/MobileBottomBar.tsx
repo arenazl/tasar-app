@@ -56,18 +56,20 @@ export default function MobileBottomBar() {
           <TabLink key={to} to={to} Icon={Icon} label={label} theme={theme} />
         ))}
 
-        {/* FAB central elevado */}
+        {/* FAB central elevado — sube/baja con animación */}
         <div className="flex-1 flex items-start justify-center relative">
           <button
             onClick={() => setMoreOpen(o => !o)}
             aria-label="Más opciones"
-            className="absolute -top-6 w-14 h-14 rounded-full flex items-center justify-center transition-all active:scale-90 duration-200"
+            className="absolute w-14 h-14 rounded-full flex items-center justify-center active:scale-90"
             style={{
               background: theme.primary,
               color: theme.primaryText || '#fff',
               boxShadow: `0 8px 24px -4px ${theme.primary}80, 0 4px 12px -2px rgba(0,0,0,0.2)`,
               border: `3px solid ${theme.card}`,
-              transform: moreOpen ? 'rotate(45deg)' : 'rotate(0deg)',
+              top: moreOpen ? '-32px' : '-24px',
+              transform: moreOpen ? 'rotate(135deg) scale(1.05)' : 'rotate(0deg) scale(1)',
+              transition: 'top 300ms cubic-bezier(0.34, 1.56, 0.64, 1), transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1), background 200ms',
             }}
           >
             <LayoutGrid className="h-6 w-6" strokeWidth={2.2} />

@@ -45,21 +45,21 @@ export default function Dashboard() {
         <p className="mt-1" style={{ color: theme.textSecondary }}>Visión general de tu actividad</p>
       </header>
 
-      {/* AI Coach — gradient dinámico según tema activo */}
-      <div className="mb-6 p-6 rounded-2xl shadow-xl flex items-start gap-4 relative overflow-hidden"
+      {/* AI Coach — outline compacto, consistente con theme */}
+      <div className="mb-6 p-3.5 sm:p-4 rounded-xl flex items-start gap-3"
         style={{
-          background: `linear-gradient(135deg, ${theme.gradientFrom}, ${theme.gradientVia}, ${theme.gradientTo})`,
-          color: theme.primaryText,
+          background: theme.card,
+          border: `1px solid ${theme.border}`,
         }}>
-        {/* Sparkle decorativo de fondo */}
-        <div className="absolute top-0 right-0 w-64 h-64 rounded-full opacity-20 blur-3xl"
-          style={{ background: theme.gradientTo, transform: 'translate(30%, -30%)' }} />
-        <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-white/20 backdrop-blur flex items-center justify-center relative">
-          <Sparkles className={`h-6 w-6 ${aiBusy ? 'animate-pulse' : ''}`} />
+        <div className="flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center"
+          style={{ background: `${theme.primary}12`, border: `1px solid ${theme.primary}30` }}>
+          <Sparkles className={`h-4 w-4 ${aiBusy ? 'animate-pulse' : ''}`} style={{ color: theme.primary }} />
         </div>
-        <div className="flex-1 relative">
-          <div className="text-sm font-semibold opacity-90 mb-1 uppercase tracking-wider">AI Coach</div>
-          <div className="text-lg leading-relaxed">{aiTip}</div>
+        <div className="flex-1 min-w-0">
+          <div className="text-[10px] font-bold uppercase tracking-wider mb-0.5" style={{ color: theme.primary }}>
+            AI Coach
+          </div>
+          <div className="text-sm leading-relaxed" style={{ color: theme.text }}>{aiTip}</div>
         </div>
       </div>
 
