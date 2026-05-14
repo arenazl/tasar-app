@@ -464,9 +464,13 @@ export function ABMPage({
             }}
           >
             <style>{`
+              /* Wrapper interno: row horizontal con scroll-x cuando no entra */
               .abm-secondary-filters-wrap > div {
                 overflow-x: auto;
+                overflow-y: visible;
                 scrollbar-width: none;
+                gap: 8px;
+                align-items: center;
               }
               .abm-secondary-filters-wrap > div::-webkit-scrollbar {
                 display: none;
@@ -475,6 +479,49 @@ export function ABMPage({
                  — el ROW se mantiene horizontal con scroll. */
               .abm-secondary-filters-wrap > div.flex-wrap {
                 flex-wrap: nowrap !important;
+              }
+              /* Caso: la pagina envuelve combos+pills en sub-divs con flex-wrap.
+                 Forzamos nowrap recursivo para que todo viva en una sola fila
+                 horizontal con scroll, en lugar de apilarse en columnas. */
+              .abm-secondary-filters-wrap div.flex-wrap {
+                flex-wrap: nowrap !important;
+              }
+              /* justify-between en un row de filtros rompe en mobile (separa
+                 los hijos a extremos opuestos y, al wrap, los apila). Lo
+                 anulamos dentro del wrapper canonico. */
+              .abm-secondary-filters-wrap .justify-between {
+                justify-content: flex-start !important;
+              }
+              /* Combos/inputs con anchos fijos (w-56, w-48, etc.) no deben
+                 colapsar el resto del row. Garantizamos un ancho minimo
+                 razonable pero permitimos que el row entero scrollee. */
+              .abm-secondary-filters-wrap [class*="w-"] {
+                flex-shrink: 0;
+              }
+              /* TODOS los controles del header tienen alto canonico 34px
+                 y tipografia 12px para que se vean homogeneos. */
+              .abm-secondary-filters-wrap button,
+              .abm-secondary-filters-wrap input:not([type="checkbox"]):not([type="radio"]) {
+                min-height: 34px;
+                font-size: 12px;
+              }
+              .abm-secondary-filters-wrap .text-xs,
+              .abm-secondary-filters-wrap [data-pill="true"] {
+                font-size: 11px;
+              }
+              /* Cada hijo directo no se aplasta */
+              .abm-secondary-filters-wrap > div > * {
+                flex-shrink: 0;
+              }
+              /* Mobile: padding lateral interno para que el primer/ultimo
+                 elemento no quede pegado al borde durante el scroll */
+              @media (max-width: 640px) {
+                .abm-secondary-filters-wrap > div {
+                  padding-left: 2px;
+                  padding-right: 2px;
+                  scroll-padding-left: 8px;
+                  scroll-padding-right: 8px;
+                }
               }
             `}</style>
             {secondaryFilters}
