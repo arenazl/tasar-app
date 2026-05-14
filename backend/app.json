@@ -1,0 +1,28 @@
+{
+  "name": "TasAR backend",
+  "description": "TasAR — Plataforma de tasaciones inteligentes con IA",
+  "stack": "heroku-22",
+  "buildpacks": [{ "url": "heroku/python" }],
+  "env": {
+    "DB_HOST":     { "value": "mysql-aiven-arenazl.e.aivencloud.com" },
+    "DB_PORT":     { "value": "23108" },
+    "DB_USER":     { "value": "avnadmin" },
+    "DB_PASSWORD": { "required": true },
+    "DB_NAME":     { "value": "tasar" },
+    "SECRET_KEY":  { "generator": "secret" },
+    "ALGORITHM":   { "value": "HS256" },
+    "ACCESS_TOKEN_EXPIRE_MINUTES": { "value": "1440" },
+    "APP_NAME":    { "value": "TasAR" },
+    "APP_VERSION": { "value": "0.2.0" },
+    "ENVIRONMENT": { "value": "production" },
+    "FRONTEND_URL":{ "value": "https://tasar.netlify.app" },
+    "CORS_ORIGINS":{ "value": "[\"https://tasar.netlify.app\"]" },
+    "GEMINI_API_KEY":     { "required": true },
+    "GEMINI_MODEL":       { "value": "gemini-2.5-flash" },
+    "CLOUDINARY_CLOUD_NAME": { "required": false },
+    "CLOUDINARY_API_KEY":    { "required": false },
+    "CLOUDINARY_API_SECRET": { "required": false },
+    "CLAUDE_CMD":   { "value": "claude" },
+    "CLAUDE_MODEL": { "value": "haiku" }
+  }
+}
