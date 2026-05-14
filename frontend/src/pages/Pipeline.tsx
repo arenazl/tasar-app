@@ -21,22 +21,24 @@ export default function Pipeline() {
   }, []);
 
   return (
-    <div className="p-6 lg:p-8 max-w-screen-2xl mx-auto animate-fade-in">
-      <header className="mb-6">
-        <h1 className="text-3xl font-display font-black tracking-tight flex items-center gap-2" style={{ color: theme.text }}>
-          <Workflow className="h-7 w-7" style={{ color: theme.primary }} />
+    <div className="p-4 sm:p-6 lg:p-8 max-w-screen-2xl mx-auto animate-fade-in">
+      <header className="mb-5 sm:mb-6">
+        <h1 className="text-2xl sm:text-3xl font-display font-black tracking-tight flex items-center gap-2" style={{ color: theme.text }}>
+          <Workflow className="h-6 sm:h-7 w-6 sm:w-7" style={{ color: theme.primary }} />
           Pipeline
         </h1>
-        <p className="text-sm mt-1" style={{ color: theme.textSecondary }}>
+        <p className="text-xs sm:text-sm mt-1" style={{ color: theme.textSecondary }}>
           Embudo de tasaciones por etapa · {items.length} totales
+          <span className="lg:hidden"> · deslizá →</span>
         </p>
       </header>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-3">
+      {/* Mobile: scroll horizontal con columnas fijas. Desktop: grid */}
+      <div className="flex gap-3 overflow-x-auto pb-2 lg:grid lg:grid-cols-5 lg:overflow-visible -mx-4 sm:-mx-6 lg:mx-0 px-4 sm:px-6 lg:px-0 snap-x snap-mandatory lg:snap-none">
         {STAGES.map(stage => {
           const stageItems = items.filter(i => (i as any).status === stage.key);
           return (
-            <div key={stage.key} className="rounded-xl flex flex-col"
+            <div key={stage.key} className="rounded-xl flex flex-col flex-shrink-0 w-[280px] lg:w-auto snap-start"
               style={{ background: theme.card, border: `1px solid ${theme.border}` }}>
               <div className="px-4 py-3 flex items-center justify-between"
                 style={{ borderBottom: `1px solid ${theme.border}` }}>

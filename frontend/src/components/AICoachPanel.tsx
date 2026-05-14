@@ -80,11 +80,11 @@ export default function AICoachPanel() {
   }, [open, route, lastRoute, fetchTips]);
 
   if (!open) {
-    // FAB colapsado abajo a la derecha
+    // FAB colapsado — arriba de bottom bar en mobile, abajo derecha en desktop
     return (
       <button
         onClick={() => setOpen(true)}
-        className="fixed bottom-6 right-6 z-40 w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition-all active:scale-95 hover:scale-110"
+        className="fixed right-4 lg:right-6 bottom-[88px] lg:bottom-6 z-40 w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition-all active:scale-95 hover:scale-110"
         style={{ background: theme.primary, color: theme.primaryText }}
         title="Abrir AI Coach"
       >
@@ -94,10 +94,20 @@ export default function AICoachPanel() {
   }
 
   return (
-    <aside
-      className="fixed top-16 right-0 bottom-0 w-80 z-30 flex flex-col shadow-xl animate-in slide-in-from-right duration-200"
-      style={{ background: theme.card, borderLeft: `1px solid ${theme.border}` }}
-    >
+    <>
+      {/* Backdrop solo mobile */}
+      <div className="lg:hidden fixed inset-0 bg-black/40 z-30 animate-in fade-in duration-200"
+        onClick={() => setOpen(false)} />
+      <aside
+        className="fixed z-40 flex flex-col shadow-xl animate-in slide-in-from-bottom lg:slide-in-from-right duration-200
+                   inset-x-0 bottom-0 max-h-[80vh] rounded-t-2xl
+                   lg:inset-x-auto lg:bottom-0 lg:top-16 lg:right-0 lg:w-80 lg:max-h-none lg:rounded-none"
+        style={{ background: theme.card, borderTop: `1px solid ${theme.border}`, borderLeft: `1px solid ${theme.border}` }}
+      >
+        {/* drag handle solo mobile */}
+        <div className="lg:hidden flex justify-center py-2 flex-shrink-0">
+          <span className="w-10 h-1 rounded-full" style={{ background: theme.border }} />
+        </div>
       {/* Header */}
       <div
         className="flex-shrink-0 px-4 py-3 flex items-center justify-between gap-2"
@@ -168,7 +178,8 @@ export default function AICoachPanel() {
         <span className="uppercase tracking-wider">Powered by Claude</span>
         <span>contexto: <b style={{ color: theme.text }}>{route}</b></span>
       </div>
-    </aside>
+      </aside>
+    </>
   );
 }
 

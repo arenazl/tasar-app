@@ -29,10 +29,10 @@ export default function Reportes() {
   }, []);
 
   return (
-    <div className="p-8 max-w-7xl mx-auto animate-fade-in">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto animate-fade-in">
       <header className="mb-6 flex items-end justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-3xl font-display font-black tracking-tight" style={{ color: theme.text }}>Reportes</h1>
+          <h1 className="text-2xl sm:text-3xl font-display font-black tracking-tight" style={{ color: theme.text }}>Reportes</h1>
           <p className="text-sm mt-1" style={{ color: theme.textSecondary }}>
             Análisis mensual del mercado · publicamos el primer día hábil del mes
           </p>

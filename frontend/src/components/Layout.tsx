@@ -9,6 +9,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import ThemeSelector from './ThemeSelector';
 import BrandLogo from './BrandLogo';
 import AICoachPanel from './AICoachPanel';
+import MobileBottomBar from './MobileBottomBar';
 
 const NAV_TRABAJO = [
   { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
@@ -54,9 +55,9 @@ export default function Layout({ children }: { children: ReactNode }) {
 
   return (
     <div className="h-screen flex overflow-hidden" style={{ background: theme.background }}>
-      {/* SIDEBAR */}
+      {/* SIDEBAR (oculto en mobile — reemplazado por bottom bar) */}
       <aside
-        className="flex-shrink-0 flex flex-col transition-all duration-300 ease-in-out"
+        className="hidden lg:flex flex-shrink-0 flex-col transition-all duration-300 ease-in-out"
         style={{
           width: collapsed ? '76px' : '240px',
           background: theme.card,
@@ -140,17 +141,26 @@ export default function Layout({ children }: { children: ReactNode }) {
 
       {/* Main area */}
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="flex-shrink-0 h-14 flex items-center justify-end px-6 gap-3"
+        <header className="flex-shrink-0 h-14 flex items-center justify-between px-4 sm:px-6 gap-3"
           style={{ background: theme.card, borderBottom: `1px solid ${theme.border}` }}>
+          {/* Logo mobile (sidebar oculta en mobile) */}
+          <div className="lg:hidden flex items-center gap-2">
+            <BrandLogo variant="icon" className="h-7" />
+            <span className="font-display font-black text-lg tracking-tight" style={{ color: theme.text }}>TasAR</span>
+          </div>
+          <div className="hidden lg:block" />
           <ThemeSelector />
         </header>
-        <main className="flex-1 overflow-y-auto" style={{ background: theme.background }}>
+        <main className="flex-1 overflow-y-auto pb-20 lg:pb-0" style={{ background: theme.background }}>
           {children}
         </main>
       </div>
 
-      {/* AI Coach global */}
+      {/* AI Coach global (desktop) */}
       <AICoachPanel />
+
+      {/* Mobile bottom bar (oculta en lg+) */}
+      <MobileBottomBar />
     </div>
   );
 }

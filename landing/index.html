@@ -52,6 +52,8 @@
   /* Evitar zoom en inputs iOS */
   input, button, select, textarea { font-size: 16px; }
   @media (min-width: 640px) { input, button, select, textarea { font-size: inherit; } }
+  /* Padding inferior en mobile para no tapar contenido con el sticky CTA */
+  @media (max-width: 1023px) { body { padding-bottom: 76px; } }
 </style>
 </head>
 <body class="overflow-x-hidden">
@@ -790,6 +792,35 @@
     <div>TasAR Index v3.2 · Actualizado 14 may 2026</div>
   </div>
 </footer>
+
+<!-- STICKY CTA mobile · solo <lg, aparece tras scroll -->
+<div id="stickyCta" class="lg:hidden fixed bottom-0 left-0 right-0 z-40 border-t border-line bg-white/95 backdrop-blur-md shadow-[0_-8px_24px_-12px_rgba(0,0,0,0.15)] transition-transform duration-300 translate-y-full">
+  <div class="px-4 py-3 flex items-center gap-2">
+    <a href="/login" class="flex-1 px-4 py-3 rounded-full text-[14px] font-semibold border border-line text-ink text-center hover:border-ink transition">
+      Ingresar
+    </a>
+    <a href="#demo" class="flex-[1.4] px-4 py-3 rounded-full text-[14px] font-semibold bg-accent text-white text-center hover:bg-accentDark transition flex items-center justify-center gap-1.5">
+      Pedir demo <span aria-hidden="true">→</span>
+    </a>
+  </div>
+</div>
+<script>
+  (function () {
+    var cta = document.getElementById('stickyCta');
+    if (!cta) return;
+    var shown = false;
+    function onScroll() {
+      var y = window.scrollY || window.pageYOffset;
+      var should = y > 600;
+      if (should !== shown) {
+        shown = should;
+        cta.style.transform = should ? 'translateY(0)' : 'translateY(100%)';
+      }
+    }
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+  })();
+</script>
 
 </body>
 </html>

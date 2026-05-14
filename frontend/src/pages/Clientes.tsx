@@ -50,7 +50,7 @@ export default function Clientes() {
   }, [items]);
 
   return (
-    <div className="p-8 max-w-7xl mx-auto animate-fade-in">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto animate-fade-in">
       <header className="mb-6">
         <h1 className="text-3xl font-display font-black tracking-tight flex items-center gap-2" style={{ color: theme.text }}>
           <Users className="h-7 w-7" style={{ color: theme.primary }} />

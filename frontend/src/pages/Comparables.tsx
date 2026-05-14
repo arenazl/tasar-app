@@ -60,20 +60,20 @@ export default function Comparables() {
   useEffect(() => { search(); }, []); // eslint-disable-line
 
   return (
-    <div className="p-6 lg:p-8 max-w-7xl mx-auto animate-fade-in">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto animate-fade-in">
       <header className="mb-4">
-        <div className="flex items-center justify-between mb-1">
-          <div>
-            <h1 className="text-3xl font-display font-black tracking-tight flex items-center gap-3" style={{ color: theme.text }}>
+        <div className="flex items-start justify-between mb-1 gap-3 flex-wrap">
+          <div className="min-w-0">
+            <h1 className="text-2xl sm:text-3xl font-display font-black tracking-tight flex items-center gap-2 sm:gap-3" style={{ color: theme.text }}>
               Comparables
-              <span className="px-2 py-0.5 rounded-md text-xs font-bold uppercase tracking-wider"
+              <span className="px-2 py-0.5 rounded-md text-[10px] sm:text-xs font-bold uppercase tracking-wider"
                 style={{ background: '#22c55e20', color: '#22c55e' }}>live</span>
             </h1>
-            <p className="text-sm mt-1" style={{ color: theme.textSecondary }}>
-              Buscador de comparables · base de datos en vivo · <b>{stats.total}</b> resultados
+            <p className="text-xs sm:text-sm mt-1" style={{ color: theme.textSecondary }}>
+              <b>{stats.total}</b> resultados en vivo
             </p>
           </div>
-          <button className="px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all active:scale-95"
+          <button className="hidden sm:flex px-4 py-2 rounded-lg text-sm font-medium items-center gap-2 transition-all active:scale-95"
             style={{ background: theme.card, color: theme.text, border: `1px solid ${theme.border}` }}>
             <Download className="h-4 w-4" /> Exportar CSV
           </button>
@@ -108,8 +108,8 @@ export default function Comparables() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Mapa placeholder */}
-        <div className="lg:col-span-2 p-5 rounded-xl"
-          style={{ background: theme.card, border: `1px solid ${theme.border}`, minHeight: 480 }}>
+        <div className="lg:col-span-2 p-3 sm:p-5 rounded-xl"
+          style={{ background: theme.card, border: `1px solid ${theme.border}`, minHeight: 280 }}>
           <div className="text-xs uppercase tracking-wider font-bold mb-3" style={{ color: theme.textSecondary }}>
             Distribución geográfica · zona {zone}
           </div>
