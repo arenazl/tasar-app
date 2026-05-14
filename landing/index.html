@@ -2,7 +2,8 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+<meta name="theme-color" content="#0a0a0a" />
 <title>TasAR — El mercado inmobiliario, en datos.</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -45,53 +46,57 @@
   .heat-cell { transition: transform .2s ease; }
   .heat-cell:hover { transform: scale(1.15); }
   .grain { background-image: radial-gradient(rgba(0,0,0,0.025) 1px, transparent 1px); background-size: 4px 4px; }
+  /* Mobile menu */
+  .mobile-menu { transition: opacity .2s ease, transform .2s ease; }
+  .mobile-menu.hidden { display: none; }
+  /* Evitar zoom en inputs iOS */
+  input, button, select, textarea { font-size: 16px; }
+  @media (min-width: 640px) { input, button, select, textarea { font-size: inherit; } }
 </style>
 </head>
 <body class="overflow-x-hidden">
 
 <!-- TICKER -->
-<div class="bg-ink text-white text-[12px] font-medium overflow-hidden border-b border-black">
+<div class="bg-ink text-white text-[10px] sm:text-[12px] font-medium overflow-hidden border-b border-black">
   <div class="flex whitespace-nowrap ticker-track py-2">
-    <!-- repetido 2x para loop -->
     <div class="flex shrink-0">
-      <span class="px-5 flex items-center gap-2"><span class="inline-block w-1.5 h-1.5 rounded-full bg-accent live-dot"></span><span class="text-white/60">EN VIVO · CABA · USD/m²</span></span>
-      <span class="px-5"><strong>Palermo</strong> <span class="text-white/60">3.420</span> <span class="text-accent">+1.4%</span></span>
-      <span class="px-5"><strong>Recoleta</strong> <span class="text-white/60">3.180</span> <span class="text-accent">+1.4%</span></span>
-      <span class="px-5"><strong>Belgrano</strong> <span class="text-white/60">2.890</span> <span class="text-accent">+0.9%</span></span>
-      <span class="px-5"><strong>Caballito</strong> <span class="text-white/60">2.140</span> <span class="text-accent">+0.2%</span></span>
-      <span class="px-5"><strong>Núñez</strong> <span class="text-white/60">2.760</span> <span class="text-accent">+1.1%</span></span>
-      <span class="px-5"><strong>Villa Crespo</strong> <span class="text-white/60">2.020</span> <span class="text-accent">+0.6%</span></span>
-      <span class="px-5"><strong>Almagro</strong> <span class="text-white/60">1.880</span> <span class="text-red-400">-0.3%</span></span>
-      <span class="px-5"><strong>San Telmo</strong> <span class="text-white/60">1.640</span> <span class="text-red-400">-0.4%</span></span>
-      <span class="px-5"><strong>Boedo</strong> <span class="text-white/60">1.520</span> <span class="text-red-400">-0.1%</span></span>
-      <span class="px-5"><strong>Flores</strong> <span class="text-white/60">1.480</span> <span class="text-red-400">-0.2%</span></span>
-      <span class="px-5"><strong>Colegiales</strong> <span class="text-white/60">2.430</span> <span class="text-accent">+0.7%</span></span>
-      <span class="px-5"><strong>Saavedra</strong> <span class="text-white/60">2.110</span> <span class="text-accent">+0.4%</span></span>
+      <span class="px-3 sm:px-5 flex items-center gap-2"><span class="inline-block w-1.5 h-1.5 rounded-full bg-accent live-dot"></span><span class="text-white/60">EN VIVO · CABA · USD/m²</span></span>
+      <span class="px-3 sm:px-5"><strong>Palermo</strong> <span class="text-white/60">3.420</span> <span class="text-accent">+1.4%</span></span>
+      <span class="px-3 sm:px-5"><strong>Recoleta</strong> <span class="text-white/60">3.180</span> <span class="text-accent">+1.4%</span></span>
+      <span class="px-3 sm:px-5"><strong>Belgrano</strong> <span class="text-white/60">2.890</span> <span class="text-accent">+0.9%</span></span>
+      <span class="px-3 sm:px-5"><strong>Caballito</strong> <span class="text-white/60">2.140</span> <span class="text-accent">+0.2%</span></span>
+      <span class="px-3 sm:px-5"><strong>Núñez</strong> <span class="text-white/60">2.760</span> <span class="text-accent">+1.1%</span></span>
+      <span class="px-3 sm:px-5"><strong>Villa Crespo</strong> <span class="text-white/60">2.020</span> <span class="text-accent">+0.6%</span></span>
+      <span class="px-3 sm:px-5"><strong>Almagro</strong> <span class="text-white/60">1.880</span> <span class="text-red-400">-0.3%</span></span>
+      <span class="px-3 sm:px-5"><strong>San Telmo</strong> <span class="text-white/60">1.640</span> <span class="text-red-400">-0.4%</span></span>
+      <span class="px-3 sm:px-5"><strong>Boedo</strong> <span class="text-white/60">1.520</span> <span class="text-red-400">-0.1%</span></span>
+      <span class="px-3 sm:px-5"><strong>Flores</strong> <span class="text-white/60">1.480</span> <span class="text-red-400">-0.2%</span></span>
+      <span class="px-3 sm:px-5"><strong>Colegiales</strong> <span class="text-white/60">2.430</span> <span class="text-accent">+0.7%</span></span>
+      <span class="px-3 sm:px-5"><strong>Saavedra</strong> <span class="text-white/60">2.110</span> <span class="text-accent">+0.4%</span></span>
     </div>
     <div class="flex shrink-0" aria-hidden="true">
-      <span class="px-5 flex items-center gap-2"><span class="inline-block w-1.5 h-1.5 rounded-full bg-accent live-dot"></span><span class="text-white/60">EN VIVO · CABA · USD/m²</span></span>
-      <span class="px-5"><strong>Palermo</strong> <span class="text-white/60">3.420</span> <span class="text-accent">+1.4%</span></span>
-      <span class="px-5"><strong>Recoleta</strong> <span class="text-white/60">3.180</span> <span class="text-accent">+1.4%</span></span>
-      <span class="px-5"><strong>Belgrano</strong> <span class="text-white/60">2.890</span> <span class="text-accent">+0.9%</span></span>
-      <span class="px-5"><strong>Caballito</strong> <span class="text-white/60">2.140</span> <span class="text-accent">+0.2%</span></span>
-      <span class="px-5"><strong>Núñez</strong> <span class="text-white/60">2.760</span> <span class="text-accent">+1.1%</span></span>
-      <span class="px-5"><strong>Villa Crespo</strong> <span class="text-white/60">2.020</span> <span class="text-accent">+0.6%</span></span>
-      <span class="px-5"><strong>Almagro</strong> <span class="text-white/60">1.880</span> <span class="text-red-400">-0.3%</span></span>
-      <span class="px-5"><strong>San Telmo</strong> <span class="text-white/60">1.640</span> <span class="text-red-400">-0.4%</span></span>
-      <span class="px-5"><strong>Boedo</strong> <span class="text-white/60">1.520</span> <span class="text-red-400">-0.1%</span></span>
-      <span class="px-5"><strong>Flores</strong> <span class="text-white/60">1.480</span> <span class="text-red-400">-0.2%</span></span>
-      <span class="px-5"><strong>Colegiales</strong> <span class="text-white/60">2.430</span> <span class="text-accent">+0.7%</span></span>
-      <span class="px-5"><strong>Saavedra</strong> <span class="text-white/60">2.110</span> <span class="text-accent">+0.4%</span></span>
+      <span class="px-3 sm:px-5 flex items-center gap-2"><span class="inline-block w-1.5 h-1.5 rounded-full bg-accent live-dot"></span><span class="text-white/60">EN VIVO · CABA · USD/m²</span></span>
+      <span class="px-3 sm:px-5"><strong>Palermo</strong> <span class="text-white/60">3.420</span> <span class="text-accent">+1.4%</span></span>
+      <span class="px-3 sm:px-5"><strong>Recoleta</strong> <span class="text-white/60">3.180</span> <span class="text-accent">+1.4%</span></span>
+      <span class="px-3 sm:px-5"><strong>Belgrano</strong> <span class="text-white/60">2.890</span> <span class="text-accent">+0.9%</span></span>
+      <span class="px-3 sm:px-5"><strong>Caballito</strong> <span class="text-white/60">2.140</span> <span class="text-accent">+0.2%</span></span>
+      <span class="px-3 sm:px-5"><strong>Núñez</strong> <span class="text-white/60">2.760</span> <span class="text-accent">+1.1%</span></span>
+      <span class="px-3 sm:px-5"><strong>Villa Crespo</strong> <span class="text-white/60">2.020</span> <span class="text-accent">+0.6%</span></span>
+      <span class="px-3 sm:px-5"><strong>Almagro</strong> <span class="text-white/60">1.880</span> <span class="text-red-400">-0.3%</span></span>
+      <span class="px-3 sm:px-5"><strong>San Telmo</strong> <span class="text-white/60">1.640</span> <span class="text-red-400">-0.4%</span></span>
+      <span class="px-3 sm:px-5"><strong>Boedo</strong> <span class="text-white/60">1.520</span> <span class="text-red-400">-0.1%</span></span>
+      <span class="px-3 sm:px-5"><strong>Flores</strong> <span class="text-white/60">1.480</span> <span class="text-red-400">-0.2%</span></span>
+      <span class="px-3 sm:px-5"><strong>Colegiales</strong> <span class="text-white/60">2.430</span> <span class="text-accent">+0.7%</span></span>
+      <span class="px-3 sm:px-5"><strong>Saavedra</strong> <span class="text-white/60">2.110</span> <span class="text-accent">+0.4%</span></span>
     </div>
   </div>
 </div>
 
 <!-- NAV -->
 <header class="border-b border-line bg-white/80 backdrop-blur sticky top-0 z-30">
-  <div class="max-w-[1280px] mx-auto px-8 h-20 flex items-center justify-between">
-    <a href="#" class="flex items-center gap-3">
-      <!-- logo: mini grid verde -->
-      <svg width="34" height="34" viewBox="0 0 34 34" class="shrink-0">
+  <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between gap-3">
+    <a href="#" class="flex items-center gap-2 sm:gap-3 shrink-0">
+      <svg width="28" height="28" viewBox="0 0 34 34" class="shrink-0 sm:w-[34px] sm:h-[34px]">
         <g fill="#10b981">
           <rect x="0"  y="0"  width="7" height="7" opacity=".25" rx="1"/>
           <rect x="9"  y="0"  width="7" height="7" opacity=".55" rx="1"/>
@@ -106,88 +111,113 @@
           <rect x="9"  y="27" width="7" height="7" opacity=".35" rx="1"/>
         </g>
       </svg>
-      <span class="font-display font-extrabold text-2xl tracking-tight">TasAR</span>
+      <span class="font-display font-extrabold text-xl sm:text-2xl tracking-tight">TasAR</span>
     </a>
-    <nav class="hidden md:flex items-center gap-9 text-[15px] text-ink/80">
-      <a href="#mercado" class="hover:text-ink">Mercado</a>
+    <nav class="hidden lg:flex items-center gap-7 xl:gap-9 text-[15px] text-ink/80">
+      <a href="#reporte" class="hover:text-ink">Mercado</a>
       <a href="#productos" class="hover:text-ink">Productos</a>
       <a href="#tasador" class="hover:text-ink">Tasador AI</a>
       <a href="#colaboracion" class="hover:text-ink">Colaboración</a>
       <a href="#equipos" class="hover:text-ink">Empresas</a>
     </nav>
-    <div class="flex items-center gap-3">
-      <a href="/login" class="px-4 py-2 rounded-full text-[14px] font-semibold border border-line hover:border-ink transition">Ingresar</a>
-      <a href="#demo" class="px-4 py-2 rounded-full text-[14px] font-semibold bg-accent text-white hover:bg-accentDark transition flex items-center gap-1.5">Pedir demo <span aria-hidden="true">→</span></a>
+    <div class="flex items-center gap-2 sm:gap-3">
+      <a href="/login" class="hidden sm:inline-flex px-3 sm:px-4 py-2 rounded-full text-[13px] sm:text-[14px] font-semibold border border-line hover:border-ink transition">Ingresar</a>
+      <a href="#demo" class="hidden sm:inline-flex px-3 sm:px-4 py-2 rounded-full text-[13px] sm:text-[14px] font-semibold bg-accent text-white hover:bg-accentDark transition items-center gap-1.5">Pedir demo <span aria-hidden="true">→</span></a>
+      <!-- Mobile menu trigger -->
+      <button id="menuBtn" aria-label="Abrir menú" class="lg:hidden p-2 -mr-2 text-ink">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path id="menuOpen" d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+    </div>
+  </div>
+  <!-- Mobile menu panel -->
+  <div id="mobileMenu" class="mobile-menu hidden lg:hidden border-t border-line bg-white">
+    <div class="px-4 py-4 flex flex-col gap-1">
+      <a href="#reporte" class="px-3 py-2.5 rounded-lg hover:bg-gray-50 text-[15px] font-medium">Mercado</a>
+      <a href="#productos" class="px-3 py-2.5 rounded-lg hover:bg-gray-50 text-[15px] font-medium">Productos</a>
+      <a href="#tasador" class="px-3 py-2.5 rounded-lg hover:bg-gray-50 text-[15px] font-medium">Tasador AI</a>
+      <a href="#colaboracion" class="px-3 py-2.5 rounded-lg hover:bg-gray-50 text-[15px] font-medium">Colaboración</a>
+      <a href="#equipos" class="px-3 py-2.5 rounded-lg hover:bg-gray-50 text-[15px] font-medium">Empresas</a>
+      <div class="grid grid-cols-2 gap-2 mt-3 pt-3 border-t border-line sm:hidden">
+        <a href="/login" class="px-4 py-2.5 rounded-full text-[14px] font-semibold border border-line text-center">Ingresar</a>
+        <a href="#demo" class="px-4 py-2.5 rounded-full text-[14px] font-semibold bg-accent text-white text-center">Pedir demo</a>
+      </div>
     </div>
   </div>
 </header>
+<script>
+  (function () {
+    var b = document.getElementById('menuBtn');
+    var m = document.getElementById('mobileMenu');
+    if (b && m) {
+      b.addEventListener('click', function () { m.classList.toggle('hidden'); });
+      m.querySelectorAll('a').forEach(function (a) {
+        a.addEventListener('click', function () { m.classList.add('hidden'); });
+      });
+    }
+  })();
+</script>
 
 <!-- HERO -->
 <section class="border-b border-line">
-  <div class="max-w-[1280px] mx-auto px-8 py-20 grid lg:grid-cols-2 gap-16 items-center">
+  <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 lg:py-20 grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
     <div>
-      <div class="text-[12px] font-semibold tracking-[0.18em] text-muted uppercase mb-8">
+      <div class="text-[11px] sm:text-[12px] font-semibold tracking-[0.18em] text-muted uppercase mb-5 sm:mb-8">
         Mayo 2026 · Reporte #047
       </div>
-      <h1 class="font-display font-extrabold leading-[0.95] text-[68px] md:text-[88px] tracking-tight">
+      <h1 class="font-display font-extrabold leading-[0.95] text-[40px] xs:text-[48px] sm:text-[60px] md:text-[72px] lg:text-[80px] xl:text-[88px] tracking-tight">
         El mercado<br/>inmobiliario,<br/>
         <span class="text-accent">en datos.</span>
       </h1>
-      <p class="mt-8 text-[17px] leading-[1.6] text-ink/75 max-w-[520px]">
+      <p class="mt-6 sm:mt-8 text-[15px] sm:text-[17px] leading-[1.6] text-ink/75 max-w-[520px]">
         TasAR procesa millones de avisos, escrituras y permisos al mes para darte el precio real de cada zona, edificio y tipología. Sin opiniones. Sin "estimaciones". Sin un broker en el medio.
       </p>
-      <div class="mt-10 flex flex-wrap gap-3">
-        <a href="#reporte" class="px-6 py-3.5 rounded-full bg-ink text-white text-[15px] font-semibold hover:bg-accent transition flex items-center gap-2">Ver el último reporte <span>→</span></a>
-        <a href="#tasador" class="px-6 py-3.5 rounded-full border border-ink/15 text-ink text-[15px] font-semibold hover:border-ink transition">Probar el tasador</a>
+      <div class="mt-8 sm:mt-10 flex flex-wrap gap-3">
+        <a href="#reporte" class="px-5 sm:px-6 py-3 sm:py-3.5 rounded-full bg-ink text-white text-[14px] sm:text-[15px] font-semibold hover:bg-accent transition flex items-center gap-2">Ver el último reporte <span>→</span></a>
+        <a href="#tasador" class="px-5 sm:px-6 py-3 sm:py-3.5 rounded-full border border-ink/15 text-ink text-[14px] sm:text-[15px] font-semibold hover:border-ink transition">Probar el tasador</a>
       </div>
 
       <!-- stats -->
-      <div class="mt-14 pt-8 border-t border-line grid grid-cols-3 gap-6">
+      <div class="mt-10 sm:mt-14 pt-6 sm:pt-8 border-t border-line grid grid-cols-3 gap-3 sm:gap-6">
         <div>
-          <div class="text-[11px] font-semibold tracking-[0.16em] text-muted uppercase mb-3">Avisos analizados</div>
-          <div class="font-display font-extrabold text-4xl tracking-tight">2,4M</div>
+          <div class="text-[9px] sm:text-[11px] font-semibold tracking-[0.16em] text-muted uppercase mb-2 sm:mb-3 leading-tight">Avisos<br class="sm:hidden"/> analizados</div>
+          <div class="font-display font-extrabold text-2xl sm:text-3xl lg:text-4xl tracking-tight">2,4M</div>
         </div>
         <div>
-          <div class="text-[11px] font-semibold tracking-[0.16em] text-muted uppercase mb-3">Zonas cubiertas</div>
-          <div class="font-display font-extrabold text-4xl tracking-tight">142</div>
+          <div class="text-[9px] sm:text-[11px] font-semibold tracking-[0.16em] text-muted uppercase mb-2 sm:mb-3 leading-tight">Zonas<br class="sm:hidden"/> cubiertas</div>
+          <div class="font-display font-extrabold text-2xl sm:text-3xl lg:text-4xl tracking-tight">142</div>
         </div>
         <div>
-          <div class="text-[11px] font-semibold tracking-[0.16em] text-muted uppercase mb-3">Actualización</div>
-          <div class="font-display font-extrabold text-4xl tracking-tight">24h</div>
+          <div class="text-[9px] sm:text-[11px] font-semibold tracking-[0.16em] text-muted uppercase mb-2 sm:mb-3 leading-tight">Actualización</div>
+          <div class="font-display font-extrabold text-2xl sm:text-3xl lg:text-4xl tracking-tight">24h</div>
         </div>
       </div>
     </div>
 
     <!-- HEATMAP CARD -->
     <div class="relative">
-      <div class="rounded-2xl border border-line bg-[#f4f6f5] p-7 shadow-[0_1px_0_rgba(0,0,0,0.03),0_30px_60px_-30px_rgba(0,0,0,0.15)]">
-        <div class="flex items-start justify-between mb-2">
-          <div>
-            <div class="text-[14px] font-semibold tracking-tight">Valor promedio USD/m² · Capital Federal</div>
-            <div class="text-[12px] text-muted mt-1 font-mono">14 de mayo, 2026 · n=18.420 avisos activos</div>
+      <div class="rounded-2xl border border-line bg-[#f4f6f5] p-4 sm:p-7 shadow-[0_1px_0_rgba(0,0,0,0.03),0_30px_60px_-30px_rgba(0,0,0,0.15)]">
+        <div class="flex items-start justify-between mb-2 gap-3">
+          <div class="min-w-0">
+            <div class="text-[13px] sm:text-[14px] font-semibold tracking-tight">Valor promedio USD/m² · CABA</div>
+            <div class="text-[10px] sm:text-[12px] text-muted mt-1 font-mono">14 may 2026 · n=18.420</div>
           </div>
-          <div class="flex items-center gap-2 text-[12px] text-muted">
+          <div class="flex items-center gap-2 text-[11px] sm:text-[12px] text-muted shrink-0">
             <span class="inline-block w-1.5 h-1.5 rounded-full bg-accent live-dot"></span> en vivo
           </div>
         </div>
 
-        <!-- Heatmap mock con SVG grid -->
-        <div class="relative mt-6">
+        <div class="relative mt-4 sm:mt-6">
           <svg viewBox="0 0 420 360" class="w-full h-auto" preserveAspectRatio="xMidYMid meet">
-            <!-- generamos un patron de celdas en forma aproximada de CABA -->
             <g id="heat">
-              <!-- fila 1 (Núñez/Saavedra) -->
               <rect class="heat-cell" x="222" y="20" width="16" height="16" rx="2.5" fill="#a7f3d0"/>
               <rect class="heat-cell" x="241" y="20" width="16" height="16" rx="2.5" fill="#6ee7b7"/>
               <rect class="heat-cell" x="260" y="20" width="16" height="16" rx="2.5" fill="#34d399"/>
-              <!-- fila 2 -->
               <rect class="heat-cell" x="203" y="39" width="16" height="16" rx="2.5" fill="#a7f3d0"/>
               <rect class="heat-cell" x="222" y="39" width="16" height="16" rx="2.5" fill="#6ee7b7"/>
               <rect class="heat-cell" x="241" y="39" width="16" height="16" rx="2.5" fill="#34d399"/>
               <rect class="heat-cell" x="260" y="39" width="16" height="16" rx="2.5" fill="#10b981"/>
               <rect class="heat-cell" x="279" y="39" width="16" height="16" rx="2.5" fill="#34d399"/>
               <rect class="heat-cell" x="298" y="39" width="16" height="16" rx="2.5" fill="#a7f3d0"/>
-              <!-- fila 3 (Belgrano, Palermo zona norte) -->
               <rect class="heat-cell" x="184" y="58" width="16" height="16" rx="2.5" fill="#d1fae5"/>
               <rect class="heat-cell" x="203" y="58" width="16" height="16" rx="2.5" fill="#6ee7b7"/>
               <rect class="heat-cell" x="222" y="58" width="16" height="16" rx="2.5" fill="#34d399"/>
@@ -196,7 +226,6 @@
               <rect class="heat-cell" x="279" y="58" width="16" height="16" rx="2.5" fill="#10b981"/>
               <rect class="heat-cell" x="298" y="58" width="16" height="16" rx="2.5" fill="#34d399"/>
               <rect class="heat-cell" x="317" y="58" width="16" height="16" rx="2.5" fill="#86efac"/>
-              <!-- fila 4 -->
               <rect class="heat-cell" x="165" y="77" width="16" height="16" rx="2.5" fill="#d1fae5"/>
               <rect class="heat-cell" x="184" y="77" width="16" height="16" rx="2.5" fill="#a7f3d0"/>
               <rect class="heat-cell" x="203" y="77" width="16" height="16" rx="2.5" fill="#34d399"/>
@@ -207,7 +236,6 @@
               <rect class="heat-cell" x="298" y="77" width="16" height="16" rx="2.5" fill="#10b981"/>
               <rect class="heat-cell" x="317" y="77" width="16" height="16" rx="2.5" fill="#34d399"/>
               <rect class="heat-cell" x="336" y="77" width="16" height="16" rx="2.5" fill="#a7f3d0"/>
-              <!-- fila 5 (Palermo/Recoleta zona caliente) -->
               <rect class="heat-cell" x="146" y="96" width="16" height="16" rx="2.5" fill="#d1fae5"/>
               <rect class="heat-cell" x="165" y="96" width="16" height="16" rx="2.5" fill="#86efac"/>
               <rect class="heat-cell" x="184" y="96" width="16" height="16" rx="2.5" fill="#34d399"/>
@@ -219,7 +247,6 @@
               <rect class="heat-cell" x="298" y="96" width="16" height="16" rx="2.5" fill="#10b981"/>
               <rect class="heat-cell" x="317" y="96" width="16" height="16" rx="2.5" fill="#34d399"/>
               <rect class="heat-cell" x="336" y="96" width="16" height="16" rx="2.5" fill="#86efac"/>
-              <!-- fila 6 -->
               <rect class="heat-cell" x="127" y="115" width="16" height="16" rx="2.5" fill="#ecfdf5"/>
               <rect class="heat-cell" x="146" y="115" width="16" height="16" rx="2.5" fill="#a7f3d0"/>
               <rect class="heat-cell" x="165" y="115" width="16" height="16" rx="2.5" fill="#6ee7b7"/>
@@ -232,7 +259,6 @@
               <rect class="heat-cell" x="298" y="115" width="16" height="16" rx="2.5" fill="#34d399"/>
               <rect class="heat-cell" x="317" y="115" width="16" height="16" rx="2.5" fill="#6ee7b7"/>
               <rect class="heat-cell" x="336" y="115" width="16" height="16" rx="2.5" fill="#a7f3d0"/>
-              <!-- fila 7 (Caballito/Villa Crespo) -->
               <rect class="heat-cell" x="108" y="134" width="16" height="16" rx="2.5" fill="#ecfdf5"/>
               <rect class="heat-cell" x="127" y="134" width="16" height="16" rx="2.5" fill="#a7f3d0"/>
               <rect class="heat-cell" x="146" y="134" width="16" height="16" rx="2.5" fill="#6ee7b7"/>
@@ -245,7 +271,6 @@
               <rect class="heat-cell" x="279" y="134" width="16" height="16" rx="2.5" fill="#34d399"/>
               <rect class="heat-cell" x="298" y="134" width="16" height="16" rx="2.5" fill="#6ee7b7"/>
               <rect class="heat-cell" x="317" y="134" width="16" height="16" rx="2.5" fill="#a7f3d0"/>
-              <!-- fila 8 -->
               <rect class="heat-cell" x="108" y="153" width="16" height="16" rx="2.5" fill="#ecfdf5"/>
               <rect class="heat-cell" x="127" y="153" width="16" height="16" rx="2.5" fill="#d1fae5"/>
               <rect class="heat-cell" x="146" y="153" width="16" height="16" rx="2.5" fill="#a7f3d0"/>
@@ -257,101 +282,42 @@
               <rect class="heat-cell" x="260" y="153" width="16" height="16" rx="2.5" fill="#34d399"/>
               <rect class="heat-cell" x="279" y="153" width="16" height="16" rx="2.5" fill="#6ee7b7"/>
               <rect class="heat-cell" x="298" y="153" width="16" height="16" rx="2.5" fill="#a7f3d0"/>
-              <!-- fila 9 (Almagro/Boedo) -->
-              <rect class="heat-cell" x="127" y="172" width="16" height="16" rx="2.5" fill="#ecfdf5"/>
-              <rect class="heat-cell" x="146" y="172" width="16" height="16" rx="2.5" fill="#d1fae5"/>
-              <rect class="heat-cell" x="165" y="172" width="16" height="16" rx="2.5" fill="#a7f3d0"/>
-              <rect class="heat-cell" x="184" y="172" width="16" height="16" rx="2.5" fill="#a7f3d0"/>
-              <rect class="heat-cell" x="203" y="172" width="16" height="16" rx="2.5" fill="#6ee7b7"/>
-              <rect class="heat-cell" x="222" y="172" width="16" height="16" rx="2.5" fill="#34d399"/>
+              <rect class="heat-cell" x="127" y="172" width="16" height="16" rx="2.5" fill="#d1fae5"/>
+              <rect class="heat-cell" x="146" y="172" width="16" height="16" rx="2.5" fill="#a7f3d0"/>
+              <rect class="heat-cell" x="165" y="172" width="16" height="16" rx="2.5" fill="#86efac"/>
+              <rect class="heat-cell" x="184" y="172" width="16" height="16" rx="2.5" fill="#34d399"/>
+              <rect class="heat-cell" x="203" y="172" width="16" height="16" rx="2.5" fill="#34d399"/>
+              <rect class="heat-cell" x="222" y="172" width="16" height="16" rx="2.5" fill="#10b981"/>
               <rect class="heat-cell" x="241" y="172" width="16" height="16" rx="2.5" fill="#34d399"/>
-              <rect class="heat-cell" x="260" y="172" width="16" height="16" rx="2.5" fill="#6ee7b7"/>
+              <rect class="heat-cell" x="260" y="172" width="16" height="16" rx="2.5" fill="#86efac"/>
               <rect class="heat-cell" x="279" y="172" width="16" height="16" rx="2.5" fill="#a7f3d0"/>
-              <!-- fila 10 (Flores/San Cristóbal) -->
-              <rect class="heat-cell" x="146" y="191" width="16" height="16" rx="2.5" fill="#ecfdf5"/>
-              <rect class="heat-cell" x="165" y="191" width="16" height="16" rx="2.5" fill="#d1fae5"/>
-              <rect class="heat-cell" x="184" y="191" width="16" height="16" rx="2.5" fill="#a7f3d0"/>
-              <rect class="heat-cell" x="203" y="191" width="16" height="16" rx="2.5" fill="#a7f3d0"/>
-              <rect class="heat-cell" x="222" y="191" width="16" height="16" rx="2.5" fill="#86efac"/>
+              <rect class="heat-cell" x="146" y="191" width="16" height="16" rx="2.5" fill="#d1fae5"/>
+              <rect class="heat-cell" x="165" y="191" width="16" height="16" rx="2.5" fill="#a7f3d0"/>
+              <rect class="heat-cell" x="184" y="191" width="16" height="16" rx="2.5" fill="#6ee7b7"/>
+              <rect class="heat-cell" x="203" y="191" width="16" height="16" rx="2.5" fill="#34d399"/>
+              <rect class="heat-cell" x="222" y="191" width="16" height="16" rx="2.5" fill="#6ee7b7"/>
               <rect class="heat-cell" x="241" y="191" width="16" height="16" rx="2.5" fill="#a7f3d0"/>
-              <rect class="heat-cell" x="260" y="191" width="16" height="16" rx="2.5" fill="#d1fae5"/>
-              <!-- fila 11 -->
-              <rect class="heat-cell" x="146" y="210" width="16" height="16" rx="2.5" fill="#ecfdf5"/>
-              <rect class="heat-cell" x="165" y="210" width="16" height="16" rx="2.5" fill="#d1fae5"/>
-              <rect class="heat-cell" x="184" y="210" width="16" height="16" rx="2.5" fill="#a7f3d0"/>
-              <rect class="heat-cell" x="203" y="210" width="16" height="16" rx="2.5" fill="#86efac"/>
-              <rect class="heat-cell" x="222" y="210" width="16" height="16" rx="2.5" fill="#a7f3d0"/>
-              <rect class="heat-cell" x="241" y="210" width="16" height="16" rx="2.5" fill="#d1fae5"/>
-              <!-- fila 12 (Pompeya/Soldati) -->
-              <rect class="heat-cell" x="165" y="229" width="16" height="16" rx="2.5" fill="#ecfdf5"/>
-              <rect class="heat-cell" x="184" y="229" width="16" height="16" rx="2.5" fill="#d1fae5"/>
-              <rect class="heat-cell" x="203" y="229" width="16" height="16" rx="2.5" fill="#d1fae5"/>
-              <rect class="heat-cell" x="222" y="229" width="16" height="16" rx="2.5" fill="#ecfdf5"/>
-              <!-- fila 13 (Riachuelo) -->
-              <rect class="heat-cell" x="184" y="248" width="16" height="16" rx="2.5" fill="#ecfdf5"/>
-              <rect class="heat-cell" x="203" y="248" width="16" height="16" rx="2.5" fill="#ecfdf5"/>
+            </g>
+            <!-- pin -->
+            <circle cx="260" cy="115" r="6" fill="#0a0a0a"/>
+            <circle cx="260" cy="115" r="11" fill="#0a0a0a" fill-opacity="0.18"/>
+            <g transform="translate(190,82)">
+              <rect x="0" y="0" width="138" height="34" rx="6" fill="#0a0a0a"/>
+              <text x="69" y="22" text-anchor="middle" font-size="13" font-weight="700" fill="#fff" font-family="Inter">Esta propiedad · USD 248k</text>
             </g>
           </svg>
-
-          <!-- pin: Palermo (zona caliente centro-izq) -->
-          <div class="absolute" style="left:45%; top:28%;">
-            <div class="w-2.5 h-2.5 rounded-full bg-ink ring-[3px] ring-white shadow"></div>
-            <div class="mt-2 translate-x-[-110%] absolute bg-white rounded-lg border border-line shadow-md px-3 py-2 whitespace-nowrap">
-              <div class="text-[12px] font-semibold flex items-center gap-2">Palermo <span class="text-accent text-[10px]">+1.7%</span></div>
-              <div class="text-[11px] text-muted">USD <span class="font-mono">3.420</span> /m²</div>
-            </div>
-          </div>
-          <!-- pin: Recoleta -->
-          <div class="absolute" style="left:60%; top:21%;">
-            <div class="w-2.5 h-2.5 rounded-full bg-ink ring-[3px] ring-white shadow"></div>
-            <div class="mt-2 -translate-x-1/2 left-1/2 absolute bg-white rounded-lg border border-line shadow-md px-3 py-2 whitespace-nowrap">
-              <div class="text-[12px] font-semibold flex items-center gap-2">Recoleta <span class="text-accent text-[10px]">+1.4%</span></div>
-              <div class="text-[11px] text-muted">USD <span class="font-mono">3.180</span> /m²</div>
-            </div>
-          </div>
-          <!-- pin: Belgrano -->
-          <div class="absolute" style="left:73%; top:13%;">
-            <div class="w-2.5 h-2.5 rounded-full bg-ink ring-[3px] ring-white shadow"></div>
-            <div class="mt-2 -translate-x-1/4 absolute bg-white rounded-lg border border-line shadow-md px-3 py-2 whitespace-nowrap">
-              <div class="text-[12px] font-semibold flex items-center gap-2">Belgrano <span class="text-accent text-[10px]">+0.9%</span></div>
-              <div class="text-[11px] text-muted">USD <span class="font-mono">2.890</span> /m²</div>
-            </div>
-          </div>
-          <!-- pin: Caballito (centro) -->
-          <div class="absolute" style="left:36%; top:50%;">
-            <div class="w-2.5 h-2.5 rounded-full bg-ink ring-[3px] ring-white shadow"></div>
-            <div class="mt-2 translate-x-[-110%] absolute bg-white rounded-lg border border-line shadow-md px-3 py-2 whitespace-nowrap">
-              <div class="text-[12px] font-semibold flex items-center gap-2">Caballito <span class="text-accent text-[10px]">+0.2%</span></div>
-              <div class="text-[11px] text-muted">USD <span class="font-mono">2.140</span> /m²</div>
-            </div>
-          </div>
-          <!-- pin: San Telmo (sur) -->
-          <div class="absolute" style="left:54%; top:71%;">
-            <div class="w-2.5 h-2.5 rounded-full bg-ink ring-[3px] ring-white shadow"></div>
-            <div class="mt-2 -translate-x-1/4 absolute bg-white rounded-lg border border-line shadow-md px-3 py-2 whitespace-nowrap">
-              <div class="text-[12px] font-semibold flex items-center gap-2">San Telmo <span class="text-red-500 text-[10px]">-0.4%</span></div>
-              <div class="text-[11px] text-muted">USD <span class="font-mono">1.640</span> /m²</div>
-            </div>
-          </div>
         </div>
 
-        <!-- legend -->
-        <div class="mt-5 pt-4 border-t border-line flex items-center justify-between text-[11px] text-muted">
-          <div class="flex items-center gap-3">
-            <span class="font-mono">USD 1.400</span>
-            <div class="flex gap-0.5">
-              <span class="inline-block w-5 h-2.5 rounded-sm" style="background:#ecfdf5"></span>
-              <span class="inline-block w-5 h-2.5 rounded-sm" style="background:#d1fae5"></span>
-              <span class="inline-block w-5 h-2.5 rounded-sm" style="background:#a7f3d0"></span>
-              <span class="inline-block w-5 h-2.5 rounded-sm" style="background:#6ee7b7"></span>
-              <span class="inline-block w-5 h-2.5 rounded-sm" style="background:#34d399"></span>
-              <span class="inline-block w-5 h-2.5 rounded-sm" style="background:#10b981"></span>
-              <span class="inline-block w-5 h-2.5 rounded-sm" style="background:#059669"></span>
-              <span class="inline-block w-5 h-2.5 rounded-sm" style="background:#047857"></span>
-            </div>
-            <span class="font-mono">3.500+</span>
+        <div class="mt-4 pt-4 border-t border-line/70 flex items-center gap-3 justify-between text-[11px] sm:text-[12px]">
+          <div class="text-muted">menor</div>
+          <div class="flex gap-1">
+            <span class="w-4 h-3 sm:w-5 sm:h-4 rounded-sm bg-[#ecfdf5]"></span>
+            <span class="w-4 h-3 sm:w-5 sm:h-4 rounded-sm bg-[#a7f3d0]"></span>
+            <span class="w-4 h-3 sm:w-5 sm:h-4 rounded-sm bg-[#34d399]"></span>
+            <span class="w-4 h-3 sm:w-5 sm:h-4 rounded-sm bg-[#10b981]"></span>
+            <span class="w-4 h-3 sm:w-5 sm:h-4 rounded-sm bg-[#047857]"></span>
           </div>
-          <div class="font-mono">Fuente · TasAR Index v3.2</div>
+          <div class="text-muted">mayor</div>
         </div>
       </div>
     </div>
@@ -359,38 +325,38 @@
 </section>
 
 <!-- REPORTE DE MAYO -->
-<section id="reporte" class="border-b border-line py-24 bg-white">
-  <div class="max-w-[1280px] mx-auto px-8">
-    <div class="flex items-start justify-between flex-wrap gap-8 mb-10">
-      <h2 class="font-display font-extrabold text-5xl md:text-6xl tracking-tight leading-[1.0]">Reporte de mayo</h2>
-      <p class="max-w-[360px] text-[14px] text-ink/70 leading-[1.6]">Nuestro informe insignia. 38 páginas. Disponible para suscriptores el primer día hábil del mes.</p>
+<section id="reporte" class="border-b border-line py-12 sm:py-16 lg:py-24 bg-white">
+  <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="flex items-start justify-between flex-wrap gap-6 sm:gap-8 mb-8 sm:mb-10">
+      <h2 class="font-display font-extrabold text-3xl sm:text-4xl md:text-5xl lg:text-6xl tracking-tight leading-[1.0]">Reporte de mayo</h2>
+      <p class="max-w-[360px] text-[13px] sm:text-[14px] text-ink/70 leading-[1.6]">Nuestro informe insignia. 38 páginas. Disponible para suscriptores el primer día hábil del mes.</p>
     </div>
 
-    <div class="rounded-2xl bg-[#f4f6f5] p-10 grid lg:grid-cols-2 gap-10 items-center">
+    <div class="rounded-2xl bg-[#f4f6f5] p-5 sm:p-8 lg:p-10 grid lg:grid-cols-2 gap-8 lg:gap-10 items-center">
       <div>
-        <div class="text-[11px] font-semibold tracking-[0.2em] text-muted uppercase mb-6">Mayo 2026 · Edición #047 · CABA + GBA</div>
-        <h3 class="font-display font-extrabold text-[40px] leading-[1.05] tracking-tight">
+        <div class="text-[10px] sm:text-[11px] font-semibold tracking-[0.2em] text-muted uppercase mb-4 sm:mb-6">Mayo 2026 · Edición #047 · CABA + GBA</div>
+        <h3 class="font-display font-extrabold text-[26px] sm:text-[32px] lg:text-[40px] leading-[1.05] tracking-tight">
           El interanual cierra en <span class="text-accent">+14,2%</span> y el m² supera los <span class="text-accent">USD 2.800</span> por primera vez desde 2019.
         </h3>
-        <ul class="mt-7 space-y-2.5 text-[14px] text-ink/80">
+        <ul class="mt-5 sm:mt-7 space-y-2 sm:space-y-2.5 text-[13px] sm:text-[14px] text-ink/80">
           <li class="flex gap-3"><span class="text-accent mt-1.5 w-1.5 h-1.5 rounded-full bg-accent shrink-0"></span>Recuperación liderada por Palermo, Recoleta y Núñez.</li>
           <li class="flex gap-3"><span class="text-accent mt-1.5 w-1.5 h-1.5 rounded-full bg-accent shrink-0"></span>Caída sostenida del stock activo (−3.4% mes a mes).</li>
           <li class="flex gap-3"><span class="text-accent mt-1.5 w-1.5 h-1.5 rounded-full bg-accent shrink-0"></span>Permisos de obra nueva crecen 12% interanual.</li>
           <li class="flex gap-3"><span class="text-accent mt-1.5 w-1.5 h-1.5 rounded-full bg-accent shrink-0"></span>Análisis de cap rate por barrio y tipología.</li>
         </ul>
-        <div class="mt-8 flex flex-wrap gap-3">
-          <a href="#" class="px-5 py-3 rounded-full bg-accent text-white text-[14px] font-semibold hover:bg-accentDark transition">Descargar PDF (suscriptores)</a>
-          <a href="#" class="px-5 py-3 rounded-full bg-white border border-line text-ink text-[14px] font-semibold hover:border-ink transition">Ver resumen gratuito</a>
+        <div class="mt-6 sm:mt-8 flex flex-wrap gap-3">
+          <a href="#" class="px-4 sm:px-5 py-2.5 sm:py-3 rounded-full bg-accent text-white text-[13px] sm:text-[14px] font-semibold hover:bg-accentDark transition">Descargar PDF (suscriptores)</a>
+          <a href="#" class="px-4 sm:px-5 py-2.5 sm:py-3 rounded-full bg-white border border-line text-ink text-[13px] sm:text-[14px] font-semibold hover:border-ink transition">Ver resumen gratuito</a>
         </div>
       </div>
 
-      <div class="bg-white rounded-2xl border border-line p-7">
-        <div class="flex items-start justify-between mb-5">
-          <div>
-            <div class="text-[11px] tracking-[0.18em] text-muted uppercase font-semibold">Índice TasAR · CABA</div>
-            <div class="mt-2 flex items-baseline gap-2"><span class="font-display font-extrabold text-5xl tracking-tight">2.847</span><span class="text-[13px] text-muted">USD/m²</span></div>
+      <div class="bg-white rounded-2xl border border-line p-5 sm:p-7">
+        <div class="flex items-start justify-between mb-4 sm:mb-5 gap-3">
+          <div class="min-w-0">
+            <div class="text-[10px] sm:text-[11px] tracking-[0.18em] text-muted uppercase font-semibold">Índice TasAR · CABA</div>
+            <div class="mt-2 flex items-baseline gap-2 flex-wrap"><span class="font-display font-extrabold text-3xl sm:text-4xl lg:text-5xl tracking-tight">2.847</span><span class="text-[12px] sm:text-[13px] text-muted">USD/m²</span></div>
           </div>
-          <span class="text-accent text-[14px] font-semibold">+14,2% YoY</span>
+          <span class="text-accent text-[12px] sm:text-[14px] font-semibold shrink-0">+14,2% YoY</span>
         </div>
         <svg viewBox="0 0 480 200" class="w-full h-auto">
           <defs>
@@ -414,10 +380,10 @@
 </section>
 
 <!-- LOGOS / TRUST -->
-<section class="border-b border-line py-10 bg-white">
-  <div class="max-w-[1280px] mx-auto px-8 flex flex-wrap items-center justify-between gap-6">
-    <div class="text-[12px] uppercase tracking-[0.18em] text-muted font-semibold">Datos integrados de</div>
-    <div class="flex flex-wrap items-center gap-x-10 gap-y-3 text-ink/55 text-[15px] font-semibold">
+<section class="border-b border-line py-8 sm:py-10 bg-white">
+  <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 flex flex-wrap items-center justify-center sm:justify-between gap-4 sm:gap-6">
+    <div class="text-[11px] sm:text-[12px] uppercase tracking-[0.18em] text-muted font-semibold text-center sm:text-left">Datos integrados de</div>
+    <div class="flex flex-wrap items-center justify-center gap-x-5 sm:gap-x-10 gap-y-2 sm:gap-y-3 text-ink/55 text-[13px] sm:text-[15px] font-semibold">
       <span>ZonaProp</span>
       <span>Argenprop</span>
       <span>MercadoLibre</span>
@@ -430,150 +396,153 @@
 </section>
 
 <!-- PRODUCTOS -->
-<section id="productos" class="border-b border-line py-24">
-  <div class="max-w-[1280px] mx-auto px-8">
-    <div class="flex items-end justify-between mb-14 gap-8 flex-wrap">
+<section id="productos" class="border-b border-line py-12 sm:py-16 lg:py-24">
+  <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="flex items-end justify-between mb-10 sm:mb-14 gap-6 sm:gap-8 flex-wrap">
       <div>
-        <div class="text-[12px] font-semibold tracking-[0.18em] text-muted uppercase mb-4">Productos</div>
-        <h2 class="font-display font-extrabold text-5xl md:text-6xl tracking-tight max-w-[720px] leading-[1.0]">
+        <div class="text-[11px] sm:text-[12px] font-semibold tracking-[0.18em] text-muted uppercase mb-3 sm:mb-4">Productos</div>
+        <h2 class="font-display font-extrabold text-3xl sm:text-4xl md:text-5xl lg:text-6xl tracking-tight max-w-[720px] leading-[1.0]">
           Cuatro herramientas. <span class="text-accent">Un único índice.</span>
         </h2>
       </div>
-      <p class="max-w-[420px] text-ink/70 text-[16px] leading-[1.6]">
+      <p class="max-w-[420px] text-ink/70 text-[14px] sm:text-[16px] leading-[1.6]">
         Todo lo que necesita un tasador, un broker o un desarrollador para fundamentar un precio frente a su cliente — basado en el mismo dataset que actualizamos cada 24 horas.
       </p>
     </div>
 
-    <div class="grid md:grid-cols-2 gap-px bg-line border border-line rounded-2xl overflow-hidden">
-      <!-- card 1 -->
-      <div class="bg-white p-10">
-        <div class="flex items-start justify-between mb-6">
-          <div class="w-12 h-12 rounded-xl bg-accentTint flex items-center justify-center">
-            <!-- icono chat -->
+    <div class="grid sm:grid-cols-2 gap-px bg-line border border-line rounded-2xl overflow-hidden">
+      <div class="bg-white p-6 sm:p-8 lg:p-10">
+        <div class="flex items-start justify-between mb-4 sm:mb-6">
+          <div class="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-accentTint flex items-center justify-center">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
           </div>
-          <span class="text-[11px] font-semibold tracking-widest uppercase text-muted">01</span>
+          <span class="text-[10px] sm:text-[11px] font-semibold tracking-widest uppercase text-muted">01</span>
         </div>
-        <h3 class="font-display font-bold text-2xl mb-3 tracking-tight">Tasador AI conversacional</h3>
-        <p class="text-ink/70 text-[15px] leading-[1.65] mb-6">
+        <h3 class="font-display font-bold text-xl sm:text-2xl mb-2 sm:mb-3 tracking-tight">Tasador AI conversacional</h3>
+        <p class="text-ink/70 text-[14px] sm:text-[15px] leading-[1.65] mb-4 sm:mb-6">
           Chat con Claude entrenado sobre tu dataset: pegás los datos de una propiedad y devuelve un rango USD/m² fundamentado, con comparables y justificación textual lista para informe.
         </p>
-        <a href="#tasador" class="text-[14px] font-semibold text-accent inline-flex items-center gap-1.5 hover:gap-2.5 transition-all">Probar el chat →</a>
+        <a href="#tasador" class="text-[13px] sm:text-[14px] font-semibold text-accent inline-flex items-center gap-1.5 hover:gap-2.5 transition-all">Probar el chat →</a>
       </div>
-      <!-- card 2 -->
-      <div class="bg-white p-10">
-        <div class="flex items-start justify-between mb-6">
-          <div class="w-12 h-12 rounded-xl bg-accentTint flex items-center justify-center">
+      <div class="bg-white p-6 sm:p-8 lg:p-10">
+        <div class="flex items-start justify-between mb-4 sm:mb-6">
+          <div class="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-accentTint flex items-center justify-center">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
           </div>
-          <span class="text-[11px] font-semibold tracking-widest uppercase text-muted">02</span>
+          <span class="text-[10px] sm:text-[11px] font-semibold tracking-widest uppercase text-muted">02</span>
         </div>
-        <h3 class="font-display font-bold text-2xl mb-3 tracking-tight">Mapa de calor en vivo</h3>
-        <p class="text-ink/70 text-[15px] leading-[1.65] mb-6">
+        <h3 class="font-display font-bold text-xl sm:text-2xl mb-2 sm:mb-3 tracking-tight">Mapa de calor en vivo</h3>
+        <p class="text-ink/70 text-[14px] sm:text-[15px] leading-[1.65] mb-4 sm:mb-6">
           Visualización geoespacial con USD/m² por barrio, edificio y tipología. Filtros por antigüedad, ambientes y cocheras. Datos refrescados cada 24h.
         </p>
-        <a href="#mapa" class="text-[14px] font-semibold text-accent inline-flex items-center gap-1.5 hover:gap-2.5 transition-all">Ver el mapa →</a>
+        <a href="#mapa" class="text-[13px] sm:text-[14px] font-semibold text-accent inline-flex items-center gap-1.5 hover:gap-2.5 transition-all">Ver el mapa →</a>
       </div>
-      <!-- card 3 -->
-      <div class="bg-white p-10">
-        <div class="flex items-start justify-between mb-6">
-          <div class="w-12 h-12 rounded-xl bg-accentTint flex items-center justify-center">
+      <div class="bg-white p-6 sm:p-8 lg:p-10">
+        <div class="flex items-start justify-between mb-4 sm:mb-6">
+          <div class="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-accentTint flex items-center justify-center">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
           </div>
-          <span class="text-[11px] font-semibold tracking-widest uppercase text-muted">03</span>
+          <span class="text-[10px] sm:text-[11px] font-semibold tracking-widest uppercase text-muted">03</span>
         </div>
-        <h3 class="font-display font-bold text-2xl mb-3 tracking-tight">Tasaciones colaborativas</h3>
-        <p class="text-ink/70 text-[15px] leading-[1.65] mb-6">
+        <h3 class="font-display font-bold text-xl sm:text-2xl mb-2 sm:mb-3 tracking-tight">Tasaciones colaborativas</h3>
+        <p class="text-ink/70 text-[14px] sm:text-[15px] leading-[1.65] mb-4 sm:mb-6">
           Múltiples tasadores opinan sobre la misma propiedad. Se calcula consenso, dispersión y outliers. Comentarios y revisión por matrícula, listo para fideicomisos y bancos.
         </p>
-        <a href="#colaboracion" class="text-[14px] font-semibold text-accent inline-flex items-center gap-1.5 hover:gap-2.5 transition-all">Ver flujo →</a>
+        <a href="#colaboracion" class="text-[13px] sm:text-[14px] font-semibold text-accent inline-flex items-center gap-1.5 hover:gap-2.5 transition-all">Ver flujo →</a>
       </div>
-      <!-- card 4 -->
-      <div class="bg-white p-10">
-        <div class="flex items-start justify-between mb-6">
-          <div class="w-12 h-12 rounded-xl bg-accentTint flex items-center justify-center">
+      <div class="bg-white p-6 sm:p-8 lg:p-10">
+        <div class="flex items-start justify-between mb-4 sm:mb-6">
+          <div class="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-accentTint flex items-center justify-center">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
           </div>
-          <span class="text-[11px] font-semibold tracking-widest uppercase text-muted">04</span>
+          <span class="text-[10px] sm:text-[11px] font-semibold tracking-widest uppercase text-muted">04</span>
         </div>
-        <h3 class="font-display font-bold text-2xl mb-3 tracking-tight">Scraping on-demand</h3>
-        <p class="text-ink/70 text-[15px] leading-[1.65] mb-6">
+        <h3 class="font-display font-bold text-xl sm:text-2xl mb-2 sm:mb-3 tracking-tight">Scraping on-demand</h3>
+        <p class="text-ink/70 text-[14px] sm:text-[15px] leading-[1.65] mb-4 sm:mb-6">
           Pegás un link de ZonaProp, Argenprop o MercadoLibre y TasAR descarga, extrae y normaliza la ficha. Lo cruzamos con nuestro índice al instante.
         </p>
-        <a href="#scraping" class="text-[14px] font-semibold text-accent inline-flex items-center gap-1.5 hover:gap-2.5 transition-all">Probar con un link →</a>
+        <a href="#scraping" class="text-[13px] sm:text-[14px] font-semibold text-accent inline-flex items-center gap-1.5 hover:gap-2.5 transition-all">Probar con un link →</a>
       </div>
     </div>
   </div>
 </section>
 
 <!-- TASADOR INTERACTIVO -->
-<section id="tasador-form" class="border-b border-line py-24 bg-[#f8faf9]">
-  <div class="max-w-[1280px] mx-auto px-8">
-    <div class="mb-12">
-      <div class="text-[12px] font-semibold tracking-[0.18em] text-muted uppercase mb-4">Tasador</div>
-      <h2 class="font-display font-extrabold text-5xl md:text-6xl tracking-tight leading-[1.0] max-w-[820px]">
+<section id="tasador-form" class="border-b border-line py-12 sm:py-16 lg:py-24 bg-[#f8faf9]">
+  <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="mb-8 sm:mb-12">
+      <div class="text-[11px] sm:text-[12px] font-semibold tracking-[0.18em] text-muted uppercase mb-3 sm:mb-4">Tasador</div>
+      <h2 class="font-display font-extrabold text-3xl sm:text-4xl md:text-5xl lg:text-6xl tracking-tight leading-[1.0] max-w-[820px]">
         Cargá los datos. <span class="text-accent">Obtené el valor.</span>
       </h2>
     </div>
-    <div class="grid lg:grid-cols-2 gap-6">
-      <div class="rounded-2xl bg-[#f4f6f5] p-8">
-        <div class="text-[11px] tracking-[0.2em] font-semibold text-muted uppercase mb-6">Datos del inmueble</div>
-        <div class="space-y-5">
+    <div class="grid lg:grid-cols-2 gap-5 sm:gap-6">
+      <div class="rounded-2xl bg-[#f4f6f5] p-5 sm:p-7 lg:p-8">
+        <div class="text-[10px] sm:text-[11px] tracking-[0.2em] font-semibold text-muted uppercase mb-5 sm:mb-6">Datos del inmueble</div>
+        <div class="space-y-4 sm:space-y-5">
           <div>
-            <label class="block text-[11px] font-semibold tracking-[0.16em] uppercase text-ink/70 mb-2">Dirección</label>
-            <input type="text" value="Av. Santa Fe 2350, Recoleta" class="w-full bg-white border border-line rounded-xl px-4 py-3 text-[14px] font-mono outline-none focus:border-ink"/>
+            <label class="block text-[10px] sm:text-[11px] font-semibold tracking-[0.16em] uppercase text-ink/70 mb-2">Dirección</label>
+            <input type="text" value="Av. Santa Fe 2350, Recoleta" class="w-full bg-white border border-line rounded-xl px-3 sm:px-4 py-3 text-[14px] font-mono outline-none focus:border-ink"/>
           </div>
-          <div class="grid grid-cols-2 gap-4">
+          <div class="grid grid-cols-2 gap-3 sm:gap-4">
             <div>
-              <label class="block text-[11px] font-semibold tracking-[0.16em] uppercase text-ink/70 mb-2">Sup. cubierta</label>
-              <input type="text" value="82 m²" class="w-full bg-white border border-line rounded-xl px-4 py-3 text-[14px] font-mono outline-none focus:border-ink"/>
+              <label class="block text-[10px] sm:text-[11px] font-semibold tracking-[0.16em] uppercase text-ink/70 mb-2">Sup. cubierta</label>
+              <input type="text" value="82 m²" class="w-full bg-white border border-line rounded-xl px-3 sm:px-4 py-3 text-[14px] font-mono outline-none focus:border-ink"/>
             </div>
             <div>
-              <label class="block text-[11px] font-semibold tracking-[0.16em] uppercase text-ink/70 mb-2">Ambientes</label>
-              <input type="text" value="3" class="w-full bg-white border border-line rounded-xl px-4 py-3 text-[14px] font-mono outline-none focus:border-ink"/>
+              <label class="block text-[10px] sm:text-[11px] font-semibold tracking-[0.16em] uppercase text-ink/70 mb-2">Ambientes</label>
+              <input type="text" value="3" class="w-full bg-white border border-line rounded-xl px-3 sm:px-4 py-3 text-[14px] font-mono outline-none focus:border-ink"/>
             </div>
           </div>
           <div>
-            <label class="block text-[11px] font-semibold tracking-[0.16em] uppercase text-ink/70 mb-2">Tipo</label>
-            <div class="flex flex-wrap gap-2">
-              <button class="px-4 py-2 rounded-full bg-ink text-white text-[13px] font-semibold">Departamento</button>
-              <button class="px-4 py-2 rounded-full bg-white border border-line text-[13px] font-semibold hover:border-ink">PH</button>
-              <button class="px-4 py-2 rounded-full bg-white border border-line text-[13px] font-semibold hover:border-ink">Casa</button>
-              <button class="px-4 py-2 rounded-full bg-white border border-line text-[13px] font-semibold hover:border-ink">Oficina</button>
-              <button class="px-4 py-2 rounded-full bg-white border border-line text-[13px] font-semibold hover:border-ink">Local</button>
+            <label class="block text-[10px] sm:text-[11px] font-semibold tracking-[0.16em] uppercase text-ink/70 mb-2">Tipo</label>
+            <div class="flex flex-wrap gap-1.5 sm:gap-2">
+              <button class="px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-ink text-white text-[12px] sm:text-[13px] font-semibold">Departamento</button>
+              <button class="px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-white border border-line text-[12px] sm:text-[13px] font-semibold hover:border-ink">PH</button>
+              <button class="px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-white border border-line text-[12px] sm:text-[13px] font-semibold hover:border-ink">Casa</button>
+              <button class="px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-white border border-line text-[12px] sm:text-[13px] font-semibold hover:border-ink">Oficina</button>
+              <button class="px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-white border border-line text-[12px] sm:text-[13px] font-semibold hover:border-ink">Local</button>
             </div>
           </div>
           <div>
-            <label class="block text-[11px] font-semibold tracking-[0.16em] uppercase text-ink/70 mb-2">Estado</label>
-            <div class="flex flex-wrap gap-2">
-              <button class="px-4 py-2 rounded-full bg-white border border-line text-[13px] font-semibold hover:border-ink">A estrenar</button>
-              <button class="px-4 py-2 rounded-full bg-white border border-line text-[13px] font-semibold hover:border-ink">Muy bueno</button>
-              <button class="px-4 py-2 rounded-full bg-ink text-white text-[13px] font-semibold">Bueno</button>
-              <button class="px-4 py-2 rounded-full bg-white border border-line text-[13px] font-semibold hover:border-ink">A reciclar</button>
+            <label class="block text-[10px] sm:text-[11px] font-semibold tracking-[0.16em] uppercase text-ink/70 mb-2">Estado</label>
+            <div class="flex flex-wrap gap-1.5 sm:gap-2">
+              <button class="px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-white border border-line text-[12px] sm:text-[13px] font-semibold hover:border-ink">A estrenar</button>
+              <button class="px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-white border border-line text-[12px] sm:text-[13px] font-semibold hover:border-ink">Muy bueno</button>
+              <button class="px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-ink text-white text-[12px] sm:text-[13px] font-semibold">Bueno</button>
+              <button class="px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-white border border-line text-[12px] sm:text-[13px] font-semibold hover:border-ink">A reciclar</button>
             </div>
           </div>
-          <button class="mt-2 px-6 py-3 rounded-xl bg-accent text-white text-[14px] font-semibold hover:bg-accentDark transition flex items-center gap-2">Calcular valor <span>→</span></button>
+          <button class="mt-2 px-5 sm:px-6 py-3 rounded-xl bg-accent text-white text-[14px] font-semibold hover:bg-accentDark transition flex items-center gap-2 w-full sm:w-auto justify-center sm:justify-start">Calcular valor <span>→</span></button>
         </div>
       </div>
 
-      <div class="rounded-2xl bg-[#f4f6f5] p-8">
-        <div class="text-[11px] tracking-[0.2em] font-semibold text-muted uppercase mb-6">Estimación TasAR</div>
-        <div class="font-display font-extrabold text-[64px] leading-none tracking-tight">USD 248.300</div>
-        <div class="mt-3 text-[13px] font-mono text-ink/70">Rango probable · USD 232.000 — 264.500 · ±6,5%</div>
-        <div class="mt-7">
-          <div class="flex items-center justify-between text-[12px] mb-2">
-            <span class="text-ink/70">Confianza del modelo</span>
-            <span class="font-semibold">87%</span>
+      <div class="rounded-2xl bg-[#f4f6f5] p-5 sm:p-7 lg:p-8">
+        <div class="text-[10px] sm:text-[11px] tracking-[0.2em] font-semibold text-muted uppercase mb-5 sm:mb-6">Resultado</div>
+        <div class="bg-white rounded-xl p-5 sm:p-6 border border-line">
+          <div class="flex items-baseline justify-between mb-1 gap-3 flex-wrap">
+            <div class="font-mono text-[10px] sm:text-[11px] text-muted">USD/m²</div>
+            <div class="text-accent text-[11px] sm:text-[12px] font-semibold">Confianza 87%</div>
           </div>
-          <div class="h-2.5 bg-white rounded-full overflow-hidden border border-line">
-            <div class="h-full bg-accent" style="width:87%"></div>
+          <div class="font-display font-extrabold text-3xl sm:text-4xl lg:text-5xl tracking-tight">3.028</div>
+          <div class="text-[12px] sm:text-[13px] text-muted mt-1">+4,8% vs mediana zona</div>
+          <div class="mt-5 sm:mt-6 pt-5 sm:pt-6 border-t border-line">
+            <div class="flex items-center justify-between text-[12px] sm:text-[13px]">
+              <div class="text-muted">Estimación final</div>
+              <div class="font-mono text-[11px] sm:text-[12px] text-muted">USD 232k – 264k</div>
+            </div>
+            <div class="font-display font-extrabold text-2xl sm:text-3xl lg:text-4xl tracking-tight mt-2">USD 248.300</div>
           </div>
-        </div>
-        <div class="mt-7 pt-6 border-t border-line/70 space-y-3 text-[13px]">
-          <div class="flex justify-between"><span class="text-ink/70">Valor por m²</span><span class="font-mono">USD 3.028 /m²</span></div>
-          <div class="flex justify-between"><span class="text-ink/70">Comparables usados</span><span class="font-mono">34 unidades</span></div>
-          <div class="flex justify-between"><span class="text-ink/70">Tiempo medio de venta</span><span class="font-mono">78 días</span></div>
-          <div class="flex justify-between"><span class="text-ink/70">Cap rate estimado</span><span class="font-mono">4,8% anual</span></div>
+          <div class="mt-5 sm:mt-6 pt-5 sm:pt-6 border-t border-line">
+            <div class="text-[10px] sm:text-[11px] tracking-[0.18em] font-semibold uppercase text-muted mb-3">34 comparables · radio 800m</div>
+            <div class="space-y-2 text-[12px] sm:text-[13px]">
+              <div class="flex justify-between"><span class="truncate pr-2">Av. Callao 1280 · 85m²</span> <span class="font-mono shrink-0">USD 254.900</span></div>
+              <div class="flex justify-between"><span class="truncate pr-2">Junín 1480 · 80m²</span> <span class="font-mono shrink-0">USD 244.000</span></div>
+              <div class="flex justify-between"><span class="truncate pr-2">Av. Las Heras 1840 · 78m²</span> <span class="font-mono shrink-0">USD 252.840</span></div>
+              <div class="flex justify-between"><span class="truncate pr-2">Vicente López 1920 · 88m²</span> <span class="font-mono shrink-0">USD 251.680</span></div>
+              <div class="flex justify-between text-muted text-[11px] sm:text-[12px] mt-1">… 30 comparables más</div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -581,64 +550,63 @@
 </section>
 
 <!-- TASADOR AI: mock de chat -->
-<section id="tasador" class="border-b border-line py-24 bg-accentTint/40">
-  <div class="max-w-[1280px] mx-auto px-8 grid lg:grid-cols-2 gap-16 items-center">
+<section id="tasador" class="border-b border-line py-12 sm:py-16 lg:py-24 bg-accentTint/40">
+  <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
     <div>
-      <div class="text-[12px] font-semibold tracking-[0.18em] text-accentDark uppercase mb-4">Tasador AI</div>
-      <h2 class="font-display font-extrabold text-5xl md:text-6xl tracking-tight leading-[1.0]">
+      <div class="text-[11px] sm:text-[12px] font-semibold tracking-[0.18em] text-accentDark uppercase mb-3 sm:mb-4">Tasador AI</div>
+      <h2 class="font-display font-extrabold text-3xl sm:text-4xl md:text-5xl lg:text-6xl tracking-tight leading-[1.0]">
         Una tasación,<br/>
         <span class="text-accent">en 12 segundos.</span>
       </h2>
-      <p class="mt-6 text-ink/75 text-[16px] leading-[1.65] max-w-[520px]">
+      <p class="mt-5 sm:mt-6 text-ink/75 text-[14px] sm:text-[16px] leading-[1.65] max-w-[520px]">
         Describí la propiedad en lenguaje natural. El modelo busca comparables reales, aplica ajustes por antigüedad, estado y orientación, y devuelve un rango con margen de confianza.
       </p>
-      <ul class="mt-8 space-y-3 text-[15px] text-ink/80">
+      <ul class="mt-6 sm:mt-8 space-y-2.5 sm:space-y-3 text-[13px] sm:text-[15px] text-ink/80">
         <li class="flex gap-3"><span class="text-accent mt-1">●</span>Comparables linkeados al aviso original</li>
         <li class="flex gap-3"><span class="text-accent mt-1">●</span>Justificación textual lista para informe PDF</li>
         <li class="flex gap-3"><span class="text-accent mt-1">●</span>Sin API keys: usa Claude headless contra tu workspace</li>
       </ul>
     </div>
 
-    <!-- chat mock -->
     <div class="rounded-2xl bg-white border border-line shadow-[0_30px_60px_-30px_rgba(0,0,0,0.2)] overflow-hidden">
-      <div class="px-5 py-3 border-b border-line flex items-center gap-2 bg-white">
+      <div class="px-4 sm:px-5 py-3 border-b border-line flex items-center gap-2 bg-white">
         <span class="w-2.5 h-2.5 rounded-full bg-red-400"></span>
         <span class="w-2.5 h-2.5 rounded-full bg-yellow-400"></span>
         <span class="w-2.5 h-2.5 rounded-full bg-green-400"></span>
-        <span class="ml-3 text-[12px] text-muted font-mono">tasador.tasar.app</span>
+        <span class="ml-2 sm:ml-3 text-[11px] sm:text-[12px] text-muted font-mono truncate">tasador.tasar.app</span>
       </div>
-      <div class="p-6 space-y-4 text-[14px]">
+      <div class="p-4 sm:p-6 space-y-4 text-[13px] sm:text-[14px]">
         <div class="flex justify-end">
-          <div class="max-w-[80%] bg-ink text-white rounded-2xl rounded-br-md px-4 py-3 leading-relaxed">
+          <div class="max-w-[88%] bg-ink text-white rounded-2xl rounded-br-md px-4 py-3 leading-relaxed">
             Departamento 3 ambientes, 78 m², Palermo, sobre Costa Rica al 4800, 8 años, balcón, cochera. ¿Cuánto vale?
           </div>
         </div>
         <div class="flex">
-          <div class="max-w-[88%] bg-accentTint rounded-2xl rounded-bl-md px-4 py-3 leading-relaxed text-ink/90">
+          <div class="max-w-[95%] bg-accentTint rounded-2xl rounded-bl-md px-4 py-3 leading-relaxed text-ink/90">
             <div class="font-semibold mb-2">Rango sugerido: <span class="text-accentDark">USD 268.000 — 285.000</span></div>
-            <div class="text-[13px] text-ink/70">
+            <div class="text-[12px] sm:text-[13px] text-ink/70">
               Mediana Palermo Soho 3 amb 8a: <span class="font-mono">3.480 USD/m²</span>. Tu propiedad está <span class="text-accentDark font-medium">+1.7%</span> sobre la mediana del corredor por la cochera y la orientación.
             </div>
             <div class="mt-3 grid grid-cols-3 gap-2">
               <div class="bg-white rounded-lg px-2 py-2 text-center border border-line">
-                <div class="text-[10px] text-muted uppercase tracking-wider">Min</div>
-                <div class="font-semibold font-mono text-[13px]">3.380</div>
+                <div class="text-[9px] sm:text-[10px] text-muted uppercase tracking-wider">Min</div>
+                <div class="font-semibold font-mono text-[12px] sm:text-[13px]">3.380</div>
               </div>
               <div class="bg-white rounded-lg px-2 py-2 text-center border border-accent">
-                <div class="text-[10px] text-muted uppercase tracking-wider">Med</div>
-                <div class="font-semibold font-mono text-[13px]">3.480</div>
+                <div class="text-[9px] sm:text-[10px] text-muted uppercase tracking-wider">Med</div>
+                <div class="font-semibold font-mono text-[12px] sm:text-[13px]">3.480</div>
               </div>
               <div class="bg-white rounded-lg px-2 py-2 text-center border border-line">
-                <div class="text-[10px] text-muted uppercase tracking-wider">Max</div>
-                <div class="font-semibold font-mono text-[13px]">3.650</div>
+                <div class="text-[9px] sm:text-[10px] text-muted uppercase tracking-wider">Max</div>
+                <div class="font-semibold font-mono text-[12px] sm:text-[13px]">3.650</div>
               </div>
             </div>
-            <div class="text-[11px] text-muted mt-3">Basado en 142 comparables · n=78 con cochera · IC 95%</div>
+            <div class="text-[10px] sm:text-[11px] text-muted mt-3">Basado en 142 comparables · n=78 con cochera · IC 95%</div>
           </div>
         </div>
         <div class="flex items-center gap-2 pt-2">
-          <div class="flex-1 border border-line rounded-full px-4 py-2.5 text-[13px] text-muted">Preguntale otra cosa…</div>
-          <button class="w-10 h-10 rounded-full bg-accent text-white flex items-center justify-center hover:bg-accentDark transition">→</button>
+          <div class="flex-1 border border-line rounded-full px-3 sm:px-4 py-2.5 text-[12px] sm:text-[13px] text-muted truncate">Preguntale otra cosa…</div>
+          <button class="w-10 h-10 rounded-full bg-accent text-white flex items-center justify-center hover:bg-accentDark transition shrink-0">→</button>
         </div>
       </div>
     </div>
@@ -646,70 +614,69 @@
 </section>
 
 <!-- COLABORACIÓN -->
-<section id="colaboracion" class="border-b border-line py-24">
-  <div class="max-w-[1280px] mx-auto px-8 grid lg:grid-cols-12 gap-16 items-center">
+<section id="colaboracion" class="border-b border-line py-12 sm:py-16 lg:py-24">
+  <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 grid lg:grid-cols-12 gap-10 lg:gap-16 items-center">
     <div class="lg:col-span-5">
-      <div class="text-[12px] font-semibold tracking-[0.18em] text-muted uppercase mb-4">Multi-tasador</div>
-      <h2 class="font-display font-extrabold text-5xl md:text-6xl tracking-tight leading-[1.0]">
+      <div class="text-[11px] sm:text-[12px] font-semibold tracking-[0.18em] text-muted uppercase mb-3 sm:mb-4">Multi-tasador</div>
+      <h2 class="font-display font-extrabold text-3xl sm:text-4xl md:text-5xl lg:text-6xl tracking-tight leading-[1.0]">
         Consenso,<br/>no opiniones <span class="text-accent">sueltas.</span>
       </h2>
-      <p class="mt-6 text-ink/75 text-[16px] leading-[1.65] max-w-[460px]">
+      <p class="mt-5 sm:mt-6 text-ink/75 text-[14px] sm:text-[16px] leading-[1.65] max-w-[460px]">
         Para bancos, fideicomisos y oficinas grandes: hasta 7 tasadores opinan sobre la misma propiedad. TasAR calcula mediana, dispersión y marca outliers automáticamente.
       </p>
     </div>
 
     <div class="lg:col-span-7">
-      <div class="rounded-2xl border border-line p-8 bg-white">
-        <div class="flex items-center justify-between mb-6">
-          <div>
-            <div class="font-display font-bold text-xl tracking-tight">Av. Libertador 5832 · 4 amb</div>
-            <div class="text-[12px] text-muted mt-1">Belgrano · 124 m² · 12 años · 1 cochera</div>
+      <div class="rounded-2xl border border-line p-5 sm:p-7 lg:p-8 bg-white">
+        <div class="flex items-start sm:items-center justify-between mb-5 sm:mb-6 gap-3 flex-wrap">
+          <div class="min-w-0">
+            <div class="font-display font-bold text-lg sm:text-xl tracking-tight truncate">Av. Libertador 5832 · 4 amb</div>
+            <div class="text-[11px] sm:text-[12px] text-muted mt-1">Belgrano · 124 m² · 12 años · 1 cochera</div>
           </div>
-          <span class="px-3 py-1 rounded-full bg-accentTint text-accentDark text-[11px] font-semibold tracking-wider uppercase">Consenso 92%</span>
+          <span class="px-3 py-1 rounded-full bg-accentTint text-accentDark text-[10px] sm:text-[11px] font-semibold tracking-wider uppercase shrink-0">Consenso 92%</span>
         </div>
 
         <!-- opiniones bars -->
-        <div class="space-y-3">
-          <!-- helper template -->
-          <div class="flex items-center gap-4">
-            <div class="w-32 text-[13px] font-medium">M. Álvarez <span class="text-muted text-[11px] font-normal">MAT-2310</span></div>
+        <div class="space-y-2.5 sm:space-y-3">
+          <div class="flex items-center gap-2 sm:gap-4">
+            <div class="w-20 sm:w-32 text-[12px] sm:text-[13px] font-medium truncate"><span class="block sm:inline">M. Álvarez</span> <span class="text-muted text-[10px] sm:text-[11px] font-normal hidden sm:inline">MAT-2310</span></div>
             <div class="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden"><div class="h-full bg-accent" style="width:72%"></div></div>
-            <div class="w-24 text-right text-[13px] font-mono">USD 412k</div>
+            <div class="w-16 sm:w-24 text-right text-[11px] sm:text-[13px] font-mono shrink-0">412k</div>
           </div>
-          <div class="flex items-center gap-4">
-            <div class="w-32 text-[13px] font-medium">J. Pérez <span class="text-muted text-[11px] font-normal">MAT-4019</span></div>
+          <div class="flex items-center gap-2 sm:gap-4">
+            <div class="w-20 sm:w-32 text-[12px] sm:text-[13px] font-medium truncate"><span class="block sm:inline">J. Pérez</span> <span class="text-muted text-[10px] sm:text-[11px] font-normal hidden sm:inline">MAT-4019</span></div>
             <div class="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden"><div class="h-full bg-accent" style="width:78%"></div></div>
-            <div class="w-24 text-right text-[13px] font-mono">USD 425k</div>
+            <div class="w-16 sm:w-24 text-right text-[11px] sm:text-[13px] font-mono shrink-0">425k</div>
           </div>
-          <div class="flex items-center gap-4">
-            <div class="w-32 text-[13px] font-medium">S. Rinaldi <span class="text-muted text-[11px] font-normal">MAT-5678</span></div>
+          <div class="flex items-center gap-2 sm:gap-4">
+            <div class="w-20 sm:w-32 text-[12px] sm:text-[13px] font-medium truncate"><span class="block sm:inline">S. Rinaldi</span> <span class="text-muted text-[10px] sm:text-[11px] font-normal hidden sm:inline">MAT-5678</span></div>
             <div class="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden"><div class="h-full bg-accent" style="width:75%"></div></div>
-            <div class="w-24 text-right text-[13px] font-mono">USD 418k</div>
+            <div class="w-16 sm:w-24 text-right text-[11px] sm:text-[13px] font-mono shrink-0">418k</div>
           </div>
-          <div class="flex items-center gap-4">
-            <div class="w-32 text-[13px] font-medium">D. Costa <span class="text-muted text-[11px] font-normal">MAT-7102</span></div>
+          <div class="flex items-center gap-2 sm:gap-4">
+            <div class="w-20 sm:w-32 text-[12px] sm:text-[13px] font-medium truncate"><span class="block sm:inline">D. Costa</span> <span class="text-muted text-[10px] sm:text-[11px] font-normal hidden sm:inline">MAT-7102</span></div>
             <div class="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden"><div class="h-full bg-red-300" style="width:92%"></div></div>
-            <div class="w-24 text-right text-[13px] font-mono text-red-500">USD 478k <span class="text-[10px] uppercase">outlier</span></div>
+            <div class="w-16 sm:w-24 text-right text-[11px] sm:text-[13px] font-mono text-red-500 shrink-0">478k</div>
           </div>
-          <div class="flex items-center gap-4">
-            <div class="w-32 text-[13px] font-medium">TasAR AI <span class="text-muted text-[11px] font-normal">índice</span></div>
+          <div class="flex items-center gap-2 sm:gap-4">
+            <div class="w-20 sm:w-32 text-[12px] sm:text-[13px] font-medium truncate"><span class="block sm:inline">TasAR AI</span> <span class="text-muted text-[10px] sm:text-[11px] font-normal hidden sm:inline">índice</span></div>
             <div class="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden"><div class="h-full bg-ink" style="width:74%"></div></div>
-            <div class="w-24 text-right text-[13px] font-mono">USD 416k</div>
+            <div class="w-16 sm:w-24 text-right text-[11px] sm:text-[13px] font-mono shrink-0">416k</div>
           </div>
         </div>
 
-        <div class="mt-6 pt-6 border-t border-line grid grid-cols-3 gap-6">
+        <div class="mt-5 sm:mt-6 pt-5 sm:pt-6 border-t border-line grid grid-cols-3 gap-3 sm:gap-6">
           <div>
-            <div class="text-[11px] text-muted uppercase tracking-widest font-semibold mb-1.5">Mediana</div>
-            <div class="font-display font-bold text-2xl">USD 418k</div>
+            <div class="text-[9px] sm:text-[11px] text-muted uppercase tracking-widest font-semibold mb-1.5">Mediana</div>
+            <div class="font-display font-bold text-lg sm:text-xl lg:text-2xl">USD 418k</div>
           </div>
           <div>
-            <div class="text-[11px] text-muted uppercase tracking-widest font-semibold mb-1.5">Dispersión</div>
-            <div class="font-display font-bold text-2xl">±3.1%</div>
+            <div class="text-[9px] sm:text-[11px] text-muted uppercase tracking-widest font-semibold mb-1.5">Dispersión</div>
+            <div class="font-display font-bold text-lg sm:text-xl lg:text-2xl">±3.1%</div>
           </div>
           <div>
-            <div class="text-[11px] text-muted uppercase tracking-widest font-semibold mb-1.5">Outliers</div>
-            <div class="font-display font-bold text-2xl text-red-500">1</div>
+            <div class="text-[9px] sm:text-[11px] text-muted uppercase tracking-widest font-semibold mb-1.5">Outliers</div>
+            <div class="font-display font-bold text-lg sm:text-xl lg:text-2xl text-red-500">1</div>
           </div>
         </div>
       </div>
@@ -718,11 +685,10 @@
 </section>
 
 <!-- CTA FINAL -->
-<section id="equipos" class="py-20 bg-white">
-  <div class="max-w-[1280px] mx-auto px-8">
-    <div class="relative rounded-2xl bg-[#0d1411] text-white p-14 md:p-20 overflow-hidden">
-      <!-- grid decorativo abajo-derecha -->
-      <svg class="absolute right-8 bottom-8 opacity-90" width="220" height="120" viewBox="0 0 220 120" aria-hidden="true">
+<section id="equipos" class="py-12 sm:py-16 lg:py-20 bg-white">
+  <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="relative rounded-2xl bg-[#0d1411] text-white p-7 sm:p-10 md:p-14 lg:p-20 overflow-hidden">
+      <svg class="absolute right-4 sm:right-8 bottom-4 sm:bottom-8 opacity-90 w-32 sm:w-56 h-auto" viewBox="0 0 220 120" aria-hidden="true">
         <g fill="#10b981">
           <rect x="0"   y="60" width="22" height="22" opacity=".15" rx="2"/>
           <rect x="28"  y="60" width="22" height="22" opacity=".25" rx="2"/>
@@ -740,20 +706,20 @@
         </g>
       </svg>
 
-      <div class="relative grid lg:grid-cols-12 gap-12 items-end">
+      <div class="relative grid lg:grid-cols-12 gap-8 lg:gap-12 items-end">
         <div class="lg:col-span-7">
-          <div class="text-[11px] font-semibold tracking-[0.22em] text-white/50 uppercase mb-7">Empezá hoy</div>
-          <h2 class="font-display font-extrabold text-[64px] md:text-[88px] leading-[0.95] tracking-tight">
+          <div class="text-[10px] sm:text-[11px] font-semibold tracking-[0.22em] text-white/50 uppercase mb-4 sm:mb-7">Empezá hoy</div>
+          <h2 class="font-display font-extrabold text-[34px] xs:text-[42px] sm:text-[54px] md:text-[64px] lg:text-[80px] xl:text-[88px] leading-[0.95] tracking-tight">
             Tomá decisiones<br/>con datos, <span class="text-accent">no con<br/>intuición.</span>
           </h2>
         </div>
         <div class="lg:col-span-5">
-          <p class="text-white/70 text-[15px] leading-[1.65] max-w-[400px]">
+          <p class="text-white/70 text-[14px] sm:text-[15px] leading-[1.65] max-w-[400px]">
             30 días de prueba para empresas. Acceso a 3 reportes históricos y a la API en modo lectura.
           </p>
-          <div class="mt-8 flex flex-wrap gap-3">
-            <a href="#demo" class="px-6 py-3.5 rounded-full bg-accent text-white text-[15px] font-semibold hover:bg-accentDark transition flex items-center gap-2">Pedir demo <span>→</span></a>
-            <a href="#planes" class="px-6 py-3.5 rounded-full bg-white text-ink text-[15px] font-semibold hover:bg-white/90 transition">Ver planes</a>
+          <div class="mt-6 sm:mt-8 flex flex-wrap gap-3">
+            <a href="#demo" class="px-5 sm:px-6 py-3 sm:py-3.5 rounded-full bg-accent text-white text-[14px] sm:text-[15px] font-semibold hover:bg-accentDark transition flex items-center gap-2">Pedir demo <span>→</span></a>
+            <a href="#planes" class="px-5 sm:px-6 py-3 sm:py-3.5 rounded-full bg-white text-ink text-[14px] sm:text-[15px] font-semibold hover:bg-white/90 transition">Ver planes</a>
           </div>
         </div>
       </div>
@@ -762,8 +728,8 @@
 </section>
 
 <!-- FOOTER -->
-<footer class="py-14 bg-white">
-  <div class="max-w-[1280px] mx-auto px-8 flex flex-wrap items-start justify-between gap-10">
+<footer class="py-10 sm:py-14 bg-white">
+  <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row md:flex-wrap items-start justify-between gap-8 md:gap-10">
     <div class="max-w-[300px]">
       <div class="flex items-center gap-3 mb-4">
         <svg width="26" height="26" viewBox="0 0 34 34" class="shrink-0">
@@ -780,10 +746,10 @@
       </div>
       <p class="text-[13px] text-muted leading-[1.6]">El índice de precios del mercado inmobiliario argentino. Datos crudos, sin opinión.</p>
     </div>
-    <div class="grid grid-cols-4 gap-12 text-[13px]">
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8 md:gap-12 text-[13px] w-full md:w-auto">
       <div>
-        <div class="text-[11px] tracking-[0.22em] font-semibold mb-4 text-ink uppercase">Producto</div>
-        <ul class="space-y-2 text-ink/65">
+        <div class="text-[10px] sm:text-[11px] tracking-[0.22em] font-semibold mb-3 sm:mb-4 text-ink uppercase">Producto</div>
+        <ul class="space-y-1.5 sm:space-y-2 text-ink/65">
           <li><a href="#tasador">Tasador AI</a></li>
           <li><a href="#mapa">Mapa de calor</a></li>
           <li><a href="#colaboracion">Multi-tasador</a></li>
@@ -791,8 +757,8 @@
         </ul>
       </div>
       <div>
-        <div class="text-[11px] tracking-[0.22em] font-semibold mb-4 text-ink uppercase">Empresa</div>
-        <ul class="space-y-2 text-ink/65">
+        <div class="text-[10px] sm:text-[11px] tracking-[0.22em] font-semibold mb-3 sm:mb-4 text-ink uppercase">Empresa</div>
+        <ul class="space-y-1.5 sm:space-y-2 text-ink/65">
           <li><a href="#">Sobre TasAR</a></li>
           <li><a href="#">Metodología</a></li>
           <li><a href="#">Prensa</a></li>
@@ -800,8 +766,8 @@
         </ul>
       </div>
       <div>
-        <div class="text-[11px] tracking-[0.22em] font-semibold mb-4 text-ink uppercase">Recursos</div>
-        <ul class="space-y-2 text-ink/65">
+        <div class="text-[10px] sm:text-[11px] tracking-[0.22em] font-semibold mb-3 sm:mb-4 text-ink uppercase">Recursos</div>
+        <ul class="space-y-1.5 sm:space-y-2 text-ink/65">
           <li><a href="#">Reportes</a></li>
           <li><a href="#">API docs</a></li>
           <li><a href="#">Glosario</a></li>
@@ -809,8 +775,8 @@
         </ul>
       </div>
       <div>
-        <div class="text-[11px] tracking-[0.22em] font-semibold mb-4 text-ink uppercase">Contacto</div>
-        <ul class="space-y-2 text-ink/65">
+        <div class="text-[10px] sm:text-[11px] tracking-[0.22em] font-semibold mb-3 sm:mb-4 text-ink uppercase">Contacto</div>
+        <ul class="space-y-1.5 sm:space-y-2 text-ink/65">
           <li><a href="mailto:hola@tasar.app">hola@tasar.app</a></li>
           <li><a href="#">Soporte</a></li>
           <li><a href="#">Términos</a></li>
@@ -819,7 +785,7 @@
       </div>
     </div>
   </div>
-  <div class="max-w-[1280px] mx-auto px-8 mt-12 pt-6 border-t border-line flex flex-wrap items-center justify-between gap-4 text-[12px] text-muted">
+  <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 mt-10 sm:mt-12 pt-5 sm:pt-6 border-t border-line flex flex-col sm:flex-row sm:flex-wrap items-start sm:items-center justify-between gap-2 sm:gap-4 text-[11px] sm:text-[12px] text-muted">
     <div>© 2026 TasAR · Buenos Aires, Argentina</div>
     <div>TasAR Index v3.2 · Actualizado 14 may 2026</div>
   </div>

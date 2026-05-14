@@ -9,6 +9,7 @@ redirects = []
 [build]
 publish = "D:\\Code\\ACM\\landing"
 publishOrigin = "default"
+base = "D:\\Code\\ACM\\landing"
 
 [build.environment]
 
