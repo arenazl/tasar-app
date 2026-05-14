@@ -57,10 +57,12 @@ async def create_appraisal(
     if not res.scalar_one_or_none():
         raise HTTPException(404, "Propiedad inexistente")
 
+    # Filtrar keys que ya no existen en el modelo refactorizado
+    payload = body.model_dump(exclude={"market_study_id"})
     a = Appraisal(
         workspace_id=user.workspace_id,
         created_by=user.id,
-        **body.model_dump(),
+        **payload,
     )
     db.add(a)
     await db.commit()
