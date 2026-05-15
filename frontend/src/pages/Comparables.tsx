@@ -130,11 +130,12 @@ export default function Comparables() {
           <div className="text-xs uppercase tracking-wider font-bold mb-3" style={{ color: theme.textSecondary }}>
             Distribución geográfica · zona {zone}
           </div>
-          <div className="grid grid-cols-16 gap-1">
+          <div className="gap-1"
+            style={{ display: 'grid', gridTemplateColumns: 'repeat(16, minmax(0, 1fr))' }}>
             {Array.from({ length: 12 * 16 }).map((_, i) => {
               const r = Math.floor(i / 16), c = i % 16;
               const d = Math.sqrt((r - 6) ** 2 + (c - 8) ** 2);
-              if (d > 7) return <div key={i} />;
+              if (d > 7) return <div key={i} className="aspect-square" />;
               return <div key={i} className="aspect-square rounded"
                 style={{ background: theme.primary, opacity: Math.max(0.2, 1 - d / 7) }} />;
             })}
