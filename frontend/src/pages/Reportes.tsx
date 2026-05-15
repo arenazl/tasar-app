@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Download, Filter, Plus, Share2, X, Check } from 'lucide-react';
+import { Download, Filter, Plus, Share2, X, Check, BookOpen } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { api } from '../services/api';
 import { useTheme } from '../contexts/ThemeContext';
@@ -131,7 +132,12 @@ export default function Reportes() {
 
 
 function ReportCard({ report, isNew, theme }: { report: Report; isNew: boolean; theme: any }) {
-  const open = () => {
+  const navigate = useNavigate();
+
+  const read = () => navigate(`/reportes/${report.id}`);
+
+  const openPdf = (e: React.MouseEvent) => {
+    e.stopPropagation();
     if (report.pdf_url) {
       window.open(report.pdf_url, '_blank');
     } else {
@@ -140,8 +146,9 @@ function ReportCard({ report, isNew, theme }: { report: Report; isNew: boolean; 
     }
   };
 
-  const share = async () => {
-    const url = `${window.location.origin}/reportes#${report.code}`;
+  const share = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const url = `${window.location.origin}/reportes/${report.id}`;
     const text = `${report.code} · ${MONTHS[report.period_month]} ${report.period_year} — TasAR`;
     if (navigator.share) {
       try {
@@ -158,7 +165,8 @@ function ReportCard({ report, isNew, theme }: { report: Report; isNew: boolean; 
   };
 
   return (
-    <div className="rounded-xl overflow-hidden flex flex-col transition-all hover:scale-[1.01] hover:shadow-xl"
+    <div onClick={read}
+      className="rounded-xl overflow-hidden flex flex-col transition-all hover:scale-[1.01] hover:shadow-xl cursor-pointer active:scale-[0.99]"
       style={{ background: theme.card, border: `1px solid ${theme.border}` }}>
       <div className="relative px-5 py-8" style={{ background: theme.sidebar, color: '#fff' }}>
         <div className="flex items-center justify-between mb-12">
@@ -206,9 +214,15 @@ function ReportCard({ report, isNew, theme }: { report: Report; isNew: boolean; 
       </div>
 
       <div className="px-5 pb-4 flex gap-2">
-        <button onClick={open} className="flex-1 px-3 py-2 rounded-lg text-xs font-bold transition-all active:scale-95"
-          style={{ background: theme.success, color: '#fff' }}>
-          Abrir PDF
+        <button onClick={(e) => { e.stopPropagation(); read(); }}
+          className="flex-1 px-3 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all active:scale-95"
+          style={{ background: theme.primary, color: theme.primaryText }}>
+          <BookOpen className="h-3.5 w-3.5" /> Leer
+        </button>
+        <button onClick={openPdf} aria-label="Descargar PDF"
+          className="px-3 py-2 rounded-lg text-xs transition-all active:scale-95"
+          style={{ background: theme.backgroundSecondary, color: theme.textSecondary, border: `1px solid ${theme.border}` }}>
+          <Download className="h-3.5 w-3.5" />
         </button>
         <button onClick={share} aria-label="Compartir"
           className="px-3 py-2 rounded-lg text-xs transition-all active:scale-95"

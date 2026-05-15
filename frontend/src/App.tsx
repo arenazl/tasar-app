@@ -19,6 +19,7 @@ import Configuracion from './pages/Configuracion';
 import Mercado from './pages/Mercado';
 import Comparables from './pages/Comparables';
 import Reportes from './pages/Reportes';
+import EstudioEditorial from './pages/EstudioEditorial';
 import Pipeline from './pages/Pipeline';
 import Clientes from './pages/Clientes';
 
@@ -45,6 +46,7 @@ export default function App() {
                   <Route path="/mercado" element={<Mercado />} />
                   <Route path="/comparables" element={<Comparables />} />
                   <Route path="/reportes" element={<Reportes />} />
+                  <Route path="/reportes/:id" element={<EstudioEditorial />} />
                   <Route path="/mapa" element={<MapaCalor />} />
                   <Route path="/tasador-ai" element={<TasadorAI />} />
                   <Route path="/configuracion" element={<Configuracion />} />

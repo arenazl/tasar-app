@@ -21,7 +21,7 @@ const MORE_ITEMS = [
   { to: '/propiedades', icon: Building2, label: 'Propiedades' },
   { to: '/pipeline', icon: Workflow, label: 'Pipeline' },
   { to: '/clientes', icon: Users, label: 'Clientes' },
-  { to: '/estudios', icon: ClipboardList, label: 'Estudios' },
+  { to: '/estudios', icon: ClipboardList, label: 'ACM' },
   { to: '/reportes', icon: FileText, label: 'Reportes' },
   { to: '/comparables', icon: Database, label: 'Comparables' },
   { to: '/configuracion', icon: Settings, label: 'Configuración' },

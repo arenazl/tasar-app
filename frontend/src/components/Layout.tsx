@@ -19,7 +19,7 @@ const NAV_TRABAJO = [
   { to: '/pipeline', icon: Workflow, label: 'Pipeline' },
   { to: '/clientes', icon: Users, label: 'Clientes' },
   { to: '/mercado', icon: MapIcon, label: 'Mercado' },
-  { to: '/estudios', icon: ClipboardList, label: 'Estudios' },
+  { to: '/estudios', icon: ClipboardList, label: 'ACM' },
   { to: '/reportes', icon: FileText, label: 'Reportes' },
 ];
 const NAV_DATOS = [

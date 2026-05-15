@@ -78,6 +78,11 @@ export const PAGE_HINTS: Record<string, PageHintConfig> = {
   },
   reportes: {
     title: 'Reportes',
-    body: 'Análisis mensual del mercado. Filtrá por año/tipo, generá custom por región o compartí links.',
+    body: 'Análisis mensual del mercado en formato editorial. Click en cualquier card para leer el documento completo.',
+    steps: [
+      { title: 'Leer', body: 'Click en la card abre el documento largo con headline, KPIs, gráficos y secciones.' },
+      { title: 'PDF', body: 'Botón download para guardar la versión imprimible.' },
+      { title: 'Custom', body: 'Generá un reporte para otra región o período desde el botón superior.' },
+    ],
   },
 };
