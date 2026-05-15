@@ -51,4 +51,33 @@ export const PAGE_HINTS: Record<string, PageHintConfig> = {
   },
   equipo: { title: 'Equipo', body: 'Tasadores y colaboradores con acceso a estudios y firmas múltiples.' },
   configuracion: { title: 'Configuración', body: 'Tema, notificaciones, seguridad.' },
+  clientes: {
+    title: 'Clientes',
+    body: 'CRM de tu workspace. Bancos, fondos, estudios e inmobiliarias que te encargan tasaciones.',
+    steps: [
+      { title: 'Tipo', body: 'Banco, fondo, estudio, inmobiliaria o particular — cada uno con color propio para identificar de un vistazo.' },
+      { title: 'Datos completos', body: 'Contacto, email, teléfono, CUIT/DNI y dirección quedan asociados a cada cliente.' },
+      { title: 'Cruce automático', body: 'El total de tasaciones por cliente se calcula leyendo el client_name de las appraisals.' },
+    ],
+  },
+  bandeja: {
+    title: 'Bandeja',
+    body: 'Inbox unificado: mensajes de clientes, alertas del sistema, menciones del equipo y recordatorios propios.',
+  },
+  pipeline: {
+    title: 'Pipeline',
+    body: 'Kanban del flujo: solicitada → análisis → borrador → firmada → entregada. Arrastrá cards entre columnas.',
+  },
+  mercado: {
+    title: 'Mercado',
+    body: 'Dashboard macro: índice TasAR, oferta activa, tiempo medio de venta, permisos. Selector de período afecta YoY/MoM.',
+  },
+  comparables: {
+    title: 'Comparables',
+    body: 'Búsqueda live en 18K+ listings con filtros por zona, radio, ambientes y condición. Exportable a CSV.',
+  },
+  reportes: {
+    title: 'Reportes',
+    body: 'Análisis mensual del mercado. Filtrá por año/tipo, generá custom por región o compartí links.',
+  },
 };

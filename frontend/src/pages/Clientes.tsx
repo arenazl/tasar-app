@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Users, Mail, Phone, Building2, FileCheck2, X, Save, Trash2, Edit3, MapPin } from 'lucide-react';
+import { Users, Mail, Phone, Building2, FileCheck2, X, Save, Trash2, Edit3, MapPin, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { api } from '../services/api';
 import { useTheme } from '../contexts/ThemeContext';
 import { ABMPage, ABMCard } from '../components/ui/ABMPage';
+import PageHint from '../components/ui/PageHint';
 
 interface Cliente {
   id: number;
@@ -94,17 +95,21 @@ export default function Clientes() {
   );
 
   return (
-    <>
+    <div className="p-6 lg:p-8 max-w-screen-2xl mx-auto animate-fade-in">
+      <PageHint pageId="clientes" />
       <ABMPage
         title="Clientes"
         icon={<Users className="h-5 w-5" />}
+        backLink="/"
         searchValue={search}
         onSearchChange={setSearch}
         searchPlaceholder="Buscar por nombre, contacto o email..."
         onAdd={() => setEditing({ type: 'particular' })}
         buttonLabel="Nuevo cliente"
+        buttonIcon={<Plus className="h-4 w-4" />}
         loading={loading}
-        isEmpty={filtered.length === 0}
+        isEmpty={!loading && filtered.length === 0}
+        emptyMessage={items.length === 0 ? 'Sin clientes todavía — creá tu primer cliente' : 'Sin resultados con esos filtros'}
         secondaryFilters={secondaryFilters}
       >
         {filtered.map((c, i) => {
@@ -171,7 +176,7 @@ export default function Clientes() {
       {editing && (
         <ClientModal client={editing} theme={theme} onClose={() => setEditing(null)} onSave={save} />
       )}
-    </>
+    </div>
   );
 }
 

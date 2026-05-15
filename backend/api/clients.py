@@ -34,6 +34,44 @@ class ClientOut(ClientIn):
         from_attributes = True
 
 
+def _type_from_name(name: str) -> str:
+    n = (name or "").lower()
+    if "banco" in n:
+        return "banco"
+    if "fondo" in n:
+        return "fondo"
+    if "estudio" in n or "aldao" in n:
+        return "estudio"
+    if "remax" in n or "argencapital" in n or "atlas" in n or "inmobiliaria" in n:
+        return "inmobiliaria"
+    return "particular"
+
+
+async def _autoseed_from_appraisals(db: AsyncSession, workspace_id: int) -> int:
+    """Si el workspace tiene appraisals pero la tabla clients esta vacia,
+    crea clientes derivados del client_name unico de las appraisals."""
+    rows = (await db.execute(
+        select(Appraisal.client_name, Appraisal.client_email)
+        .where(Appraisal.workspace_id == workspace_id, Appraisal.client_name.isnot(None))
+        .distinct()
+    )).all()
+    created = 0
+    for name, email in rows:
+        if not name:
+            continue
+        c = Client(
+            workspace_id=workspace_id,
+            name=name,
+            type=_type_from_name(name),
+            email=email,
+        )
+        db.add(c)
+        created += 1
+    if created:
+        await db.commit()
+    return created
+
+
 @router.get("", response_model=List[ClientOut])
 async def list_clients(
     db: AsyncSession = Depends(get_db),
@@ -42,6 +80,15 @@ async def list_clients(
     rows = (await db.execute(
         select(Client).where(Client.workspace_id == user.workspace_id).order_by(Client.name)
     )).scalars().all()
+
+    # Auto-seed: si la tabla esta vacia pero el workspace tiene appraisals con
+    # client_name, creamos los clientes derivados. Sucede una sola vez.
+    if not rows:
+        created = await _autoseed_from_appraisals(db, user.workspace_id)
+        if created:
+            rows = (await db.execute(
+                select(Client).where(Client.workspace_id == user.workspace_id).order_by(Client.name)
+            )).scalars().all()
 
     # Conteo de tasaciones por client_name (legacy: appraisals tienen client_name string)
     name_counts: dict = {}
