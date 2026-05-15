@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from pydantic import BaseModel, Field
 import re
 
 from core.database import get_db
@@ -10,6 +11,11 @@ from core.security import (
 from models.user import User
 from models.workspace import Workspace
 from schemas.auth import LoginRequest, RegisterRequest, TokenResponse, UserOut
+
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str = Field(min_length=6)
 
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
@@ -74,3 +80,16 @@ async def login(body: LoginRequest, db: AsyncSession = Depends(get_db)):
 @router.get("/me", response_model=UserOut)
 async def me(user: User = Depends(get_current_user)):
     return UserOut.model_validate(user)
+
+
+@router.post("/change-password")
+async def change_password(
+    body: ChangePasswordRequest,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    if not verify_password(body.current_password, user.password_hash):
+        raise HTTPException(400, "Contraseña actual incorrecta")
+    user.password_hash = hash_password(body.new_password)
+    await db.commit()
+    return {"ok": True}

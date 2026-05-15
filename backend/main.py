@@ -9,7 +9,7 @@ import models  # noqa: F401 — registra todos los modelos en Base.metadata
 from api import (
     auth, properties, market_studies, appraisals,
     collaboration, ai, scraping, heatmap, dashboard, settings as settings_api,
-    inbox, market, reports, ai_coach,
+    inbox, market, reports, ai_coach, clients,
 )
 
 
@@ -49,6 +49,7 @@ app.include_router(inbox.router)
 app.include_router(market.router)
 app.include_router(reports.router)
 app.include_router(ai_coach.router)
+app.include_router(clients.router)
 
 
 @app.get("/")

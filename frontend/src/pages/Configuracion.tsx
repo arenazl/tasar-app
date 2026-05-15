@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Settings, Palette, Bell, Lock, Check, Type, Sparkles, Zap, Brain, Gem } from 'lucide-react';
+import { Settings, Palette, Bell, Lock, Check, Type, Sparkles, Zap, Brain, Gem, X, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTheme } from '../contexts/ThemeContext';
 import { api } from '../services/api';
@@ -27,11 +27,25 @@ export default function Configuracion() {
   const [geminiModel, setGeminiModel] = useState<string>('gemini-2.5-flash');
   const [aiBusy, setAiBusy] = useState(false);
 
+  const [notifyEmail, setNotifyEmail] = useState(true);
+  const [notifyAppraisal, setNotifyAppraisal] = useState(true);
+  const [notifyComment, setNotifyComment] = useState(false);
+  const [showPwdModal, setShowPwdModal] = useState(false);
+
   useEffect(() => {
     api.get('/settings/ai_provider').then(r => { if (r.data?.value) setAiProvider(r.data.value); }).catch(() => {});
     api.get('/settings/claude_model').then(r => { if (r.data?.value) setClaudeModel(r.data.value); }).catch(() => {});
     api.get('/settings/gemini_model').then(r => { if (r.data?.value) setGeminiModel(r.data.value); }).catch(() => {});
+    api.get('/settings/notify_email').then(r => { if (r.data?.value != null) setNotifyEmail(r.data.value === 'true'); }).catch(() => {});
+    api.get('/settings/notify_appraisal').then(r => { if (r.data?.value != null) setNotifyAppraisal(r.data.value === 'true'); }).catch(() => {});
+    api.get('/settings/notify_comment').then(r => { if (r.data?.value != null) setNotifyComment(r.data.value === 'true'); }).catch(() => {});
   }, []);
+
+  const toggleNotify = (key: string, current: boolean, setter: (v: boolean) => void, label: string) => {
+    const next = !current;
+    setter(next);
+    saveSetting(key, String(next), label);
+  };
 
   const saveSetting = async (key: string, val: string, label: string) => {
     setAiBusy(true);
@@ -234,13 +248,118 @@ export default function Configuracion() {
           </div>
         </div>
 
-        <Item icon={Bell} title="Notificaciones" desc="Avisos por email cuando se firme una tasación o un colaborador comente">
-          <span className="text-sm" style={{ color: theme.textSecondary }}>Próximamente</span>
-        </Item>
+        {/* NOTIFICACIONES */}
+        <div className="p-5 rounded-xl" style={{ background: theme.card, border: `1px solid ${theme.border}` }}>
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: `${theme.primary}15` }}>
+              <Bell className="h-5 w-5" style={{ color: theme.primary }} />
+            </div>
+            <div className="flex-1">
+              <div className="font-semibold" style={{ color: theme.text }}>Notificaciones</div>
+              <div className="text-sm" style={{ color: theme.textSecondary }}>Cuándo querés recibir emails</div>
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Toggle theme={theme} label="Email general" desc="Resumen semanal del workspace" checked={notifyEmail}
+              onChange={() => toggleNotify('notify_email', notifyEmail, setNotifyEmail, 'Email')} />
+            <Toggle theme={theme} label="Tasaciones firmadas" desc="Cuando se firma una tasación" checked={notifyAppraisal}
+              onChange={() => toggleNotify('notify_appraisal', notifyAppraisal, setNotifyAppraisal, 'Tasaciones')} />
+            <Toggle theme={theme} label="Comentarios del equipo" desc="Cuando un colaborador comenta un estudio" checked={notifyComment}
+              onChange={() => toggleNotify('notify_comment', notifyComment, setNotifyComment, 'Comentarios')} />
+          </div>
+        </div>
+
+        {/* PASSWORD */}
         <Item icon={Lock} title="Cambiar contraseña" desc="Actualizá tu password">
-          <span className="text-sm" style={{ color: theme.textSecondary }}>Próximamente</span>
+          <button onClick={() => setShowPwdModal(true)}
+            className="px-4 py-2 rounded-lg text-sm font-medium transition-all active:scale-95"
+            style={{ background: theme.primary, color: theme.primaryText }}>
+            Cambiar
+          </button>
         </Item>
       </div>
+
+      {showPwdModal && <PasswordModal theme={theme} onClose={() => setShowPwdModal(false)} />}
+    </div>
+  );
+}
+
+function Toggle({ theme, label, desc, checked, onChange }: any) {
+  return (
+    <button onClick={onChange}
+      className="w-full flex items-center justify-between gap-4 p-3 rounded-lg transition-all active:scale-[0.99]"
+      style={{ background: theme.backgroundSecondary }}>
+      <div className="text-left min-w-0">
+        <div className="text-sm font-semibold" style={{ color: theme.text }}>{label}</div>
+        <div className="text-xs" style={{ color: theme.textSecondary }}>{desc}</div>
+      </div>
+      <div className="flex-shrink-0 w-11 h-6 rounded-full transition-all relative"
+        style={{ background: checked ? theme.primary : theme.border }}>
+        <div className="absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all"
+          style={{ left: checked ? 'calc(100% - 22px)' : '2px' }} />
+      </div>
+    </button>
+  );
+}
+
+function PasswordModal({ theme, onClose }: any) {
+  const [current, setCurrent] = useState('');
+  const [next, setNext] = useState('');
+  const [confirm, setConfirm] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const submit = async () => {
+    if (next.length < 6) { toast.error('Mínimo 6 caracteres'); return; }
+    if (next !== confirm) { toast.error('Las contraseñas no coinciden'); return; }
+    setLoading(true);
+    try {
+      await api.post('/auth/change-password', { current_password: current, new_password: next });
+      toast.success('Contraseña actualizada');
+      onClose();
+    } catch (e: any) {
+      toast.error(e.response?.data?.detail || 'Error al cambiar contraseña');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-in fade-in duration-200"
+      onClick={onClose} style={{ background: 'rgba(0,0,0,0.55)' }}>
+      <div onClick={e => e.stopPropagation()} className="w-full max-w-sm rounded-2xl shadow-2xl animate-in zoom-in-95 duration-200"
+        style={{ background: theme.card, border: `1px solid ${theme.border}` }}>
+        <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: `1px solid ${theme.border}` }}>
+          <h3 className="font-display font-black text-lg" style={{ color: theme.text }}>Cambiar contraseña</h3>
+          <button onClick={onClose} className="p-1.5 rounded-lg" style={{ color: theme.textSecondary }}><X className="h-4 w-4" /></button>
+        </div>
+        <div className="p-5 space-y-3">
+          <PwdField theme={theme} label="Contraseña actual" value={current} onChange={setCurrent} />
+          <PwdField theme={theme} label="Nueva contraseña" value={next} onChange={setNext} />
+          <PwdField theme={theme} label="Confirmar nueva" value={confirm} onChange={setConfirm} />
+        </div>
+        <div className="px-5 py-4 flex justify-end gap-2" style={{ borderTop: `1px solid ${theme.border}` }}>
+          <button onClick={onClose} disabled={loading}
+            className="px-4 py-2 rounded-lg text-sm font-medium"
+            style={{ background: theme.backgroundSecondary, color: theme.text }}>Cancelar</button>
+          <button onClick={submit} disabled={loading || !current || !next}
+            className="px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-1.5 disabled:opacity-50"
+            style={{ background: theme.primary, color: theme.primaryText }}>
+            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+            Guardar
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PwdField({ theme, label, value, onChange }: any) {
+  return (
+    <div>
+      <div className="text-xs font-bold uppercase tracking-wider mb-1.5" style={{ color: theme.textSecondary }}>{label}</div>
+      <input type="password" value={value} onChange={e => onChange(e.target.value)} autoComplete="off"
+        className="w-full px-3 py-2.5 rounded-lg focus:outline-none focus:ring-2"
+        style={{ background: theme.backgroundSecondary, color: theme.text, border: `1px solid ${theme.border}`, fontSize: '16px' }} />
     </div>
   );
 }

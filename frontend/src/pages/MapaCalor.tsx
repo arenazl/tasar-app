@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useMemo } from 'react';
 import L from 'leaflet';
 import 'leaflet.heat';
-import { ArrowLeft, TrendingUp, Map as MapIcon, Building2, ClipboardList, Database, List } from 'lucide-react';
+import { ArrowLeft, TrendingUp, Map as MapIcon, Building2, ClipboardList, Database, List, X, BarChart3, Users, Activity } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { api } from '../services/api';
 import { ModernSelect } from '../components/ui/ModernSelect';
@@ -56,6 +56,7 @@ export default function MapaCalor() {
   const [filterCity, setFilterCity] = useState('');
   const [sourceFilter, setSourceFilter] = useState<'all'|'props'|'comps'|'history'>('all');
   const [loaded, setLoaded] = useState(false);
+  const [drillZone, setDrillZone] = useState<any | null>(null);
 
   useEffect(() => {
     const q = new URLSearchParams();
@@ -153,8 +154,12 @@ export default function MapaCalor() {
             </div>
           )}
           {zones.sort((a, b) => b.avg_price_per_m2 - a.avg_price_per_m2).slice(0, 10).map((z, i) => (
-            <div key={i} className="p-3 rounded-lg transition-all hover:shadow-md"
-              style={{ background: theme.card, border: `1px solid ${theme.border}` }}>
+            <button key={i} onClick={() => setDrillZone({ ...z, rank: i + 1 })}
+              className="w-full p-3 rounded-lg transition-all hover:shadow-md hover:scale-[1.01] active:scale-95 text-left"
+              style={{
+                background: drillZone?.neighborhood === z.neighborhood ? `${theme.primary}10` : theme.card,
+                border: `1px solid ${drillZone?.neighborhood === z.neighborhood ? theme.primary : theme.border}`,
+              }}>
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-mono" style={{ color: theme.textSecondary }}>#{i + 1}</span>
                 <span className="text-xs" style={{ color: theme.textSecondary }}>{z.sample_size} muestras</span>
@@ -164,10 +169,117 @@ export default function MapaCalor() {
                 <span className="text-xs" style={{ color: theme.textSecondary }}>USD/m²</span>
                 <span className="font-bold" style={{ color: theme.text }}>{Math.round(z.avg_price_per_m2).toLocaleString()}</span>
               </div>
-            </div>
+            </button>
           ))}
         </div>
       </div>
+
+      {drillZone && <DrillPanel zone={drillZone} zones={zones} points={points} theme={theme} onClose={() => setDrillZone(null)} />}
+    </div>
+  );
+}
+
+function DrillPanel({ zone, zones, points, theme, onClose }: any) {
+  const zonePoints = points.filter((p: any) =>
+    (p.label || '').toLowerCase().includes((zone.neighborhood || zone.city || '').toLowerCase())
+  );
+  const max = Math.max(...zones.map((z: any) => z.avg_price_per_m2));
+  const pctOfMax = (zone.avg_price_per_m2 / max) * 100;
+  const cityAvg = zones.length ? zones.reduce((s: number, z: any) => s + z.avg_price_per_m2, 0) / zones.length : 0;
+  const vsCity = ((zone.avg_price_per_m2 - cityAvg) / cityAvg) * 100;
+
+  return (
+    <div className="fixed inset-y-0 right-0 z-40 w-full sm:w-[420px] flex flex-col animate-in slide-in-from-right duration-200"
+      style={{ background: theme.card, borderLeft: `1px solid ${theme.border}`, boxShadow: '-8px 0 24px -8px rgba(0,0,0,0.2)' }}>
+      <div className="px-5 py-4 flex items-start justify-between gap-3" style={{ borderBottom: `1px solid ${theme.border}` }}>
+        <div className="min-w-0">
+          <div className="text-[10px] uppercase tracking-wider font-bold" style={{ color: theme.primary }}>
+            Ranking #{zone.rank} · {zone.city || 'CABA'}
+          </div>
+          <h3 className="font-display font-black text-2xl tracking-tight truncate" style={{ color: theme.text }}>
+            {zone.neighborhood || zone.city}
+          </h3>
+        </div>
+        <button onClick={onClose} className="p-1.5 rounded-lg flex-shrink-0" style={{ color: theme.textSecondary, background: theme.backgroundSecondary }}>
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+
+      <div className="flex-1 overflow-y-auto p-5 space-y-4">
+        {/* KPI hero */}
+        <div className="p-4 rounded-xl" style={{ background: `${theme.primary}10`, border: `1px solid ${theme.primary}30` }}>
+          <div className="text-[10px] uppercase tracking-wider font-bold mb-1" style={{ color: theme.primary }}>USD por m²</div>
+          <div className="font-display font-black text-4xl tabular-nums" style={{ color: theme.text }}>
+            {Math.round(zone.avg_price_per_m2).toLocaleString()}
+          </div>
+          <div className="mt-2 h-1.5 rounded-full overflow-hidden" style={{ background: theme.backgroundSecondary }}>
+            <div className="h-full rounded-full" style={{ width: `${pctOfMax}%`, background: theme.primary }} />
+          </div>
+          <div className="text-[10px] mt-1.5 flex items-center justify-between" style={{ color: theme.textSecondary }}>
+            <span>{pctOfMax.toFixed(0)}% del top</span>
+            <span style={{ color: vsCity >= 0 ? theme.success : theme.danger }}>
+              {vsCity >= 0 ? '+' : ''}{vsCity.toFixed(1)}% vs promedio
+            </span>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <DrillStat icon={Users} label="Muestras" value={zone.sample_size?.toLocaleString() || '0'} color={theme.info} theme={theme} />
+          <DrillStat icon={Activity} label="Listings activos" value={zonePoints.length.toLocaleString()} color={theme.warning} theme={theme} />
+          <DrillStat icon={BarChart3} label="Min USD/m²" value={Math.round((zone.min_price_per_m2 || zone.avg_price_per_m2 * 0.7)).toLocaleString()} color={theme.success} theme={theme} />
+          <DrillStat icon={TrendingUp} label="Max USD/m²" value={Math.round((zone.max_price_per_m2 || zone.avg_price_per_m2 * 1.3)).toLocaleString()} color={theme.danger} theme={theme} />
+        </div>
+
+        {zonePoints.length > 0 && (
+          <div>
+            <div className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: theme.textSecondary }}>
+              Puntos en la zona ({zonePoints.length})
+            </div>
+            <div className="space-y-2 max-h-72 overflow-y-auto">
+              {zonePoints.slice(0, 20).map((p: any, i: number) => (
+                <div key={i} className="p-3 rounded-lg flex items-center justify-between gap-3"
+                  style={{ background: theme.backgroundSecondary }}>
+                  <div className="min-w-0">
+                    <div className="text-sm font-semibold truncate" style={{ color: theme.text }}>{p.label || 'Punto'}</div>
+                    <div className="text-[10px] font-mono" style={{ color: theme.textSecondary }}>
+                      {p.lat.toFixed(4)}, {p.lng.toFixed(4)}
+                    </div>
+                  </div>
+                  {p.price_per_m2 && (
+                    <div className="text-right flex-shrink-0">
+                      <div className="font-bold text-sm tabular-nums" style={{ color: theme.text }}>{Number(p.price_per_m2).toLocaleString()}</div>
+                      <div className="text-[9px] uppercase tracking-wider font-bold" style={{ color: theme.textSecondary }}>USD/m²</div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="px-5 py-3 flex gap-2" style={{ borderTop: `1px solid ${theme.border}`, background: theme.backgroundSecondary }}>
+        <Link to={`/comparables?zone=${encodeURIComponent(zone.neighborhood || '')}`}
+          className="flex-1 px-3 py-2 rounded-lg text-xs font-bold text-center transition-all active:scale-95"
+          style={{ background: theme.primary, color: theme.primaryText }}>
+          Ver comparables
+        </Link>
+        <Link to={`/mercado?zone=${encodeURIComponent(zone.neighborhood || '')}`}
+          className="px-3 py-2 rounded-lg text-xs font-medium transition-all active:scale-95"
+          style={{ background: theme.card, color: theme.text, border: `1px solid ${theme.border}` }}>
+          Mercado
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+function DrillStat({ icon: Icon, label, value, color, theme }: any) {
+  return (
+    <div className="p-3 rounded-xl" style={{ background: theme.backgroundSecondary }}>
+      <Icon className="h-4 w-4 mb-1.5" style={{ color }} />
+      <div className="text-lg font-display font-black tabular-nums" style={{ color: theme.text }}>{value}</div>
+      <div className="text-[9px] uppercase tracking-wider font-bold mt-0.5" style={{ color: theme.textSecondary }}>{label}</div>
     </div>
   );
 }

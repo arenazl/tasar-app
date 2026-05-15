@@ -10,6 +10,7 @@ from models.app_setting import AppSetting
 from models.market_listing import MarketListing
 from models.monthly_report import MonthlyReport
 from models.inbox import InboxMessage
+from models.client import Client
 
 __all__ = [
     "User", "Workspace",
@@ -23,4 +24,5 @@ __all__ = [
     "MarketListing",
     "MonthlyReport",
     "InboxMessage",
+    "Client",
 ]
