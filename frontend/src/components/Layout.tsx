@@ -139,8 +139,8 @@ export default function Layout({ children }: { children: ReactNode }) {
         </div>
       </aside>
 
-      {/* Main area */}
-      <div className="flex-1 flex flex-col min-w-0">
+      {/* Main area — reserva 320px a la derecha en desktop para AICoachPanel fijo */}
+      <div className="flex-1 flex flex-col min-w-0 lg:mr-80">
         <header className="flex-shrink-0 h-14 flex items-center justify-between px-4 sm:px-6 gap-3"
           style={{ background: theme.card, borderBottom: `1px solid ${theme.border}` }}>
           {/* Logo mobile (sidebar oculta en mobile) */}

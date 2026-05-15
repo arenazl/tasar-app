@@ -79,12 +79,13 @@ export default function AICoachPanel() {
     }
   }, [open, route, lastRoute, fetchTips]);
 
+  // En desktop el panel es always-open (sidebar fija). En mobile sigue siendo
+  // FAB + bottom-sheet on demand.
   if (!open) {
-    // FAB colapsado — arriba de bottom bar en mobile, abajo derecha en desktop
     return (
       <button
         onClick={() => setOpen(true)}
-        className="fixed right-4 lg:right-6 bottom-[88px] lg:bottom-6 z-40 w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition-all active:scale-95 hover:scale-110"
+        className="lg:hidden fixed right-4 bottom-[88px] z-40 w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition-all active:scale-95 hover:scale-110"
         style={{ background: theme.primary, color: theme.primaryText }}
         title="Abrir AI Coach"
       >
@@ -136,7 +137,7 @@ export default function AICoachPanel() {
             <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
           </button>
           <button onClick={() => setOpen(false)}
-            className="p-1.5 rounded-lg transition-all active:scale-95"
+            className="lg:hidden p-1.5 rounded-lg transition-all active:scale-95"
             style={{ background: theme.backgroundSecondary, color: theme.textSecondary }}
             title="Cerrar">
             <X className="h-3.5 w-3.5" />
