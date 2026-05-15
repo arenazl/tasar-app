@@ -91,14 +91,15 @@ export default function Mercado() {
             Capital Federal · valor mediano por celda de 200m
           </div>
           {/* Grid de calor simulada (CABA shape) */}
-          <div className="grid grid-cols-16 gap-1 max-w-3xl mx-auto">
+          <div className="gap-1 max-w-3xl mx-auto"
+            style={{ display: 'grid', gridTemplateColumns: 'repeat(16, minmax(0, 1fr))' }}>
             {Array.from({ length: 12 * 16 }).map((_, i) => {
               const row = Math.floor(i / 16);
               const col = i % 16;
               const centerR = 6, centerC = 8;
               const dist = Math.sqrt((row - centerR) ** 2 + (col - centerC) ** 2);
-              if (dist > 7) return <div key={i} />;
-              const intensity = Math.max(0.15, 1 - dist / 7) + Math.random() * 0.15;
+              if (dist > 7) return <div key={i} className="aspect-square" />;
+              const intensity = Math.max(0.15, 1 - dist / 7) + ((i * 7) % 5) / 20;
               return (
                 <div key={i} className="aspect-square rounded"
                   style={{ background: theme.primary, opacity: Math.min(1, intensity) }} />
