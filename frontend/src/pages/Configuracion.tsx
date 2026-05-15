@@ -267,6 +267,23 @@ export default function Configuracion() {
             <Toggle theme={theme} label="Comentarios del equipo" desc="Cuando un colaborador comenta un estudio" checked={notifyComment}
               onChange={() => toggleNotify('notify_comment', notifyComment, setNotifyComment, 'Comentarios')} />
           </div>
+          <button
+            onClick={async () => {
+              const t = toast.loading('Enviando email de prueba...');
+              try {
+                const r = await api.post('/settings/test-email');
+                toast.dismiss(t);
+                if (r.data?.ok) toast.success(`Email enviado a ${r.data.to}`);
+                else toast.error('No se pudo enviar (SMTP no configurado)');
+              } catch (e: any) {
+                toast.dismiss(t);
+                toast.error(e.response?.data?.detail || 'Error enviando email');
+              }
+            }}
+            className="mt-3 w-full px-3 py-2 rounded-lg text-xs font-bold transition-all active:scale-95"
+            style={{ background: `${theme.primary}15`, color: theme.primary, border: `1px solid ${theme.primary}30` }}>
+            Enviar email de prueba
+          </button>
         </div>
 
         {/* PASSWORD */}

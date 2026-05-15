@@ -91,3 +91,20 @@ async def set_setting_endpoint(
         from services import ai_router; ai_router.invalidate_provider_cache()
 
     return {"key": key, "value": body.value}
+
+
+@router.post("/test-email")
+async def test_email(user: User = Depends(get_current_user)):
+    """Envia un email de prueba al usuario actual. Sirve para validar
+    que Brevo SMTP esta configurado correctamente."""
+    if not user.email:
+        raise HTTPException(400, "Usuario sin email")
+    from services.email_service import send_email, _wrap
+    html = _wrap(
+        "Email de prueba",
+        f"<p>Hola {user.full_name or 'tasador'},</p>"
+        "<p>Este email confirma que la configuracion SMTP via Brevo esta funcionando correctamente.</p>"
+        "<p>Ya estas listo para recibir notificaciones automaticas de tasaciones, comentarios y resumenes.</p>"
+    )
+    ok = await send_email(user.email, "Test email TasAR", html)
+    return {"ok": ok, "to": user.email}

@@ -98,6 +98,18 @@ async def sign_appraisal(
     a.status = "signed"
     await db.commit()
     await db.refresh(sig)
+
+    # Notificacion email (no-op si SMTP/toggle off, no bloquea respuesta)
+    try:
+        from services.email_service import notify_appraisal_signed
+        if a.client_email:
+            await notify_appraisal_signed(
+                db, user.workspace_id, a.client_email,
+                a.id, a.client_name or "", float(a.final_value or 0), a.currency or "USD",
+            )
+    except Exception as e:
+        print(f"[email] notify_appraisal_signed fallo: {e}")
+
     return AppraisalSignatureOut.model_validate(sig)
 
 
