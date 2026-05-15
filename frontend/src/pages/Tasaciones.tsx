@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Plus, FileCheck2, Download, FileSignature, Briefcase, ClipboardList,
   DollarSign, Sparkles, List, FileEdit, ShieldCheck, Send, AlertCircle,
@@ -91,6 +92,7 @@ function StatusBadge({ status }: { status: string }) {
 
 export default function Tasaciones() {
   const { theme } = useTheme();
+  const navigate = useNavigate();
   const [items, setItems] = useState<Appraisal[]>([]);
   const [properties, setProperties] = useState<Property[]>([]);
   const [studies, setStudies] = useState<MarketStudy[]>([]);
@@ -242,7 +244,7 @@ export default function Tasaciones() {
         const prop = properties.find(p => p.id === a.property_id);
         const signed = a.status === 'signed' || a.status === 'delivered';
         return (
-          <ABMCard key={a.id} index={i}>
+          <ABMCard key={a.id} index={i} onClick={() => navigate(`/tasaciones/${a.id}`)}>
             <div className="flex items-center justify-between gap-4 flex-wrap">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1 flex-wrap">

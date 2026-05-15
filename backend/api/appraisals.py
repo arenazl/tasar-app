@@ -113,6 +113,54 @@ async def sign_appraisal(
     return AppraisalSignatureOut.model_validate(sig)
 
 
+@router.get("/{appraisal_id}", response_model=AppraisalOut)
+async def get_appraisal(
+    appraisal_id: int,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    a = (await db.execute(
+        select(Appraisal).where(
+            Appraisal.id == appraisal_id,
+            Appraisal.workspace_id == user.workspace_id,
+        )
+    )).scalar_one_or_none()
+    if not a:
+        raise HTTPException(404, "Tasación no encontrada")
+    return await _serialize(db, a)
+
+
+@router.get("/{appraisal_id}/comparables")
+async def list_appraisal_comparables(
+    appraisal_id: int,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Devuelve los comparables del market_study linkeado a la tasación."""
+    a = (await db.execute(
+        select(Appraisal).where(
+            Appraisal.id == appraisal_id,
+            Appraisal.workspace_id == user.workspace_id,
+        )
+    )).scalar_one_or_none()
+    if not a or not a.market_study_id:
+        return []
+    comps = (await db.execute(
+        select(Comparable).where(Comparable.market_study_id == a.market_study_id)
+    )).scalars().all()
+    return [{
+        "address": c.address or c.title,
+        "total_area_m2": c.total_area_m2,
+        "rooms": c.rooms,
+        "price": c.price,
+        "currency": c.currency,
+        "price_per_m2": c.adjusted_price_per_m2 or (c.price / c.total_area_m2 if c.total_area_m2 and c.price else None),
+        "distance_m": getattr(c, "distance_m", None),
+        "days_on_market": getattr(c, "days_on_market", None),
+        "match_score": c.weight,
+    } for c in comps]
+
+
 @router.get("/{appraisal_id}/pdf")
 async def generate_pdf(
     appraisal_id: int,

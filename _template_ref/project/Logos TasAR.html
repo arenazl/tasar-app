@@ -1,0 +1,647 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<title>TasAR — Exploración de logo</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@500;600;700;800&family=Space+Grotesk:wght@500;600;700&family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&display=swap" rel="stylesheet" />
+
+<style>
+  :root{
+    /* TasAR palette — derived from Mandao's bones but tuned for real-estate trust */
+    --ink:        #0D1412;     /* deep near-black (Mandao fg-1) */
+    --ink-2:      #2A332F;
+    --paper:      #FAFBFA;     /* warm near-white (Mandao bg-1) */
+    --paper-2:    #F2F4F2;
+    --line:       rgba(13,20,18,0.08);
+
+    --green:      #00B37E;     /* Mandao primary — used as growth/value accent */
+    --green-deep: #008F63;
+    --teal:       #0F6E5A;     /* darker, more "appraisal" */
+    --gold:       #C9A24A;     /* warm metal — value/premium */
+    --terracotta: #B5563A;     /* tile-roof terracotta */
+    --navy:       #102434;     /* anchor / property */
+  }
+
+  html,body{margin:0;padding:0;background:#E9ECEA;font-family:'Inter',system-ui,sans-serif;color:var(--ink);}
+</style>
+
+<!-- React + Babel -->
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script type="text/babel" src="design-canvas.jsx"></script>
+</head>
+<body>
+
+<div id="root"></div>
+
+<script type="text/babel">
+const { DesignCanvas, DCSection, DCArtboard } = window;
+
+/* ---------- shared artboard chrome ---------- */
+const board = (bg = 'var(--paper)') => ({
+  width: '100%', height: '100%',
+  background: bg,
+  display: 'flex', alignItems: 'center', justifyContent: 'center',
+  position: 'relative',
+  overflow: 'hidden',
+});
+
+const caption = {
+  position: 'absolute', left: 24, bottom: 18,
+  fontFamily: "'Inter',sans-serif",
+  fontSize: 11, fontWeight: 600,
+  letterSpacing: '0.14em', textTransform: 'uppercase',
+  color: 'rgba(13,20,18,0.45)',
+};
+
+const stage = { display:'flex', flexDirection:'column', alignItems:'center', gap: 18 };
+
+/* ============================================================
+   1. Bold wordmark — "tas·AR" with AR emphasis
+   ============================================================ */
+function Logo1(){
+  return (
+    <div style={board('var(--paper)')}>
+      <div style={stage}>
+        <div style={{
+          fontFamily:"'Sora',sans-serif", fontWeight:800,
+          fontSize: 132, letterSpacing:'-0.045em',
+          lineHeight: 1, color:'var(--ink)',
+          display:'flex', alignItems:'baseline',
+        }}>
+          <span>tas</span>
+          <span style={{color:'var(--green)'}}>AR</span>
+          <span style={{
+            display:'inline-block', width:14, height:14, borderRadius:99,
+            background:'var(--green)', marginLeft:6, transform:'translateY(-6px)',
+          }}/>
+        </div>
+        <div style={{
+          fontFamily:"'Inter',sans-serif", fontWeight:500,
+          fontSize:13, letterSpacing:'0.28em', textTransform:'uppercase',
+          color:'var(--ink-2)',
+        }}>
+          Estudios de mercado inmobiliario
+        </div>
+      </div>
+      <div style={caption}>01 — Wordmark · AR acento</div>
+    </div>
+  );
+}
+
+/* ============================================================
+   2. Monogram tile — soft-square "tA" mark + lockup
+   ============================================================ */
+function Logo2(){
+  return (
+    <div style={board('var(--paper)')}>
+      <div style={{display:'flex', alignItems:'center', gap:24}}>
+        {/* Tile */}
+        <div style={{
+          width:120, height:120, borderRadius:28,
+          background:'var(--ink)',
+          display:'flex', alignItems:'center', justifyContent:'center',
+          position:'relative', overflow:'hidden',
+        }}>
+          {/* roof slash */}
+          <svg width="120" height="120" viewBox="0 0 120 120" style={{position:'absolute', inset:0}}>
+            <path d="M0 78 L120 18 L120 28 L0 88 Z" fill="var(--green)"/>
+          </svg>
+          <div style={{
+            position:'relative', zIndex:2,
+            fontFamily:"'Sora',sans-serif", fontWeight:700,
+            fontSize:64, color:'var(--paper)', letterSpacing:'-0.04em',
+            lineHeight:1, marginTop:8,
+          }}>
+            tA
+          </div>
+        </div>
+        <div>
+          <div style={{
+            fontFamily:"'Sora',sans-serif", fontWeight:700,
+            fontSize: 64, letterSpacing:'-0.04em', lineHeight:1,
+            color:'var(--ink)',
+          }}>TasAR</div>
+          <div style={{
+            marginTop:8,
+            fontFamily:"'Inter',sans-serif", fontWeight:500,
+            fontSize:12, letterSpacing:'0.22em', textTransform:'uppercase',
+            color:'var(--ink-2)',
+          }}>Valuación · Mercado · Datos</div>
+        </div>
+      </div>
+      <div style={caption}>02 — Isotipo "tA" con techo</div>
+    </div>
+  );
+}
+
+/* ============================================================
+   3. Bars-as-buildings — "T" formed by market data columns
+   ============================================================ */
+function Logo3(){
+  // 5 bars of varying height; tallest is the stem of the T; top bar is horizontal crown
+  return (
+    <div style={board('var(--paper)')}>
+      <div style={stage}>
+        <div style={{display:'flex', alignItems:'center', gap:18}}>
+          <svg viewBox="0 0 200 200" width="150" height="150">
+            {/* horizontal crown */}
+            <rect x="10"  y="22" width="180" height="26" rx="8" fill="var(--ink)"/>
+            {/* the stem: 5 ascending bars */}
+            <rect x="22"  y="60" width="26" height="64"  rx="6" fill="var(--ink)" opacity="0.18"/>
+            <rect x="58"  y="60" width="26" height="92"  rx="6" fill="var(--ink)" opacity="0.32"/>
+            <rect x="94"  y="60" width="26" height="118" rx="6" fill="var(--ink)" opacity="0.55"/>
+            <rect x="130" y="60" width="26" height="148" rx="6" fill="var(--green)"/>
+            <rect x="166" y="60" width="22" height="68"  rx="6" fill="var(--green)" opacity="0.35"/>
+          </svg>
+          <div style={{
+            fontFamily:"'Sora',sans-serif", fontWeight:700,
+            fontSize:104, letterSpacing:'-0.045em', lineHeight:1,
+            color:'var(--ink)',
+          }}>
+            TasAR
+          </div>
+        </div>
+        <div style={{
+          fontFamily:"'Inter',sans-serif", fontWeight:500,
+          fontSize:12, letterSpacing:'0.24em', textTransform:'uppercase',
+          color:'var(--ink-2)',
+        }}>
+          Inteligencia inmobiliaria
+        </div>
+      </div>
+      <div style={caption}>03 — "T" como gráfico de mercado</div>
+    </div>
+  );
+}
+
+/* ============================================================
+   4. Editorial / serif — premium appraisal tone
+   ============================================================ */
+function Logo4(){
+  return (
+    <div style={board('var(--navy)')}>
+      <div style={stage}>
+        <div style={{
+          display:'flex', alignItems:'center', gap:18,
+          color:'var(--paper)',
+        }}>
+          {/* small archway/keystone mark */}
+          <svg viewBox="0 0 80 80" width="64" height="64">
+            <path d="M14 70 V40 a26 26 0 0 1 52 0 V70" fill="none" stroke="var(--gold)" strokeWidth="4"/>
+            <line x1="40" y1="14" x2="40" y2="70" stroke="var(--gold)" strokeWidth="4"/>
+            <circle cx="40" cy="40" r="4" fill="var(--gold)"/>
+          </svg>
+          <div style={{
+            fontFamily:"'Fraunces',serif", fontWeight:600,
+            fontSize: 116, letterSpacing:'-0.03em', lineHeight:1,
+            fontVariationSettings: '"opsz" 144',
+          }}>
+            Tas<span style={{fontStyle:'italic', fontWeight:400, color:'var(--gold)'}}>AR</span>
+          </div>
+        </div>
+        <div style={{
+          fontFamily:"'Inter',sans-serif", fontWeight:500,
+          fontSize:12, letterSpacing:'0.32em', textTransform:'uppercase',
+          color:'rgba(250,251,250,0.7)',
+        }}>
+          Estudios · Tasaciones · Mercado
+        </div>
+      </div>
+      <div style={{...caption, color:'rgba(250,251,250,0.45)'}}>04 — Editorial · Fraunces</div>
+    </div>
+  );
+}
+
+/* ============================================================
+   5. Pin + magnifier — geo + research
+   ============================================================ */
+function Logo5(){
+  return (
+    <div style={board('var(--paper)')}>
+      <div style={stage}>
+        <svg viewBox="0 0 200 180" width="150" height="135">
+          {/* pin */}
+          <path d="M100 14 C 64 14, 40 38, 40 72 C 40 110, 90 158, 100 166 C 110 158, 160 110, 160 72 C 160 38, 136 14, 100 14 Z"
+                fill="var(--green)"/>
+          {/* magnifier inside */}
+          <circle cx="92" cy="70" r="22" fill="none" stroke="var(--paper)" strokeWidth="6"/>
+          <line x1="108" y1="86" x2="124" y2="102" stroke="var(--paper)" strokeWidth="6" strokeLinecap="round"/>
+          {/* tiny chart inside lens */}
+          <rect x="82" y="74" width="4" height="6" fill="var(--paper)"/>
+          <rect x="89" y="68" width="4" height="12" fill="var(--paper)"/>
+          <rect x="96" y="62" width="4" height="18" fill="var(--paper)"/>
+        </svg>
+        <div style={{
+          fontFamily:"'Sora',sans-serif", fontWeight:700,
+          fontSize:80, letterSpacing:'-0.045em', lineHeight:1,
+          color:'var(--ink)',
+        }}>
+          TasAR
+        </div>
+        <div style={{
+          fontFamily:"'Inter',sans-serif", fontWeight:500,
+          fontSize:12, letterSpacing:'0.26em', textTransform:'uppercase',
+          color:'var(--ink-2)',
+        }}>
+          Dónde vale · Cuánto vale
+        </div>
+      </div>
+      <div style={caption}>05 — Pin + lupa + datos</div>
+    </div>
+  );
+}
+
+/* ============================================================
+   6. Geometric blueprint — isometric house + Space Grotesk
+   ============================================================ */
+function Logo6(){
+  return (
+    <div style={board('var(--paper-2)')}>
+      <div style={{display:'flex', alignItems:'center', gap:22}}>
+        {/* isometric house, two-tone */}
+        <svg viewBox="0 0 140 140" width="120" height="120">
+          {/* left face */}
+          <path d="M16 50 L70 78 L70 130 L16 102 Z" fill="var(--teal)"/>
+          {/* right face */}
+          <path d="M124 50 L70 78 L70 130 L124 102 Z" fill="var(--ink)"/>
+          {/* roof */}
+          <path d="M16 50 L70 22 L124 50 L70 78 Z" fill="var(--green)"/>
+          {/* tiny window glow */}
+          <rect x="34" y="76" width="14" height="14" fill="var(--paper)" opacity="0.9" transform="skewY(28)"/>
+        </svg>
+        <div>
+          <div style={{
+            fontFamily:"'Space Grotesk',sans-serif", fontWeight:700,
+            fontSize:88, letterSpacing:'-0.035em', lineHeight:1,
+            color:'var(--ink)',
+          }}>
+            Tas<span style={{color:'var(--teal)'}}>AR</span>
+          </div>
+          <div style={{
+            marginTop:10, display:'flex', alignItems:'center', gap:10,
+            fontFamily:"'Inter',sans-serif", fontWeight:500,
+            fontSize:12, letterSpacing:'0.24em', textTransform:'uppercase',
+            color:'var(--ink-2)',
+          }}>
+            <span style={{width:18, height:2, background:'var(--ink-2)', display:'inline-block'}}/>
+            Real estate intelligence
+          </div>
+        </div>
+      </div>
+      <div style={caption}>06 — Isométrico · Space Grotesk</div>
+    </div>
+  );
+}
+
+/* ============================================================
+   7. Stamp / seal — circular badge, authoritative
+   ============================================================ */
+function Logo7(){
+  const r = 95;
+  const txt = "ESTUDIOS · DE · MERCADO · INMOBILIARIO · TASAR · ";
+  return (
+    <div style={board('var(--paper)')}>
+      <svg viewBox="0 0 240 240" width="220" height="220">
+        <defs>
+          <path id="seal-circle" d={`M 120 120 m -${r} 0 a ${r} ${r} 0 1 1 ${r*2} 0 a ${r} ${r} 0 1 1 -${r*2} 0`}/>
+        </defs>
+        <circle cx="120" cy="120" r="108" fill="none" stroke="var(--ink)" strokeWidth="1.5"/>
+        <circle cx="120" cy="120" r="74" fill="none" stroke="var(--ink)" strokeWidth="1"/>
+        <text fontFamily="Inter" fontWeight="600" fontSize="11" letterSpacing="3" fill="var(--ink)">
+          <textPath href="#seal-circle" startOffset="0">{txt + txt}</textPath>
+        </text>
+        {/* center monogram */}
+        <text x="120" y="118" textAnchor="middle"
+              fontFamily="Sora" fontWeight="700" fontSize="44"
+              letterSpacing="-2" fill="var(--ink)">TasAR</text>
+        <text x="120" y="142" textAnchor="middle"
+              fontFamily="Inter" fontWeight="500" fontSize="9"
+              letterSpacing="3" fill="var(--ink-2)">EST. 2025</text>
+        {/* tiny star */}
+        <g transform="translate(120 158)" fill="var(--green)">
+          <circle r="3"/>
+        </g>
+      </svg>
+      <div style={caption}>07 — Sello · autoridad de tasación</div>
+    </div>
+  );
+}
+
+/* ============================================================
+   8. House negative-space inside the A
+   ============================================================ */
+function Logo8(){
+  return (
+    <div style={board('var(--paper)')}>
+      <div style={stage}>
+        <svg viewBox="0 0 540 160" width="440" height="130">
+          <defs>
+            <mask id="house-cut">
+              <rect width="540" height="160" fill="white"/>
+              {/* roof + house cut inside the second A (positioned over the right A glyph) */}
+              <path d="M428 70 L452 50 L476 70 L476 116 L428 116 Z" fill="black"/>
+              <rect x="446" y="92" width="12" height="24" fill="white"/>
+            </mask>
+          </defs>
+          <text x="0" y="124" fontFamily="Sora" fontWeight="800"
+                fontSize="140" letterSpacing="-5" fill="var(--ink)"
+                mask="url(#house-cut)">
+            Tas<tspan fill="var(--green)">AR</tspan>
+          </text>
+        </svg>
+        <div style={{
+          fontFamily:"'Inter',sans-serif", fontWeight:500,
+          fontSize:12, letterSpacing:'0.28em', textTransform:'uppercase',
+          color:'var(--ink-2)',
+        }}>
+          Tasamos lo que habitás
+        </div>
+      </div>
+      <div style={caption}>08 — Casa en espacio negativo de la A</div>
+    </div>
+  );
+}
+
+/* ============================================================
+   9. Editorial stacked — tall magazine display
+   ============================================================ */
+function Logo9(){
+  return (
+    <div style={board('var(--paper-2)')}>
+      <div style={{display:'flex', alignItems:'stretch', gap:0, borderLeft:'1px solid var(--line)', borderRight:'1px solid var(--line)', paddingInline:32}}>
+        <div style={{
+          fontFamily:"'Fraunces',serif", fontWeight:700,
+          fontSize: 200, lineHeight:0.86, letterSpacing:'-0.05em',
+          color:'var(--ink)',
+          fontVariationSettings:'"opsz" 144',
+        }}>
+          Tas<br/><span style={{color:'var(--terracotta)'}}>AR.</span>
+        </div>
+        <div style={{
+          marginLeft:24, alignSelf:'flex-end', paddingBottom:18,
+          fontFamily:"'Inter',sans-serif",
+          maxWidth: 180,
+        }}>
+          <div style={{
+            fontWeight:600, fontSize:10, letterSpacing:'0.32em', textTransform:'uppercase',
+            color:'var(--ink-2)', marginBottom:8,
+          }}>Vol. 01 — Mercado</div>
+          <div style={{
+            fontSize:13, lineHeight:1.35, color:'var(--ink)',
+            fontWeight:400,
+          }}>
+            Estudios independientes del mercado inmobiliario argentino.
+          </div>
+        </div>
+      </div>
+      <div style={caption}>09 — Editorial · stacked display</div>
+    </div>
+  );
+}
+
+/* ============================================================
+   10. Roof underline — minimalist wordmark
+   ============================================================ */
+function Logo10(){
+  return (
+    <div style={board('var(--paper)')}>
+      <div style={{display:'flex', flexDirection:'column', alignItems:'center', gap:10}}>
+        <div style={{
+          fontFamily:"'Sora',sans-serif", fontWeight:600,
+          fontSize: 120, letterSpacing:'-0.04em', lineHeight:1,
+          color:'var(--ink)',
+        }}>
+          TasAR
+        </div>
+        {/* roof-line accent under the wordmark */}
+        <svg viewBox="0 0 360 28" width="340" height="26">
+          <path d="M2 24 L60 24 L100 6 L140 24 L358 24"
+                fill="none" stroke="var(--green)" strokeWidth="3"
+                strokeLinejoin="round" strokeLinecap="round"/>
+          <circle cx="100" cy="6" r="4" fill="var(--green)"/>
+        </svg>
+        <div style={{
+          marginTop:8,
+          fontFamily:"'Inter',sans-serif", fontWeight:500,
+          fontSize:11, letterSpacing:'0.34em', textTransform:'uppercase',
+          color:'var(--ink-2)',
+        }}>
+          Mercado · Tasación · Argentina
+        </div>
+      </div>
+      <div style={caption}>10 — Subrayado techo · minimal</div>
+    </div>
+  );
+}
+
+/* ============================================================
+   11. Coordinates — technical / data-room aesthetic
+   ============================================================ */
+function Logo11(){
+  return (
+    <div style={board('var(--ink)')}>
+      <div style={{
+        display:'grid',
+        gridTemplateColumns:'auto auto',
+        columnGap: 32, rowGap: 6, alignItems:'center',
+        color:'var(--paper)',
+      }}>
+        <div style={{
+          fontFamily:"'Sora',sans-serif", fontWeight:700,
+          fontSize:118, letterSpacing:'-0.045em', lineHeight:1,
+          gridRow:'1 / span 3',
+        }}>
+          Tas<span style={{color:'var(--green)'}}>AR</span>
+        </div>
+        <div style={{
+          fontFamily:"'JetBrains Mono',ui-monospace,monospace",
+          fontSize:11, letterSpacing:'0.06em',
+          color:'rgba(250,251,250,0.5)',
+        }}>
+          <span style={{color:'var(--green)'}}>LAT</span>&nbsp;&nbsp;-34.6037
+        </div>
+        <div style={{
+          fontFamily:"'JetBrains Mono',ui-monospace,monospace",
+          fontSize:11, letterSpacing:'0.06em',
+          color:'rgba(250,251,250,0.5)',
+        }}>
+          <span style={{color:'var(--green)'}}>LON</span>&nbsp;-58.3816
+        </div>
+        <div style={{
+          fontFamily:"'Inter',sans-serif", fontWeight:500,
+          fontSize:11, letterSpacing:'0.24em', textTransform:'uppercase',
+          color:'rgba(250,251,250,0.7)',
+        }}>
+          Real estate · market intel
+        </div>
+      </div>
+      <div style={{...caption, color:'rgba(250,251,250,0.45)'}}>11 — Coordenadas · data-room</div>
+    </div>
+  );
+}
+
+/* ============================================================
+   12. Heatmap grid — value/zone mark
+   ============================================================ */
+function Logo12(){
+  // 6x6 grid with a heatmap gradient, suggesting market zones / valuation density
+  const cols = 8, rows = 5;
+  // pre-computed intensity per cell (hand-tuned to feel like a heatmap)
+  const intensities = [
+    [0.1,0.15,0.2,0.35,0.55,0.4,0.2,0.1],
+    [0.15,0.25,0.45,0.7,0.85,0.6,0.35,0.15],
+    [0.2,0.4,0.7,1.0,1.0,0.8,0.45,0.2],
+    [0.15,0.3,0.55,0.8,0.9,0.6,0.3,0.15],
+    [0.1,0.18,0.3,0.45,0.55,0.35,0.18,0.1],
+  ];
+  const colorFor = (v) => {
+    if (v < 0.2)  return 'rgba(0,179,126,0.12)';
+    if (v < 0.4)  return 'rgba(0,179,126,0.32)';
+    if (v < 0.6)  return 'rgba(0,179,126,0.55)';
+    if (v < 0.85) return '#00B37E';
+    return '#008F63';
+  };
+  const cell = 22, gap = 4;
+  const w = cols * cell + (cols-1)*gap;
+  const h = rows * cell + (rows-1)*gap;
+  return (
+    <div style={board('var(--paper)')}>
+      <div style={stage}>
+        <div style={{
+          display:'grid',
+          gridTemplateColumns:`repeat(${cols}, ${cell}px)`,
+          gap,
+          width: w, height: h,
+        }}>
+          {intensities.flat().map((v, i) => (
+            <div key={i} style={{
+              width:cell, height:cell, borderRadius:4,
+              background: colorFor(v),
+            }}/>
+          ))}
+        </div>
+        <div style={{
+          fontFamily:"'Sora',sans-serif", fontWeight:700,
+          fontSize:72, letterSpacing:'-0.045em', lineHeight:1,
+          color:'var(--ink)',
+        }}>
+          TasAR
+        </div>
+        <div style={{
+          fontFamily:"'Inter',sans-serif", fontWeight:500,
+          fontSize:11, letterSpacing:'0.28em', textTransform:'uppercase',
+          color:'var(--ink-2)',
+        }}>
+          Mapa de valor · por zona
+        </div>
+      </div>
+      <div style={caption}>12 — Heatmap · valor por zona</div>
+    </div>
+  );
+}
+
+/* ============================================================
+   Variants — mono, dark, favicon
+   ============================================================ */
+function MonoBlack(){
+  return (
+    <div style={board('var(--paper)')}>
+      <div style={{
+        fontFamily:"'Sora',sans-serif", fontWeight:800,
+        fontSize: 110, letterSpacing:'-0.045em', color:'var(--ink)',
+        display:'flex', alignItems:'baseline',
+      }}>
+        tas<span>AR</span>
+        <span style={{width:12, height:12, borderRadius:99, background:'var(--ink)', marginLeft:6, transform:'translateY(-6px)'}}/>
+      </div>
+      <div style={caption}>Mono · negro</div>
+    </div>
+  );
+}
+function MonoWhite(){
+  return (
+    <div style={board('var(--ink)')}>
+      <div style={{
+        fontFamily:"'Sora',sans-serif", fontWeight:800,
+        fontSize: 110, letterSpacing:'-0.045em', color:'var(--paper)',
+        display:'flex', alignItems:'baseline',
+      }}>
+        tas<span>AR</span>
+        <span style={{width:12, height:12, borderRadius:99, background:'var(--paper)', marginLeft:6, transform:'translateY(-6px)'}}/>
+      </div>
+      <div style={{...caption, color:'rgba(250,251,250,0.45)'}}>Mono · blanco</div>
+    </div>
+  );
+}
+function Favicon(){
+  return (
+    <div style={board('var(--paper)')}>
+      <div style={{display:'flex', gap:24, alignItems:'center'}}>
+        {[128, 64, 32].map(s => (
+          <div key={s} style={{
+            width:s, height:s, borderRadius: s*0.23,
+            background:'var(--ink)',
+            display:'flex', alignItems:'center', justifyContent:'center',
+            position:'relative', overflow:'hidden',
+          }}>
+            <svg width={s} height={s} viewBox="0 0 120 120" style={{position:'absolute', inset:0}}>
+              <path d="M0 78 L120 18 L120 28 L0 88 Z" fill="var(--green)"/>
+            </svg>
+            <div style={{
+              position:'relative', zIndex:2,
+              fontFamily:"'Sora',sans-serif", fontWeight:700,
+              fontSize: s*0.55, color:'var(--paper)', letterSpacing:'-0.04em',
+              lineHeight:1, marginTop: s*0.06,
+            }}>tA</div>
+          </div>
+        ))}
+      </div>
+      <div style={caption}>App icon · 128 / 64 / 32</div>
+    </div>
+  );
+}
+
+/* ---------- Canvas ---------- */
+function App(){
+  return (
+    <DesignCanvas
+      title="TasAR — Exploración de logo"
+      subtitle="6 direcciones · sentence-case · tipografía variable · acento AR"
+    >
+      <DCSection id="primary" title="Direcciones principales">
+        <DCArtboard id="l1" label="01 · Wordmark con acento AR"     width={620} height={420}><Logo1/></DCArtboard>
+        <DCArtboard id="l2" label="02 · Isotipo tA en tile"          width={620} height={420}><Logo2/></DCArtboard>
+        <DCArtboard id="l3" label="03 · T como gráfico de mercado"   width={620} height={420}><Logo3/></DCArtboard>
+        <DCArtboard id="l4" label="04 · Editorial · serif premium"   width={620} height={420}><Logo4/></DCArtboard>
+        <DCArtboard id="l5" label="05 · Pin + lupa"                  width={620} height={420}><Logo5/></DCArtboard>
+        <DCArtboard id="l6" label="06 · Isométrico"                  width={620} height={420}><Logo6/></DCArtboard>
+      </DCSection>
+
+      <DCSection id="more" title="Direcciones adicionales">
+        <DCArtboard id="l7"  label="07 · Sello · authority"           width={620} height={420}><Logo7/></DCArtboard>
+        <DCArtboard id="l8"  label="08 · Casa en negativo"            width={620} height={420}><Logo8/></DCArtboard>
+        <DCArtboard id="l9"  label="09 · Editorial stacked"           width={620} height={420}><Logo9/></DCArtboard>
+        <DCArtboard id="l10" label="10 · Subrayado techo"             width={620} height={420}><Logo10/></DCArtboard>
+        <DCArtboard id="l11" label="11 · Coordenadas / data-room"     width={620} height={420}><Logo11/></DCArtboard>
+        <DCArtboard id="l12" label="12 · Heatmap de valor"            width={620} height={420}><Logo12/></DCArtboard>
+      </DCSection>
+
+      <DCSection id="variants" title="Variantes (sobre la dirección 01)">
+        <DCArtboard id="v1" label="Mono · negro"   width={500} height={300}><MonoBlack/></DCArtboard>
+        <DCArtboard id="v2" label="Mono · blanco"  width={500} height={300}><MonoWhite/></DCArtboard>
+        <DCArtboard id="v3" label="App icon"       width={620} height={300}><Favicon/></DCArtboard>
+      </DCSection>
+    </DesignCanvas>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+
+</body>
+</html>

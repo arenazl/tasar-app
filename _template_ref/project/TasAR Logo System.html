@@ -1,0 +1,464 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<title>TasAR — Sistema de logo (Heatmap)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@500;600;700;800&display=swap" rel="stylesheet" />
+
+<style>
+  :root{
+    --ink:        #0D1412;
+    --ink-2:      #2A332F;
+    --paper:      #FAFBFA;
+    --paper-2:    #F2F4F2;
+    --line:       rgba(13,20,18,0.08);
+    --green:      #00B37E;
+    --green-deep: #008F63;
+  }
+  html,body{margin:0;padding:0;background:#E9ECEA;font-family:'Inter',system-ui,sans-serif;color:var(--ink);}
+  @keyframes pulse-cell {
+    0%, 100% { opacity: 1; }
+    50%      { opacity: 0.55; }
+  }
+  @keyframes ripple {
+    0%   { transform: scale(0.9); opacity: 0.0; }
+    40%  { opacity: 0.6; }
+    100% { transform: scale(1.6); opacity: 0; }
+  }
+</style>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script type="text/babel" src="design-canvas.jsx"></script>
+</head>
+<body>
+
+<div id="root"></div>
+
+<script type="text/babel">
+const { DesignCanvas, DCSection, DCArtboard } = window;
+
+/* ---------------------------------------------------------------
+   HEATMAP MARK — single component, three densities for size tiers
+   --------------------------------------------------------------- */
+
+// Intensity grids. Higher values are hotter (greener) — center is hottest.
+const GRID_FULL = [   // 8x5 — for hero/loading
+  [0.10, 0.15, 0.20, 0.35, 0.55, 0.40, 0.20, 0.10],
+  [0.15, 0.25, 0.45, 0.70, 0.85, 0.60, 0.35, 0.15],
+  [0.20, 0.40, 0.70, 1.00, 1.00, 0.80, 0.45, 0.20],
+  [0.15, 0.30, 0.55, 0.80, 0.90, 0.60, 0.30, 0.15],
+  [0.10, 0.18, 0.30, 0.45, 0.55, 0.35, 0.18, 0.10],
+];
+const GRID_MID = [    // 6x4 — for topbar / standard lockup
+  [0.15, 0.25, 0.45, 0.55, 0.30, 0.15],
+  [0.25, 0.55, 0.90, 1.00, 0.60, 0.25],
+  [0.20, 0.45, 0.80, 0.85, 0.45, 0.20],
+  [0.12, 0.22, 0.35, 0.40, 0.22, 0.12],
+];
+const GRID_MARK = [   // 4x3 — favicon / app icon
+  [0.30, 0.65, 0.80, 0.40],
+  [0.55, 1.00, 1.00, 0.60],
+  [0.25, 0.55, 0.70, 0.35],
+];
+const GRID_TINY = [   // 3x3 — for very small favicons (16px)
+  [0.40, 0.80, 0.45],
+  [0.80, 1.00, 0.80],
+  [0.45, 0.80, 0.40],
+];
+
+function colorForIntensity(v, onDark){
+  // Tuned for both light and dark backgrounds
+  if (onDark){
+    if (v < 0.2)  return 'rgba(0,179,126,0.18)';
+    if (v < 0.4)  return 'rgba(0,179,126,0.38)';
+    if (v < 0.6)  return 'rgba(0,179,126,0.62)';
+    if (v < 0.85) return '#00B37E';
+    return '#34D9A1';
+  } else {
+    if (v < 0.2)  return 'rgba(0,179,126,0.12)';
+    if (v < 0.4)  return 'rgba(0,179,126,0.32)';
+    if (v < 0.6)  return 'rgba(0,179,126,0.55)';
+    if (v < 0.85) return '#00B37E';
+    return '#008F63';
+  }
+}
+
+/**
+ * Heatmap mark.
+ *  - cell: pixel size of each cell
+ *  - gap: pixel gap between cells
+ *  - density: 'full' | 'mid' | 'mark' | 'tiny'
+ *  - onDark: tweaks alpha tiers for legibility on dark surfaces
+ *  - pulse: animate the hottest cell (for loading state)
+ */
+function HeatmapMark({ cell = 22, gap = 4, density = 'full', onDark = false, pulse = false }){
+  const grid = density === 'full' ? GRID_FULL
+            : density === 'mid'   ? GRID_MID
+            : density === 'tiny'  ? GRID_TINY
+            : GRID_MARK;
+  const cols = grid[0].length;
+  const rows = grid.length;
+  // radius scales with cell size, clamped
+  const radius = Math.max(1, Math.round(cell * 0.18));
+  return (
+    <div style={{
+      display:'grid',
+      gridTemplateColumns:`repeat(${cols}, ${cell}px)`,
+      gridTemplateRows:`repeat(${rows}, ${cell}px)`,
+      gap,
+    }}>
+      {grid.flat().map((v, i) => {
+        const isHot = v >= 0.85;
+        return (
+          <div key={i} style={{
+            width:cell, height:cell, borderRadius:radius,
+            background: colorForIntensity(v, onDark),
+            animation: pulse && isHot ? 'pulse-cell 1.8s ease-in-out infinite' : undefined,
+            animationDelay: pulse && isHot ? `${(i % 4) * 0.15}s` : undefined,
+          }}/>
+        );
+      })}
+    </div>
+  );
+}
+
+/* Heatmap inside a rounded tile — for favicon / app-icon use */
+function HeatmapTile({ size = 64, onDark = false, density }){
+  // pick density automatically based on size
+  const d = density || (size <= 20 ? 'tiny' : size <= 48 ? 'mark' : 'mark');
+  // sizing: aim for ~70% of the tile filled by the grid
+  const grid = d === 'tiny' ? GRID_TINY : GRID_MARK;
+  const cols = grid[0].length;
+  const rows = grid.length;
+  // gap shrinks with size
+  const gap = size <= 20 ? 1 : size <= 40 ? 2 : 3;
+  // cell sized so cols*cell + (cols-1)*gap = size*0.72
+  const innerW = size * 0.72;
+  const cell = (innerW - (cols-1)*gap) / cols;
+
+  return (
+    <div style={{
+      width:size, height:size,
+      borderRadius: Math.max(2, Math.round(size * 0.22)),
+      background: onDark ? 'var(--paper)' : 'var(--ink)',
+      display:'flex', alignItems:'center', justifyContent:'center',
+      flex:'0 0 auto',
+    }}>
+      <div style={{
+        display:'grid',
+        gridTemplateColumns:`repeat(${cols}, ${cell}px)`,
+        gridTemplateRows:`repeat(${rows}, ${cell}px)`,
+        gap,
+      }}>
+        {grid.flat().map((v, i) => (
+          <div key={i} style={{
+            width:cell, height:cell,
+            borderRadius: Math.max(1, Math.round(cell * 0.18)),
+            background: colorForIntensity(v, true), // always on dark inside the tile
+          }}/>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ---------------------------------------------------------------
+   Artboard chrome
+   --------------------------------------------------------------- */
+const board = (bg = 'var(--paper)', dark = false) => ({
+  width: '100%', height: '100%',
+  background: bg,
+  display:'flex', alignItems:'center', justifyContent:'center',
+  position:'relative', overflow:'hidden',
+  color: dark ? 'var(--paper)' : 'var(--ink)',
+});
+const caption = (dark = false) => ({
+  position:'absolute', left:24, bottom:18,
+  fontFamily:"'Inter',sans-serif",
+  fontSize:11, fontWeight:600,
+  letterSpacing:'0.14em', textTransform:'uppercase',
+  color: dark ? 'rgba(250,251,250,0.5)' : 'rgba(13,20,18,0.45)',
+});
+const ruler = (dark = false) => ({
+  position:'absolute', right:24, bottom:18,
+  fontFamily:"'JetBrains Mono',ui-monospace,monospace",
+  fontSize:10, letterSpacing:'0.06em',
+  color: dark ? 'rgba(250,251,250,0.4)' : 'rgba(13,20,18,0.35)',
+});
+
+/* ---------------------------------------------------------------
+   1 — Favicon set: 16, 32, 48, 64 (mark only, in a tile)
+   --------------------------------------------------------------- */
+function FaviconRow({ onDark = false }){
+  const bg = onDark ? 'var(--ink)' : 'var(--paper)';
+  const labelColor = onDark ? 'rgba(250,251,250,0.55)' : 'rgba(13,20,18,0.5)';
+  const sizes = [16, 32, 48, 64];
+  return (
+    <div style={board(bg, onDark)}>
+      <div style={{display:'flex', gap:40, alignItems:'flex-end'}}>
+        {sizes.map(s => (
+          <div key={s} style={{display:'flex', flexDirection:'column', alignItems:'center', gap:10}}>
+            <HeatmapTile size={s} onDark={onDark}/>
+            <div style={{
+              fontFamily:"'JetBrains Mono',ui-monospace,monospace",
+              fontSize:10, color:labelColor, letterSpacing:'0.08em',
+            }}>{s}×{s}</div>
+          </div>
+        ))}
+      </div>
+      <div style={caption(onDark)}>Favicon · 16 / 32 / 48 / 64 px</div>
+    </div>
+  );
+}
+
+/* ---------------------------------------------------------------
+   2 — Top bar lockup (compact horizontal)
+   --------------------------------------------------------------- */
+function TopbarLockup({ onDark = false, mock = false }){
+  const bg = onDark ? 'var(--ink)' : 'var(--paper)';
+  const fg = onDark ? 'var(--paper)' : 'var(--ink)';
+  const sub = onDark ? 'rgba(250,251,250,0.55)' : 'var(--ink-2)';
+  return (
+    <div style={board(bg, onDark)}>
+      <div style={{display:'flex', flexDirection:'column', gap:28, alignItems:'stretch', width:'80%', maxWidth:560}}>
+
+        {/* Bare lockup */}
+        <div style={{display:'flex', alignItems:'center', gap:12}}>
+          <HeatmapMark cell={8} gap={2} density="mid" onDark={onDark}/>
+          <div style={{
+            fontFamily:"'Sora',sans-serif", fontWeight:700,
+            fontSize: 28, letterSpacing:'-0.035em', lineHeight:1,
+            color: fg,
+          }}>
+            TasAR
+          </div>
+        </div>
+
+        {/* In-context: header chrome */}
+        <div style={{
+          height: 56,
+          background: onDark ? '#161D1B' : '#fff',
+          border: `1px solid ${onDark ? 'rgba(255,255,255,0.06)' : 'var(--line)'}`,
+          borderRadius: 12,
+          display:'flex', alignItems:'center', justifyContent:'space-between',
+          paddingInline: 18,
+        }}>
+          <div style={{display:'flex', alignItems:'center', gap:10}}>
+            <HeatmapMark cell={6} gap={1.5} density="mid" onDark={onDark}/>
+            <div style={{
+              fontFamily:"'Sora',sans-serif", fontWeight:700,
+              fontSize: 18, letterSpacing:'-0.03em', color: fg,
+            }}>TasAR</div>
+          </div>
+          <div style={{display:'flex', gap:18, alignItems:'center'}}>
+            {['Mercado','Tasaciones','Reportes'].map(t => (
+              <div key={t} style={{
+                fontFamily:"'Inter',sans-serif", fontSize:13, fontWeight:500,
+                color: sub,
+              }}>{t}</div>
+            ))}
+            <div style={{
+              height:32, paddingInline:14,
+              background: 'var(--green)', borderRadius:8,
+              display:'flex', alignItems:'center',
+              fontFamily:"'Inter',sans-serif", fontWeight:600, fontSize:13,
+              color: 'var(--ink)',
+            }}>Ingresar</div>
+          </div>
+        </div>
+
+      </div>
+      <div style={caption(onDark)}>Top bar · h ≈ 28-32px</div>
+      <div style={ruler(onDark)}>WEB HEADER</div>
+    </div>
+  );
+}
+
+/* ---------------------------------------------------------------
+   3 — Standard lockup (mid)
+   --------------------------------------------------------------- */
+function StandardLockup({ onDark = false }){
+  const bg = onDark ? 'var(--ink)' : 'var(--paper)';
+  const fg = onDark ? 'var(--paper)' : 'var(--ink)';
+  const sub = onDark ? 'rgba(250,251,250,0.55)' : 'var(--ink-2)';
+  return (
+    <div style={board(bg, onDark)}>
+      <div style={{display:'flex', flexDirection:'column', alignItems:'center', gap:18}}>
+        <HeatmapMark cell={14} gap={3} density="mid" onDark={onDark}/>
+        <div style={{
+          fontFamily:"'Sora',sans-serif", fontWeight:700,
+          fontSize: 56, letterSpacing:'-0.045em', lineHeight:1, color: fg,
+        }}>
+          TasAR
+        </div>
+        <div style={{
+          fontFamily:"'Inter',sans-serif", fontWeight:500,
+          fontSize:11, letterSpacing:'0.30em', textTransform:'uppercase',
+          color: sub,
+        }}>
+          Mapa de valor · por zona
+        </div>
+      </div>
+      <div style={caption(onDark)}>Logo estándar</div>
+    </div>
+  );
+}
+
+/* ---------------------------------------------------------------
+   4 — Loading screen (large + animated)
+   --------------------------------------------------------------- */
+function LoadingScreen({ onDark = false }){
+  const bg = onDark ? 'var(--ink)' : 'var(--paper)';
+  const fg = onDark ? 'var(--paper)' : 'var(--ink)';
+  const sub = onDark ? 'rgba(250,251,250,0.55)' : 'var(--ink-2)';
+  return (
+    <div style={board(bg, onDark)}>
+      <div style={{display:'flex', flexDirection:'column', alignItems:'center', gap:28}}>
+        <div style={{position:'relative'}}>
+          {/* soft ripple behind */}
+          <div style={{
+            position:'absolute', inset:'-18%', borderRadius:'18%',
+            background:'radial-gradient(closest-side, rgba(0,179,126,0.18), rgba(0,179,126,0) 70%)',
+            animation:'ripple 2.4s ease-out infinite',
+          }}/>
+          <HeatmapMark cell={26} gap={5} density="full" onDark={onDark} pulse/>
+        </div>
+        <div style={{
+          fontFamily:"'Sora',sans-serif", fontWeight:700,
+          fontSize: 88, letterSpacing:'-0.045em', lineHeight:1, color: fg,
+        }}>
+          TasAR
+        </div>
+        <div style={{
+          display:'flex', alignItems:'center', gap:10,
+          fontFamily:"'Inter',sans-serif", fontWeight:500,
+          fontSize: 12, letterSpacing:'0.28em', textTransform:'uppercase',
+          color: sub,
+        }}>
+          <div style={{
+            width:8, height:8, borderRadius:99, background:'var(--green)',
+            animation:'pulse-cell 1.4s ease-in-out infinite',
+          }}/>
+          Cargando mercado…
+        </div>
+      </div>
+      <div style={caption(onDark)}>Pantalla de carga</div>
+      <div style={ruler(onDark)}>1920 × 1080 · centrado</div>
+    </div>
+  );
+}
+
+/* ---------------------------------------------------------------
+   5 — Stacked sizing comparison ruler
+   --------------------------------------------------------------- */
+function SizingRuler({ onDark = false }){
+  const bg = onDark ? 'var(--ink)' : 'var(--paper)';
+  const fg = onDark ? 'var(--paper)' : 'var(--ink)';
+  const sub = onDark ? 'rgba(250,251,250,0.55)' : 'var(--ink-2)';
+  const rows = [
+    { label: 'Favicon · 16',   tile: 16,  fontSize: 0,  sub: '' },
+    { label: 'Favicon · 32',   tile: 32,  fontSize: 0,  sub: '' },
+    { label: 'Topbar · h32',   tile: 32,  fontSize: 20, lock: true },
+    { label: 'Topbar · h40',   tile: 40,  fontSize: 26, lock: true },
+    { label: 'Standard · h64', tile: 56,  fontSize: 40, lock: true },
+    { label: 'Hero · h120',    tile: 96,  fontSize: 72, lock: true },
+  ];
+  return (
+    <div style={board(bg, onDark)}>
+      <div style={{
+        display:'grid', gridTemplateColumns:'140px 1fr',
+        rowGap: 24, columnGap: 28, alignItems:'center',
+      }}>
+        {rows.map((r,i) => (
+          <React.Fragment key={i}>
+            <div style={{
+              fontFamily:"'JetBrains Mono',ui-monospace,monospace",
+              fontSize:11, color:sub, letterSpacing:'0.08em',
+            }}>{r.label}</div>
+            <div style={{display:'flex', alignItems:'center', gap:12}}>
+              <HeatmapTile size={r.tile} onDark={onDark}/>
+              {r.lock && (
+                <div style={{
+                  fontFamily:"'Sora',sans-serif", fontWeight:700,
+                  fontSize: r.fontSize, letterSpacing:'-0.04em', lineHeight:1,
+                  color: fg,
+                }}>TasAR</div>
+              )}
+            </div>
+          </React.Fragment>
+        ))}
+      </div>
+      <div style={caption(onDark)}>Sistema de tamaños</div>
+    </div>
+  );
+}
+
+/* ---------------------------------------------------------------
+   App
+   --------------------------------------------------------------- */
+function App(){
+  return (
+    <DesignCanvas
+      title="TasAR — Sistema de logo (Heatmap)"
+      subtitle="Mark adaptable a 4 densidades · texto en negro y blanco · estados estático y de carga"
+    >
+
+      <DCSection id="favicon" title="Favicon · sobre negro y blanco">
+        <DCArtboard id="fav-light" label="Favicon · texto negro"  width={720} height={300}>
+          <FaviconRow onDark={false}/>
+        </DCArtboard>
+        <DCArtboard id="fav-dark"  label="Favicon · texto blanco" width={720} height={300}>
+          <FaviconRow onDark={true}/>
+        </DCArtboard>
+      </DCSection>
+
+      <DCSection id="topbar" title="Top bar · lockup horizontal + en contexto">
+        <DCArtboard id="top-light" label="Top bar · texto negro"  width={760} height={420}>
+          <TopbarLockup onDark={false}/>
+        </DCArtboard>
+        <DCArtboard id="top-dark"  label="Top bar · texto blanco" width={760} height={420}>
+          <TopbarLockup onDark={true}/>
+        </DCArtboard>
+      </DCSection>
+
+      <DCSection id="standard" title="Logo estándar">
+        <DCArtboard id="std-light" label="Standard · texto negro"  width={620} height={420}>
+          <StandardLockup onDark={false}/>
+        </DCArtboard>
+        <DCArtboard id="std-dark"  label="Standard · texto blanco" width={620} height={420}>
+          <StandardLockup onDark={true}/>
+        </DCArtboard>
+      </DCSection>
+
+      <DCSection id="loading" title="Pantalla de carga (animado)">
+        <DCArtboard id="load-light" label="Loading · texto negro"  width={900} height={560}>
+          <LoadingScreen onDark={false}/>
+        </DCArtboard>
+        <DCArtboard id="load-dark"  label="Loading · texto blanco" width={900} height={560}>
+          <LoadingScreen onDark={true}/>
+        </DCArtboard>
+      </DCSection>
+
+      <DCSection id="ruler" title="Sistema completo · vista comparativa">
+        <DCArtboard id="ruler-light" label="Ruler · texto negro"  width={620} height={520}>
+          <SizingRuler onDark={false}/>
+        </DCArtboard>
+        <DCArtboard id="ruler-dark"  label="Ruler · texto blanco" width={620} height={520}>
+          <SizingRuler onDark={true}/>
+        </DCArtboard>
+      </DCSection>
+
+    </DesignCanvas>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+
+</body>
+</html>

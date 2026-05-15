@@ -12,6 +12,7 @@ import Propiedades from './pages/Propiedades';
 import Estudios from './pages/Estudios';
 import EstudioDetail from './pages/EstudioDetail';
 import Tasaciones from './pages/Tasaciones';
+import TasacionDetail from './pages/TasacionDetail';
 import MapaCalor from './pages/MapaCalor';
 import TasadorAI from './pages/TasadorAI';
 import Configuracion from './pages/Configuracion';
@@ -38,6 +39,7 @@ export default function App() {
                   <Route path="/estudios" element={<Estudios />} />
                   <Route path="/estudios/:id" element={<EstudioDetail />} />
                   <Route path="/tasaciones" element={<Tasaciones />} />
+                  <Route path="/tasaciones/:id" element={<TasacionDetail />} />
                   <Route path="/pipeline" element={<Pipeline />} />
                   <Route path="/clientes" element={<Clientes />} />
                   <Route path="/mercado" element={<Mercado />} />
