@@ -288,6 +288,7 @@ export default function Tasaciones() {
     <ABMTable<Appraisal>
       data={filtered}
       keyExtractor={(a) => a.id}
+      onRowClick={(a) => navigate(`/tasaciones/${a.id}`)}
       columns={[
         { key: 'id', header: '#', render: (a) => <span className="font-mono text-xs" style={{ color: theme.textSecondary }}>#{a.id}</span>, sortValue: (a) => a.id },
         {
@@ -331,8 +332,10 @@ export default function Tasaciones() {
         },
         {
           key: 'value', header: 'Valor final',
-          render: (a) => <span className="font-bold" style={{ color: theme.text }}>{a.currency} {Number(a.final_value).toLocaleString()}</span>,
-          sortValue: (a) => a.final_value,
+          render: (a) => a.final_value
+            ? <span className="font-bold" style={{ color: theme.text }}>{a.currency} {Number(a.final_value).toLocaleString()}</span>
+            : <span style={{ color: theme.textSecondary }}>—</span>,
+          sortValue: (a) => a.final_value || 0,
         },
         {
           key: 'date', header: 'Fecha',

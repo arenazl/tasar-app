@@ -107,7 +107,25 @@ export default function TasacionDetail() {
   const isSigned = a.status === 'signed' || a.status === 'delivered';
 
   return (
-    <div className="p-6 lg:p-8 max-w-screen-2xl mx-auto animate-fade-in">
+    <div className="p-6 lg:p-8 max-w-screen-2xl mx-auto"
+      style={{ animation: 'tasarDetailIn 320ms cubic-bezier(0.22, 1, 0.36, 1) both' }}>
+      <style>{`
+        @keyframes tasarDetailIn {
+          0% { opacity: 0; transform: translateX(24px); }
+          100% { opacity: 1; transform: translateX(0); }
+        }
+        @keyframes tasarPanelIn {
+          0% { opacity: 0; transform: translateY(12px); }
+          100% { opacity: 1; transform: translateY(0); }
+        }
+        .tasar-panel { animation: tasarPanelIn 400ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+        .tasar-stagger-1 { animation-delay: 60ms; }
+        .tasar-stagger-2 { animation-delay: 120ms; }
+        .tasar-stagger-3 { animation-delay: 180ms; }
+        .tasar-stagger-4 { animation-delay: 240ms; }
+        .tasar-stagger-5 { animation-delay: 300ms; }
+        .tasar-stagger-6 { animation-delay: 360ms; }
+      `}</style>
       {/* Breadcrumb / back */}
       <div className="mb-4 flex items-center gap-3 text-sm" style={{ color: theme.textSecondary }}>
         <Link to="/tasaciones" className="inline-flex items-center gap-1 transition-all hover:gap-2"
@@ -121,7 +139,7 @@ export default function TasacionDetail() {
       </div>
 
       {/* Header */}
-      <div className="rounded-xl p-5 mb-4" style={{ background: theme.card, border: `1px solid ${theme.border}` }}>
+      <div className="rounded-xl p-5 mb-4 tasar-panel" style={{ background: theme.card, border: `1px solid ${theme.border}` }}>
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 text-xs" style={{ color: theme.textSecondary }}>
@@ -176,26 +194,37 @@ export default function TasacionDetail() {
 
       {/* Stat row + main grid */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
-        <Stat k="Estimación TasAR" v={`${a.currency} ${Number(a.final_value).toLocaleString()}`}
-          d={`Rango ${a.currency} ${Math.round(a.final_value * 0.94).toLocaleString()} – ${Math.round(a.final_value * 1.06).toLocaleString()} · ±6%`}
-          theme={theme} />
-        <Stat k="USD por m²" v={valuePerM2 ? valuePerM2.toLocaleString() : '—'}
-          d="vs zona" theme={theme} accent={theme.success} accentText="+4,8%" />
-        <Stat k="Confianza" v={`${(a as any).confidence_score ? Math.round(((a as any).confidence_score) * 100) : 87}%`}
-          d={`Alta · ${comps.length || 34} comparables`} theme={theme} />
-        <Stat k="Cap rate" v={`${((a as any).cap_rate || 4.8).toFixed(1)}%`}
-          d="anual estimado" theme={theme} />
+        <div className="tasar-panel tasar-stagger-1">
+          <Stat k="Estimación TasAR" v={a.final_value ? `${a.currency} ${Number(a.final_value).toLocaleString()}` : '—'}
+            d={a.final_value ? `Rango ${a.currency} ${Math.round(a.final_value * 0.94).toLocaleString()} – ${Math.round(a.final_value * 1.06).toLocaleString()} · ±6%` : 'Sin valor final aún'}
+            theme={theme} />
+        </div>
+        <div className="tasar-panel tasar-stagger-2">
+          <Stat k="USD por m²" v={valuePerM2 ? valuePerM2.toLocaleString() : '—'}
+            d="vs zona" theme={theme} accent={theme.success} accentText="+4,8%" />
+        </div>
+        <div className="tasar-panel tasar-stagger-3">
+          <Stat k="Confianza" v={`${(a as any).confidence_score ? Math.round(((a as any).confidence_score) * 100) : 87}%`}
+            d={`Alta · ${comps.length || 34} comparables`} theme={theme} />
+        </div>
+        <div className="tasar-panel tasar-stagger-4">
+          <Stat k="Cap rate" v={`${((a as any).cap_rate || 4.8).toFixed(1)}%`}
+            d="anual estimado" theme={theme} />
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
         {/* Main column */}
         <div className="lg:col-span-8 space-y-4">
           {/* Zone heatmap */}
-          <Panel theme={theme} title={`Zona · ${prop?.neighborhood || 'CABA'}`} sub="Radio 800m · USD/m² mediano por celda">
-            <ZoneHeatmap theme={theme} />
-          </Panel>
+          <div className="tasar-panel tasar-stagger-3">
+            <Panel theme={theme} title={`Zona · ${prop?.neighborhood || 'CABA'}`} sub="Radio 800m · USD/m² mediano por celda">
+              <ZoneHeatmap theme={theme} />
+            </Panel>
+          </div>
 
           {/* Sparkline */}
+          <div className="tasar-panel tasar-stagger-4">
           <Panel theme={theme} title="Histórico valor USD/m²" sub="17 meses · enero 2025 — mayo 2026">
             <Sparkline theme={theme} data={[2380, 2410, 2425, 2440, 2460, 2480, 2510, 2530, 2560, 2590, 2620, 2680, 2720, 2780, 2820, 2890, valuePerM2 || 3028]} />
             <div className="flex justify-between mt-2 text-[11px] font-mono" style={{ color: theme.textSecondary }}>
@@ -203,8 +232,10 @@ export default function TasacionDetail() {
               <span style={{ color: theme.text, fontWeight: 700 }}>May 26 · {valuePerM2 || 3028}</span>
             </div>
           </Panel>
+          </div>
 
           {/* Comparables */}
+          <div className="tasar-panel tasar-stagger-5">
           <Panel theme={theme} title={`Comparables · ${comps.length || 0}`} sub="Ordenados por match score">
             {comps.length === 0 ? (
               <div className="py-8 text-center text-sm" style={{ color: theme.textSecondary }}>
@@ -218,11 +249,13 @@ export default function TasacionDetail() {
               </div>
             )}
           </Panel>
+          </div>
         </div>
 
         {/* Rail */}
         <div className="lg:col-span-4 space-y-4">
           {/* Cliente */}
+          <div className="tasar-panel tasar-stagger-4">
           <Panel theme={theme} title="Cliente">
             <div className="flex items-center gap-3 mb-3">
               <div className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0"
@@ -253,9 +286,11 @@ export default function TasacionDetail() {
               )}
             </div>
           </Panel>
+          </div>
 
           {/* Datos inmueble */}
           {prop && (
+            <div className="tasar-panel tasar-stagger-5">
             <Panel theme={theme} title="Datos del inmueble">
               <div className="grid grid-cols-2 gap-x-3 gap-y-2 text-xs">
                 <Field label="Tipo" value={prop.property_type} theme={theme} />
@@ -269,9 +304,11 @@ export default function TasacionDetail() {
                 <Field label="Orientación" value={prop.orientation || '—'} theme={theme} />
               </div>
             </Panel>
+            </div>
           )}
 
           {/* Timeline */}
+          <div className="tasar-panel tasar-stagger-6">
           <Panel theme={theme} title="Actividad">
             <div className="space-y-2.5">
               <Timeline icon={Sparkles} title="Comparables actualizados" detail={`${comps.length} unidades en radio 800m`} when="hace 12 min" accent theme={theme} />
@@ -281,6 +318,7 @@ export default function TasacionDetail() {
                 when={new Date(a.created_at).toLocaleDateString('es-AR')} theme={theme} />
             </div>
           </Panel>
+          </div>
         </div>
       </div>
     </div>
