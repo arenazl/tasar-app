@@ -27,8 +27,11 @@ export default function Mercado() {
   const [period, setPeriod] = useState<'7d' | '30d' | '90d' | '12m' | '5a'>('90d');
 
   useEffect(() => {
-    api.get<MarketDashboard>('/market/dashboard').then(r => setData(r.data));
-  }, []);
+    setData(null);
+    api.get<MarketDashboard>('/market/dashboard', { params: { period } })
+      .then(r => setData(r.data))
+      .catch(() => api.get<MarketDashboard>('/market/dashboard').then(r => setData(r.data)));
+  }, [period]);
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto animate-fade-in">

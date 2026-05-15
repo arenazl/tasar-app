@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Search, Download, Database, MapPin } from 'lucide-react';
+import { toast } from 'sonner';
 import { api } from '../services/api';
 import { useTheme } from '../contexts/ThemeContext';
+import { downloadCSV } from '../utils/csv';
 
 interface ComparableResult {
   id: number;
@@ -73,7 +75,22 @@ export default function Comparables() {
               <b>{stats.total}</b> resultados en vivo
             </p>
           </div>
-          <button className="hidden sm:flex px-4 py-2 rounded-lg text-sm font-medium items-center gap-2 transition-all active:scale-95"
+          <button
+            onClick={() => {
+              if (!results.length) { toast.error('Sin resultados para exportar'); return; }
+              downloadCSV(
+                results.map(r => ({
+                  id: r.id, title: r.title, address: r.address, neighborhood: r.neighborhood, city: r.city,
+                  total_area_m2: r.total_area_m2, rooms: r.rooms, price: r.price, currency: r.currency,
+                  price_per_m2: r.price_per_m2, days_on_market: r.days_on_market, condition: r.condition,
+                  match_score: r.match_score, distance_m: r.distance_m,
+                })),
+                `comparables_${zone}_${type}_${rooms}amb_${new Date().toISOString().slice(0,10)}`
+              );
+              toast.success(`${results.length} comparables exportados`);
+            }}
+            disabled={!results.length}
+            className="hidden sm:flex px-4 py-2 rounded-lg text-sm font-medium items-center gap-2 transition-all active:scale-95 disabled:opacity-50"
             style={{ background: theme.card, color: theme.text, border: `1px solid ${theme.border}` }}>
             <Download className="h-4 w-4" /> Exportar CSV
           </button>

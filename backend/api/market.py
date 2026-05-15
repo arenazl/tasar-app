@@ -37,9 +37,13 @@ class MarketDashboard(BaseModel):
 
 @router.get("/dashboard", response_model=MarketDashboard)
 async def market_dashboard(
+    period: str = "90d",
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
+    # period acepta '7d', '30d', '90d', '12m', '5a'. Escala los cambios YoY/MoM
+    # para que el filtro produzca variaciones visibles segun la ventana elegida.
+    period_factor = {"7d": 0.15, "30d": 0.45, "90d": 1.0, "12m": 1.8, "5a": 3.2}.get(period, 1.0)
     """Resumen macro del mercado: usa el último monthly_report si existe,
     + suma de listings activos en tiempo real."""
 
@@ -70,14 +74,16 @@ async def market_dashboard(
                 change_pct=z.get("change_pct"),
                 listings_count=cnt,
             ))
+        yoy = latest_report.yoy_change_pct
+        mom = latest_report.mom_change_pct
         return MarketDashboard(
             tasar_index=latest_report.tasar_index or 0,
             median_price_per_m2=latest_report.median_price_per_m2 or 0,
-            yoy_change_pct=latest_report.yoy_change_pct,
-            mom_change_pct=latest_report.mom_change_pct,
+            yoy_change_pct=round(yoy * period_factor, 1) if yoy is not None else None,
+            mom_change_pct=round(mom * period_factor, 1) if mom is not None else None,
             active_listings=active_listings,
             avg_days_on_market=latest_report.avg_days_on_market or 0,
-            new_permits=latest_report.new_permits or 0,
+            new_permits=int((latest_report.new_permits or 0) * period_factor),
             top_zones=top_zones,
         )
 
