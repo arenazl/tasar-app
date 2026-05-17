@@ -1,10 +1,18 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Users, Mail, Phone, Building2, FileCheck2, X, Save, Trash2, Edit3, MapPin, Plus } from 'lucide-react';
+import { Users, Mail, Phone, Building2, FileCheck2, X, Save, Trash2, Edit3, MapPin, Plus, ArrowUpDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { api } from '../services/api';
 import { useTheme } from '../contexts/ThemeContext';
 import { ABMPage, ABMCard } from '../components/ui/ABMPage';
+import { ModernSelect } from '../components/ui/ModernSelect';
 import PageHint from '../components/ui/PageHint';
+
+const SORT_OPTIONS = [
+  { value: 'name', label: 'Nombre A-Z' },
+  { value: 'name_desc', label: 'Nombre Z-A' },
+  { value: 'tasaciones_desc', label: 'Más tasaciones' },
+  { value: 'tasaciones_asc', label: 'Menos tasaciones' },
+];
 
 interface Cliente {
   id: number;
@@ -35,6 +43,7 @@ export default function Clientes() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filterType, setFilterType] = useState<string>('all');
+  const [sortBy, setSortBy] = useState<string>('name');
   const [editing, setEditing] = useState<Partial<Cliente> | null>(null);
 
   const load = () => {
@@ -45,11 +54,27 @@ export default function Clientes() {
 
   const filtered = useMemo(() => {
     const s = search.toLowerCase().trim();
-    return items.filter(c =>
+    const list = items.filter(c =>
       (filterType === 'all' || c.type === filterType) &&
       (!s || c.name.toLowerCase().includes(s) || (c.email || '').toLowerCase().includes(s) || (c.contact_name || '').toLowerCase().includes(s))
     );
-  }, [items, search, filterType]);
+    return [...list].sort((a, b) => {
+      if (sortBy === 'name') return a.name.localeCompare(b.name);
+      if (sortBy === 'name_desc') return b.name.localeCompare(a.name);
+      if (sortBy === 'tasaciones_desc') return b.appraisals_count - a.appraisals_count;
+      if (sortBy === 'tasaciones_asc') return a.appraisals_count - b.appraisals_count;
+      return 0;
+    });
+  }, [items, search, filterType, sortBy]);
+
+  const headerActions = (
+    <div className="flex items-center gap-2">
+      <ArrowUpDown className="h-4 w-4" style={{ color: theme.textSecondary }} />
+      <div className="w-44">
+        <ModernSelect value={sortBy} onChange={(v: any) => setSortBy(v)} options={SORT_OPTIONS} placeholder="Ordenar..." />
+      </div>
+    </div>
+  );
 
   const counts = useMemo(() => {
     const c: Record<string, number> = { all: items.length };
@@ -111,6 +136,7 @@ export default function Clientes() {
         isEmpty={!loading && filtered.length === 0}
         emptyMessage={items.length === 0 ? 'Sin clientes todavía — creá tu primer cliente' : 'Sin resultados con esos filtros'}
         secondaryFilters={secondaryFilters}
+        headerActions={headerActions}
       >
         {filtered.map((c, i) => {
           const color = TYPE_COLOR[c.type] || theme.primary;

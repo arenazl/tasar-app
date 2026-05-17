@@ -1,10 +1,37 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Download, Filter, Plus, Share2, X, Check, BookOpen } from 'lucide-react';
+import { Download, Plus, Share2, X, Check, BookOpen, FileText, List, ArrowUpDown, Calendar } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { api } from '../services/api';
 import { useTheme } from '../contexts/ThemeContext';
 import { downloadCSV } from '../utils/csv';
+import { ABMPage } from '../components/ui/ABMPage';
+import { ModernSelect } from '../components/ui/ModernSelect';
+import PageHint from '../components/ui/PageHint';
+
+const SORT_OPTIONS = [
+  { value: 'recent', label: 'Más recientes' },
+  { value: 'old', label: 'Más antiguos' },
+  { value: 'yoy_desc', label: 'Mayor YoY' },
+  { value: 'yoy_asc', label: 'Menor YoY' },
+];
+
+function StatusPill({ icon: Icon, label, count, active, onClick, color, theme }: any) {
+  return (
+    <button onClick={onClick}
+      className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 active:scale-95 whitespace-nowrap"
+      style={{
+        background: active ? color : theme.card,
+        color: active ? '#fff' : theme.textSecondary,
+        border: `1.5px solid ${active ? color : theme.border}`,
+      }}>
+      <Icon className="h-3.5 w-3.5" />
+      <span>{label}</span>
+      <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold"
+        style={{ background: active ? 'rgba(255,255,255,0.25)' : theme.backgroundSecondary, color: active ? '#fff' : theme.text }}>{count}</span>
+    </button>
+  );
+}
 
 interface Report {
   id: number;
@@ -26,22 +53,56 @@ const MONTHS = ['', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Juli
 export default function Reportes() {
   const { theme } = useTheme();
   const [reports, setReports] = useState<Report[]>([]);
-  const [showFilters, setShowFilters] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [showCustom, setShowCustom] = useState(false);
-  const [filterYear, setFilterYear] = useState<number | null>(null);
+  const [search, setSearch] = useState('');
+  const [filterYear, setFilterYear] = useState<string>('all');
   const [filterKind, setFilterKind] = useState<string>('all');
+  const [sortBy, setSortBy] = useState<string>('recent');
 
   useEffect(() => {
-    api.get<Report[]>('/reports').then(r => setReports(r.data));
+    setLoading(true);
+    api.get<Report[]>('/reports').then(r => setReports(r.data)).finally(() => setLoading(false));
   }, []);
 
   const kinds = useMemo(() => Array.from(new Set(reports.map(r => r.kind))), [reports]);
   const years = useMemo(() => Array.from(new Set(reports.map(r => r.period_year))).sort((a, b) => b - a), [reports]);
 
-  const filtered = reports.filter(r =>
-    (filterYear == null || r.period_year === filterYear) &&
-    (filterKind === 'all' || r.kind === filterKind)
-  );
+  const yearOptions = useMemo(() => [
+    { value: 'all', label: 'Todos los años' },
+    ...years.map(y => ({ value: String(y), label: String(y) })),
+  ], [years]);
+
+  const kindOptions = useMemo(() => [
+    { value: 'all', label: 'Todos los tipos' },
+    ...kinds.map(k => ({ value: k, label: k.charAt(0).toUpperCase() + k.slice(1) })),
+  ], [kinds]);
+
+  const counts = useMemo(() => {
+    const c: Record<string, number> = { all: reports.length };
+    years.forEach(y => { c[`y_${y}`] = reports.filter(r => r.period_year === y).length; });
+    return c;
+  }, [reports, years]);
+
+  const filtered = useMemo(() => {
+    const s = search.toLowerCase().trim();
+    const list = reports.filter(r => {
+      if (filterYear !== 'all' && String(r.period_year) !== filterYear) return false;
+      if (filterKind !== 'all' && r.kind !== filterKind) return false;
+      if (s) {
+        const text = `${r.code} ${MONTHS[r.period_month]} ${r.period_year} ${r.region} ${r.kind}`.toLowerCase();
+        if (!text.includes(s)) return false;
+      }
+      return true;
+    });
+    return [...list].sort((a, b) => {
+      if (sortBy === 'recent') return (b.period_year * 12 + b.period_month) - (a.period_year * 12 + a.period_month);
+      if (sortBy === 'old') return (a.period_year * 12 + a.period_month) - (b.period_year * 12 + b.period_month);
+      if (sortBy === 'yoy_desc') return (b.yoy_change_pct || 0) - (a.yoy_change_pct || 0);
+      if (sortBy === 'yoy_asc') return (a.yoy_change_pct || 0) - (b.yoy_change_pct || 0);
+      return 0;
+    });
+  }, [reports, search, filterYear, filterKind, sortBy]);
 
   const exportAll = () => {
     if (!filtered.length) { toast.error('Sin reportes para exportar'); return; }
@@ -57,73 +118,57 @@ export default function Reportes() {
   };
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto animate-fade-in">
-      <header className="mb-6 flex items-end justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-display font-black tracking-tight" style={{ color: theme.text }}>Reportes</h1>
-          <p className="text-sm mt-1" style={{ color: theme.textSecondary }}>
-            Análisis mensual del mercado · publicamos el primer día hábil del mes
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <button onClick={exportAll}
-            className="hidden sm:flex px-4 py-2 rounded-lg text-sm font-medium items-center gap-2 transition-all active:scale-95"
-            style={{ background: theme.card, color: theme.text, border: `1px solid ${theme.border}` }}>
-            <Download className="h-4 w-4" /> Exportar CSV
-          </button>
-          <button onClick={() => setShowFilters(true)}
-            className="px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all active:scale-95 relative"
-            style={{ background: theme.card, color: theme.text, border: `1px solid ${theme.border}` }}>
-            <Filter className="h-4 w-4" /> Filtrar
-            {(filterYear != null || filterKind !== 'all') && (
-              <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full" style={{ background: theme.primary }} />
-            )}
-          </button>
-          <button onClick={() => setShowCustom(true)}
-            className="px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all active:scale-95"
-            style={{ background: theme.primary, color: theme.primaryText }}>
-            <Plus className="h-4 w-4" /> Reporte custom
-          </button>
-        </div>
-      </header>
-
-      {/* Active filter chips */}
-      {(filterYear != null || filterKind !== 'all') && (
-        <div className="flex items-center gap-2 mb-4 flex-wrap">
-          <span className="text-xs font-bold uppercase tracking-wider" style={{ color: theme.textSecondary }}>Filtros:</span>
-          {filterYear != null && (
-            <button onClick={() => setFilterYear(null)} className="px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5"
-              style={{ background: `${theme.primary}15`, color: theme.primary, border: `1px solid ${theme.primary}30` }}>
-              {filterYear} <X className="h-3 w-3" />
-            </button>
-          )}
-          {filterKind !== 'all' && (
-            <button onClick={() => setFilterKind('all')} className="px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5"
-              style={{ background: `${theme.primary}15`, color: theme.primary, border: `1px solid ${theme.primary}30` }}>
-              {filterKind} <X className="h-3 w-3" />
-            </button>
-          )}
-        </div>
-      )}
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filtered.map((r, i) => (
-          <ReportCard key={r.id} report={r} isNew={i === 0} theme={theme} />
-        ))}
-        {filtered.length === 0 && (
-          <div className="col-span-full p-12 text-center rounded-xl"
-            style={{ background: theme.card, border: `2px dashed ${theme.border}`, color: theme.textSecondary }}>
-            Sin reportes con esos filtros
+    <div className="p-6 lg:p-8 max-w-screen-2xl mx-auto animate-fade-in">
+      <PageHint pageId="reportes" />
+      <ABMPage
+        title="Reportes"
+        icon={<FileText className="h-5 w-5" />}
+        backLink="/"
+        searchValue={search}
+        onSearchChange={setSearch}
+        searchPlaceholder="Buscar por código, mes, año o región..."
+        onAdd={() => setShowCustom(true)}
+        buttonLabel="Reporte custom"
+        buttonIcon={<Plus className="h-4 w-4" />}
+        loading={loading}
+        isEmpty={!loading && filtered.length === 0}
+        emptyMessage={reports.length === 0 ? 'Sin reportes publicados todavía' : 'Sin resultados con esos filtros'}
+        secondaryFilters={
+          <div className="flex items-center justify-between gap-3 flex-wrap py-1">
+            <div className="flex items-center gap-2 flex-wrap">
+              <div className="w-44"><ModernSelect value={filterYear} onChange={(v: any) => setFilterYear(v)} options={yearOptions} placeholder="Año" /></div>
+              <div className="w-44"><ModernSelect value={filterKind} onChange={(v: any) => setFilterKind(v)} options={kindOptions} placeholder="Tipo" /></div>
+            </div>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <StatusPill icon={List} label="Todos" count={counts.all} active={filterYear === 'all'}
+                onClick={() => setFilterYear('all')} color={theme.primary} theme={theme} />
+              {years.slice(0, 4).map(y => (
+                <StatusPill key={y} icon={Calendar} label={String(y)} count={counts[`y_${y}`] || 0}
+                  active={filterYear === String(y)} onClick={() => setFilterYear(String(y))} color={theme.info} theme={theme} />
+              ))}
+            </div>
           </div>
-        )}
-      </div>
-
-      {showFilters && (
-        <FilterModal theme={theme} years={years} kinds={kinds}
-          filterYear={filterYear} setFilterYear={setFilterYear}
-          filterKind={filterKind} setFilterKind={setFilterKind}
-          onClose={() => setShowFilters(false)} />
-      )}
+        }
+        headerActions={
+          <div className="flex items-center gap-2">
+            <button onClick={exportAll}
+              className="hidden md:flex px-3 py-2 rounded-lg text-xs font-medium items-center gap-1.5 transition-all active:scale-95"
+              style={{ background: theme.card, color: theme.text, border: `1px solid ${theme.border}` }}>
+              <Download className="h-3.5 w-3.5" /> CSV
+            </button>
+            <ArrowUpDown className="h-4 w-4" style={{ color: theme.textSecondary }} />
+            <div className="w-44">
+              <ModernSelect value={sortBy} onChange={(v: any) => setSortBy(v)} options={SORT_OPTIONS} placeholder="Ordenar..." />
+            </div>
+          </div>
+        }
+      >
+        <div className="col-span-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filtered.map((r, i) => (
+            <ReportCard key={r.id} report={r} isNew={i === 0} theme={theme} />
+          ))}
+        </div>
+      </ABMPage>
 
       {showCustom && <CustomReportModal theme={theme} onClose={() => setShowCustom(false)} />}
     </div>
@@ -234,59 +279,6 @@ function ReportCard({ report, isNew, theme }: { report: Report; isNew: boolean; 
   );
 }
 
-
-function FilterModal({ theme, years, kinds, filterYear, setFilterYear, filterKind, setFilterKind, onClose }: any) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-in fade-in duration-200"
-      onClick={onClose} style={{ background: 'rgba(0,0,0,0.55)' }}>
-      <div onClick={e => e.stopPropagation()} className="w-full max-w-md rounded-2xl shadow-2xl animate-in zoom-in-95 duration-200"
-        style={{ background: theme.card, border: `1px solid ${theme.border}` }}>
-        <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: `1px solid ${theme.border}` }}>
-          <h3 className="font-display font-black text-lg" style={{ color: theme.text }}>Filtrar reportes</h3>
-          <button onClick={onClose} className="p-1.5 rounded-lg" style={{ color: theme.textSecondary }}><X className="h-4 w-4" /></button>
-        </div>
-        <div className="p-5 space-y-4">
-          <div>
-            <div className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: theme.textSecondary }}>Año</div>
-            <div className="flex flex-wrap gap-2">
-              <Chip active={filterYear == null} onClick={() => setFilterYear(null)} label="Todos" theme={theme} />
-              {years.map((y: number) => <Chip key={y} active={filterYear === y} onClick={() => setFilterYear(y)} label={String(y)} theme={theme} />)}
-            </div>
-          </div>
-          <div>
-            <div className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: theme.textSecondary }}>Tipo</div>
-            <div className="flex flex-wrap gap-2">
-              <Chip active={filterKind === 'all'} onClick={() => setFilterKind('all')} label="Todos" theme={theme} />
-              {kinds.map((k: string) => <Chip key={k} active={filterKind === k} onClick={() => setFilterKind(k)} label={k} theme={theme} />)}
-            </div>
-          </div>
-        </div>
-        <div className="px-5 py-4 flex justify-end gap-2" style={{ borderTop: `1px solid ${theme.border}` }}>
-          <button onClick={() => { setFilterYear(null); setFilterKind('all'); }}
-            className="px-4 py-2 rounded-lg text-sm font-medium transition-all active:scale-95"
-            style={{ background: theme.backgroundSecondary, color: theme.text }}>Limpiar</button>
-          <button onClick={onClose}
-            className="px-4 py-2 rounded-lg text-sm font-bold transition-all active:scale-95 flex items-center gap-1.5"
-            style={{ background: theme.primary, color: theme.primaryText }}>
-            <Check className="h-4 w-4" /> Aplicar
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function Chip({ active, onClick, label, theme }: any) {
-  return (
-    <button onClick={onClick}
-      className="px-3 py-1.5 rounded-full text-xs font-semibold transition-all active:scale-95"
-      style={{
-        background: active ? theme.primary : theme.backgroundSecondary,
-        color: active ? theme.primaryText : theme.text,
-        border: `1px solid ${active ? theme.primary : theme.border}`,
-      }}>{label}</button>
-  );
-}
 
 function CustomReportModal({ theme, onClose }: any) {
   const [region, setRegion] = useState('CABA');
