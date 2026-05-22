@@ -141,7 +141,7 @@ export default function Layout({ children }: { children: ReactNode }) {
 
       {/* Main area */}
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="flex-shrink-0 h-14 flex items-center justify-between px-4 sm:px-6 lg:pr-[336px] gap-3"
+        <header className="flex-shrink-0 h-14 flex items-center justify-between px-4 sm:px-6 gap-3"
           style={{ background: theme.card, borderBottom: `1px solid ${theme.border}` }}>
           {/* Logo mobile (sidebar oculta en mobile) */}
           <div className="lg:hidden flex items-center gap-2">
@@ -151,9 +151,8 @@ export default function Layout({ children }: { children: ReactNode }) {
           <div className="hidden lg:block" />
           <ThemeSelector />
         </header>
-        {/* lg:pr-80 reserva 320px a la derecha para el AICoachPanel fijo,
-            sin romper el max-w-7xl mx-auto de las paginas internas */}
-        <main className="flex-1 overflow-y-auto pb-20 lg:pb-0 lg:pr-80" style={{ background: theme.background }}>
+        {/* AI Coach es FAB colapsado por default - no necesita reservar espacio */}
+        <main className="flex-1 overflow-y-auto pb-20 lg:pb-0" style={{ background: theme.background }}>
           {children}
         </main>
       </div>

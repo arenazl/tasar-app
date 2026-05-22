@@ -44,21 +44,9 @@ function routeFromPath(pathname: string): string {
 export default function AICoachPanel() {
   const { theme } = useTheme();
   const location = useLocation();
-  // Desktop (lg+): siempre abierto - ignora localStorage para que un cierre
-  // pasado en mobile no lo deje invisible en desktop. Mobile: respeta el toggle.
-  const [isDesktop, setIsDesktop] = useState(() =>
-    typeof window !== 'undefined' && window.matchMedia('(min-width: 1024px)').matches
-  );
-  useEffect(() => {
-    const mq = window.matchMedia('(min-width: 1024px)');
-    const handler = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
-    mq.addEventListener('change', handler);
-    return () => mq.removeEventListener('change', handler);
-  }, []);
-  const [mobileOpen, setMobileOpen] = useState(() => localStorage.getItem(LS_OPEN) !== 'false');
-  const open = isDesktop || mobileOpen;
-  const setOpen = (v: boolean) => setMobileOpen(v);
-
+  // Default colapsado en desktop y mobile - el user lo abre con el FAB
+  // cuando quiere recomendaciones. Persiste estado entre sesiones.
+  const [open, setOpen] = useState(() => localStorage.getItem(LS_OPEN) === 'true');
   const [loading, setLoading] = useState(false);
   const [tips, setTips] = useState<CoachTip[]>([]);
   const [generatedByAI, setGeneratedByAI] = useState(true);
@@ -67,8 +55,8 @@ export default function AICoachPanel() {
   const route = routeFromPath(location.pathname);
 
   useEffect(() => {
-    localStorage.setItem(LS_OPEN, mobileOpen ? 'true' : 'false');
-  }, [mobileOpen]);
+    localStorage.setItem(LS_OPEN, open ? 'true' : 'false');
+  }, [open]);
 
   const fetchTips = useCallback(async () => {
     if (!open) return;
@@ -93,13 +81,12 @@ export default function AICoachPanel() {
     }
   }, [open, route, lastRoute, fetchTips]);
 
-  // En desktop el panel es always-open (sidebar fija). En mobile sigue siendo
-  // FAB + bottom-sheet on demand.
+  // Default colapsado: FAB visible en desktop y mobile, panel se abre on demand.
   if (!open) {
     return (
       <button
         onClick={() => setOpen(true)}
-        className="lg:hidden fixed right-4 bottom-[88px] z-40 w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition-all active:scale-95 hover:scale-110"
+        className="fixed right-4 lg:right-6 bottom-[88px] lg:bottom-6 z-40 w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition-all active:scale-95 hover:scale-110"
         style={{ background: theme.primary, color: theme.primaryText }}
         title="Abrir AI Coach"
       >
@@ -151,7 +138,7 @@ export default function AICoachPanel() {
             <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
           </button>
           <button onClick={() => setOpen(false)}
-            className="lg:hidden p-1.5 rounded-lg transition-all active:scale-95"
+            className="p-1.5 rounded-lg transition-all active:scale-95"
             style={{ background: theme.backgroundSecondary, color: theme.textSecondary }}
             title="Cerrar">
             <X className="h-3.5 w-3.5" />

@@ -515,7 +515,8 @@ export default function Propiedades() {
         secondaryFilters={filtersTopRow}
         headerActions={headerActions}
         tableView={tableView}
-        viewStorageKey="propiedades_view"
+        viewStorageKey="propiedades_view_v2"
+        defaultViewMode="table"
         loading={loading}
         isEmpty={!loading && filtered.length === 0}
         emptyMessage={items.length === 0 ? 'No hay propiedades cargadas todavía' : 'Sin resultados con esos filtros'}

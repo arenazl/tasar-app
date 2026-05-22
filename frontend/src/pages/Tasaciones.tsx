@@ -467,7 +467,8 @@ export default function Tasaciones() {
         secondaryFilters={filtersTopRow}
         headerActions={headerActions}
         tableView={tableView}
-        viewStorageKey="tasaciones_view"
+        viewStorageKey="tasaciones_view_v2"
+        defaultViewMode="table"
         loading={loading}
         isEmpty={!loading && filtered.length === 0}
         emptyMessage={items.length === 0 ? 'Sin tasaciones todavía' : 'Sin resultados'}

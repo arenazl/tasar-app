@@ -379,7 +379,8 @@ export default function Estudios() {
         secondaryFilters={filtersTopRow}
         headerActions={headerActions}
         tableView={tableView}
-        viewStorageKey="estudios_view"
+        viewStorageKey="estudios_view_v2"
+        defaultViewMode="table"
         loading={loading}
         isEmpty={!loading && filtered.length === 0}
         emptyMessage={items.length === 0 ? 'No hay estudios todavía. Creá el primero.' : 'Sin resultados'}
