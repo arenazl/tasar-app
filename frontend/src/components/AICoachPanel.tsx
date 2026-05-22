@@ -44,7 +44,21 @@ function routeFromPath(pathname: string): string {
 export default function AICoachPanel() {
   const { theme } = useTheme();
   const location = useLocation();
-  const [open, setOpen] = useState(() => localStorage.getItem(LS_OPEN) !== 'false');
+  // Desktop (lg+): siempre abierto - ignora localStorage para que un cierre
+  // pasado en mobile no lo deje invisible en desktop. Mobile: respeta el toggle.
+  const [isDesktop, setIsDesktop] = useState(() =>
+    typeof window !== 'undefined' && window.matchMedia('(min-width: 1024px)').matches
+  );
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 1024px)');
+    const handler = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
+  const [mobileOpen, setMobileOpen] = useState(() => localStorage.getItem(LS_OPEN) !== 'false');
+  const open = isDesktop || mobileOpen;
+  const setOpen = (v: boolean) => setMobileOpen(v);
+
   const [loading, setLoading] = useState(false);
   const [tips, setTips] = useState<CoachTip[]>([]);
   const [generatedByAI, setGeneratedByAI] = useState(true);
@@ -53,8 +67,8 @@ export default function AICoachPanel() {
   const route = routeFromPath(location.pathname);
 
   useEffect(() => {
-    localStorage.setItem(LS_OPEN, open ? 'true' : 'false');
-  }, [open]);
+    localStorage.setItem(LS_OPEN, mobileOpen ? 'true' : 'false');
+  }, [mobileOpen]);
 
   const fetchTips = useCallback(async () => {
     if (!open) return;
