@@ -4,8 +4,11 @@ El service expone la misma API que claude_service.py original. Los endpoints
 no saben qué provider están usando.
 
 Provider activo se lee de `app_settings.ai_provider` (claude | gemini), con
-cache de 15s. Default: claude.
+cache de 15s. Si Claude CLI no está instalado (ej. en Heroku), automáticamente
+hace fallback a Gemini.
 """
+import os
+import shutil
 import time
 import logging
 from typing import AsyncIterator
@@ -18,7 +21,12 @@ log = logging.getLogger("tasar.ai_router")
 
 
 _VALID_PROVIDERS = ("claude", "gemini")
-_DEFAULT_PROVIDER = "claude"
+
+# Si Claude CLI no está en PATH (típico en Heroku), forzamos default a Gemini
+_CLAUDE_AVAILABLE = bool(shutil.which("claude") or shutil.which("claude.cmd"))
+_DEFAULT_PROVIDER = "claude" if _CLAUDE_AVAILABLE else "gemini"
+if not _CLAUDE_AVAILABLE:
+    log.warning("Claude CLI not found in PATH - defaulting to Gemini provider")
 
 _PROVIDER_CACHE: tuple[str, float] | None = None
 _PROVIDER_TTL = 15
@@ -47,6 +55,11 @@ async def _get_provider() -> str:
                 provider = row.value
     except Exception:
         provider = _DEFAULT_PROVIDER
+    # Safety net: si el setting dice 'claude' pero el CLI no está disponible,
+    # forzamos Gemini para que la app no falle silenciosamente.
+    if provider == "claude" and not _CLAUDE_AVAILABLE:
+        log.warning("Setting says 'claude' but CLI not available - using Gemini")
+        provider = "gemini"
     _PROVIDER_CACHE = (provider, now + _PROVIDER_TTL)
     return provider
 

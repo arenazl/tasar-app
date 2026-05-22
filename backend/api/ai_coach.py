@@ -147,23 +147,43 @@ def _extract_tips(raw: str) -> list[CoachTip]:
 
 
 def _fallback_tips(route: str, ctx: dict) -> list[CoachTip]:
-    """Tips estáticos si Claude no responde."""
-    if route == "bandeja":
-        sin_leer = ctx.get("inbox_unread", 0)
-        if sin_leer > 0:
-            return [CoachTip(
-                title=f"Tenés {sin_leer} mensajes sin leer",
-                body="Revisá los marcados como urgentes primero (cliente o sistema).",
-                severity="info",
-            )]
-    if route == "tasaciones":
-        en_analisis = ctx.get("appraisals_in_analysis", 0)
-        if en_analisis > 0:
-            return [CoachTip(
-                title=f"{en_analisis} tasaciones en análisis",
-                body="Ejecutá el análisis IA en las que aún no tienen valor sugerido.",
-                severity="info",
-            )]
+    """Tips estáticos si la IA no responde. Usa el contexto real del workspace."""
+    n_props = ctx.get("properties_total", 0)
+    n_apps = ctx.get("appraisals_total", 0)
+    n_in_analysis = ctx.get("appraisals_in_analysis", 0)
+    n_unread = ctx.get("inbox_unread", 0)
+
+    if route == "bandeja" and n_unread > 0:
+        return [CoachTip(
+            title=f"Tenés {n_unread} mensajes sin leer",
+            body="Revisá los marcados como urgentes primero (cliente o sistema).",
+            severity="info",
+        )]
+    if route == "tasaciones" and n_in_analysis > 0:
+        return [CoachTip(
+            title=f"{n_in_analysis} tasaciones en análisis",
+            body="Ejecutá el análisis IA en las que aún no tienen valor sugerido.",
+            severity="info",
+        )]
+    if route == "clientes" and n_apps > 0:
+        return [CoachTip(
+            title=f"{n_apps} tasaciones en tu cartera",
+            body=f"Revisá los clientes con más actividad y mantenelos al día.",
+            severity="info",
+            action_label="Ver clientes", action_url="/clientes",
+        )]
+    if route == "propiedades" and n_props > 0:
+        return [CoachTip(
+            title=f"{n_props} propiedades cargadas",
+            body="Verificá que tengan dirección + m² + barrio para mejorar el matching.",
+            severity="info",
+        )]
+    if route in ("dashboard", "mercado", "reportes", "comparables", "pipeline", "config") and (n_props or n_apps):
+        return [CoachTip(
+            title="Workspace activo",
+            body=f"{n_props} propiedades · {n_apps} tasaciones. Explorá las recomendaciones contextuales en cada pantalla.",
+            severity="info",
+        )]
     return [CoachTip(
         title="Cargá data del workspace",
         body="Sin propiedades ni tasaciones, no hay nada para recomendar.",
