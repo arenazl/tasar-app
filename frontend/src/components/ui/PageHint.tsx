@@ -212,7 +212,9 @@ export default function PageHint({ pageId }: PageHintProps) {
               {isWizard ? currentStep?.title : hint.title}
             </h3>
             <p className="text-xs leading-snug" style={{ color: theme.textSecondary }}>
-              {isWizard ? currentStep?.description : hint.description}
+              {isWizard
+                ? (currentStep?.body || currentStep?.description)
+                : (hint.body || hint.description)}
             </p>
 
             {/* CTA del step (si tiene link) */}
