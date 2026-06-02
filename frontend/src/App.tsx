@@ -1,7 +1,25 @@
+import { useEffect } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import { AuthProvider } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
+
+// Cleanup de hints viejos (pre-v2) para que vuelvan a aparecer despues de
+// la reescritura completa de contenido en pageHints.ts. Sucede una sola vez
+// por sesion por dispositivo.
+function cleanupOldHintFlags() {
+  if (typeof window === 'undefined') return;
+  if (localStorage.getItem('tasar_hints_v2_migrated') === 'true') return;
+  const keysToRemove: string[] = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key && key.startsWith('hint_dismissed_') && !key.includes('_v2_')) {
+      keysToRemove.push(key);
+    }
+  }
+  keysToRemove.forEach(k => localStorage.removeItem(k));
+  localStorage.setItem('tasar_hints_v2_migrated', 'true');
+}
 import Layout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
 
@@ -24,6 +42,7 @@ import Pipeline from './pages/Pipeline';
 import Clientes from './pages/Clientes';
 
 export default function App() {
+  useEffect(() => { cleanupOldHintFlags(); }, []);
   return (
     <ThemeProvider>
       <AuthProvider>

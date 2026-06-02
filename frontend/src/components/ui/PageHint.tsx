@@ -113,7 +113,7 @@ export default function PageHint({ pageId }: PageHintProps) {
   // Scopeamos el dismiss al municipio actual — así cada demo arranca con
   // sus hints visibles aunque el usuario los haya cerrado en otra demo.
   const muniCodigo = typeof window !== 'undefined' ? localStorage.getItem('municipio_codigo') || 'default' : 'default';
-  const storageKey = `hint_dismissed_${pageId}_${muniCodigo}`;
+  const storageKey = `hint_dismissed_${pageId}_v2_${muniCodigo}`;
   const isWizard = !!hint?.steps?.length;
   // Mantenemos ACCENT_STYLES para compat pero ya no se usa en el render —
   // los colores ahora salen del theme activo para respetar la paleta elegida.
@@ -135,7 +135,7 @@ export default function PageHint({ pageId }: PageHintProps) {
   useEffect(() => {
     const onMuniChanged = () => {
       const newMuni = localStorage.getItem('municipio_codigo') || 'default';
-      const newKey = `hint_dismissed_${pageId}_${newMuni}`;
+      const newKey = `hint_dismissed_${pageId}_v2_${newMuni}`;
       setDismissed(localStorage.getItem(newKey) === 'true');
       setStepIdx(0);
     };
