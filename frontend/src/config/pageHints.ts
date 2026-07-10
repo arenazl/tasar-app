@@ -14,6 +14,23 @@ export interface PageHintConfig {
 }
 
 export const PAGE_HINTS: Record<string, PageHintConfig> = {
+  'tasacion-express': {
+    title: 'Tu gancho comercial en 30 segundos',
+    body: 'Cargá una propiedad y obtené un rango de valor anclado a comparables reales del catálogo, con IA que ajusta sobre esa ancla. Es lo primero que le mostrás a un cliente nuevo.',
+    steps: [
+      { title: 'Anclado, no inventado', body: 'El motor arranca de la mediana real de USD/m² de la zona (market_listings) y recién ahí la IA ajusta por estado, antigüedad y features. Nunca "adivina" un precio de la nada.' },
+      { title: 'Confianza según datos', body: 'Alta con 30+ comparables, media con 10+, baja con menos. Si no hay datos de la zona, te lo dice — no te muestra un número sin sustento.' },
+      { title: 'PDF listo para mandar', body: 'Cada tasación express se guarda y se puede descargar en PDF brandeado con tu logo, para mandarlo al cliente en el momento.' },
+    ],
+  },
+  'tasador-ai': {
+    title: 'Tu copiloto de tasación',
+    body: 'Charlá con la IA sobre una propiedad puntual: te ayuda a completar datos, sugiere comparables y explica el razonamiento detrás de un rango de valor.',
+    steps: [
+      { title: 'Preguntas concretas', body: 'Pedile cosas puntuales: "¿qué factores bajan el valor de esta propiedad?" o "compará esto con lo que ya cargué en Palermo".' },
+      { title: 'No reemplaza el ACM', body: 'Es para pensar rápido y destrabar dudas. El estudio defendible (con score de confianza) sigue siendo el ACM formal en Estudios.' },
+    ],
+  },
   dashboard: {
     title: 'Tu día arranca acá',
     body: 'Antes de abrir cualquier ACM, mirá esta pantalla: te dice cuánto facturás, cuántas tasaciones tenés en curso y qué está esperando tu atención.',

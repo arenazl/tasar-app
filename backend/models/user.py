@@ -30,4 +30,9 @@ class User(Base):
     # AgentFlow.meta_conversaciones_diaria -> daily_conversations_goal
     daily_conversations_goal = Column(Integer, default=20)
 
+    # Vendedor de ejemplo generado por el onboarding self-service (WO F5-03).
+    # Nunca se crea/edita por el registro normal; solo por services/demo_service.
+    # Se borra en bloque sin tocar miembros reales del equipo (regla #11).
+    is_demo = Column(Boolean, nullable=False, default=False, index=True)
+
     created_at = Column(DateTime(timezone=True), server_default=func.now())

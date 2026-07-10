@@ -23,6 +23,9 @@ class TeamMemberOut(BaseModel):
     daily_conversations_goal: Optional[int] = None
     last_assigned_at: Optional[datetime] = None
     created_at: Optional[datetime] = None
+    # Vendedor de ejemplo del onboarding self-service (WO F5-03) — el front lo
+    # usa para el badge "[DEMO]" en la pantalla Equipo.
+    is_demo: bool = False
 
     class Config:
         from_attributes = True

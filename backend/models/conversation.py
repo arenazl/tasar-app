@@ -10,7 +10,7 @@ Convencion de la casa (TasAR): los "enum" se guardan como String con comentario 
 valores validos (no SAEnum), para un DDL portable a MySQL.
 """
 from sqlalchemy import (
-    Column, Integer, String, DateTime, ForeignKey, Text, UniqueConstraint, func,
+    Column, Integer, String, Boolean, DateTime, ForeignKey, Text, UniqueConstraint, func,
 )
 from core.database import Base
 
@@ -58,6 +58,11 @@ class WaConversation(Base):
     # id del ultimo mensaje ya resumido (para no re-resumir todo cada turno).
     rolling_summary_md = Column(Text, nullable=True)
     summary_up_to_message_id = Column(Integer, nullable=True)
+
+    # Conversacion de muestra generada por el onboarding self-service (WO F5-03).
+    # `contact_name` va prefijado "[DEMO]"; se borra en bloque sin tocar
+    # conversaciones reales del inbox (regla #11 CLAUDE.md global).
+    is_demo = Column(Boolean, nullable=False, default=False, index=True)
 
     last_activity_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())

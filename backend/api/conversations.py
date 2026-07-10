@@ -77,6 +77,7 @@ def _conv_row(c: WaConversation, last: Optional[WaMessage], assignee_name: Optio
         "assignee_id": c.assignee_id,
         "assignee_name": assignee_name,
         "status": c.status,
+        "is_demo": c.is_demo,
         "unread_count": c.unread_count or 0,
         "bot_paused_until": _aware(c.bot_paused_until).isoformat() if c.bot_paused_until else None,
         "bot_paused": bool(c.bot_paused_until and _aware(c.bot_paused_until) > _now()),

@@ -16,7 +16,7 @@ from api import (
     inbox, market, reports, ai_coach, clients, wa_auth, wa_gateway,
     valuations, coaches, dmo, visits, deals, authorizations,
     whatsapp, bot_config, conversations, meta, push, cron, team,
-    knowledge_base,
+    knowledge_base, demo,
 )
 
 
@@ -108,6 +108,10 @@ app.include_router(team.router)
 # Incluye /api/tools/* (tools function-calling reales del bot, publicadas en
 # el KB con endpoint.path relativo).
 app.include_router(knowledge_base.router)
+# Onboarding self-service (WO F5-03): generar/borrar datos de ejemplo del
+# workspace (N propiedades + 3 vendedores + DMO asignado + 5 conversaciones,
+# todo marcado is_demo). Solo admin -- ver services/demo_service.py.
+app.include_router(demo.router)
 
 
 @app.get("/")

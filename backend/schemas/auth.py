@@ -35,6 +35,8 @@ class UserOut(BaseModel):
     is_available: bool = False
     personal_phone: Optional[str] = None
     daily_conversations_goal: Optional[int] = None
+    # Vendedor de ejemplo del onboarding self-service (WO F5-03).
+    is_demo: bool = False
 
     class Config:
         from_attributes = True

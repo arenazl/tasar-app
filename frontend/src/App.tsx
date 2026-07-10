@@ -25,6 +25,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import { PushOptIn } from './components/PushOptIn';
 
 import Login from './pages/Login';
+import Registro from './pages/Registro';
 import AceptarInvitacion from './pages/AceptarInvitacion';
 import Equipo from './pages/Equipo';
 import Dashboard from './pages/Dashboard';
@@ -62,6 +63,10 @@ export default function App() {
         <Toaster position="top-right" richColors />
         <Routes>
           <Route path="/login" element={<Login />} />
+          {/* Onboarding self-service (WO F5-03) — publica: registro + wizard
+              post-registro (datos iniciales -> invitar equipo -> tasacion
+              express). Destino del CTA "Crear una cuenta" de landing/index.html. */}
+          <Route path="/registro" element={<Registro />} />
           {/* Alta via invitacion (WO F4-05) — publica, sin auth */}
           <Route path="/invitacion/:token" element={<AceptarInvitacion />} />
           <Route path="/*" element={

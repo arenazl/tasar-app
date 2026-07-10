@@ -55,6 +55,9 @@ class PropertyOut(PropertyBase):
     workspace_id: int
     created_by: int
     ai_analysis: Optional[str] = None
+    # Dato de ejemplo del onboarding self-service (WO F5-03) — el front lo usa
+    # para el badge "[DEMO]" ademas del prefijo ya presente en el titulo.
+    is_demo: bool = False
     photos: List[PropertyPhotoOut] = []
     created_at: datetime
     updated_at: datetime

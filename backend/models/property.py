@@ -47,6 +47,11 @@ class Property(Base):
     description = Column(Text, nullable=True)
     ai_analysis = Column(Text, nullable=True)  # JSON con análisis de Claude
 
+    # Dato de ejemplo generado por el onboarding self-service (WO F5-03). SIEMPRE
+    # visible como tal (titulo con prefijo "[DEMO]") y borrable en bloque sin
+    # tocar propiedades reales (regla #11 CLAUDE.md global).
+    is_demo = Column(Boolean, nullable=False, default=False, index=True)
+
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 

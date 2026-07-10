@@ -194,7 +194,7 @@ export default function Login() {
           </form>
 
           <p className="mt-6 text-center text-sm" style={{ color: theme.textSecondary }}>
-            ¿Sin cuenta? <Link to="/register" className="font-bold hover:underline" style={{ color: theme.primary }}>Crear workspace</Link>
+            ¿Sin cuenta? <Link to="/registro" className="font-bold hover:underline" style={{ color: theme.primary }}>Crear workspace</Link>
           </p>
         </div>
       </div>

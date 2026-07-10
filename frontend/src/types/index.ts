@@ -16,6 +16,8 @@ export interface User {
   // usuario lo edita desde su perfil (switch en el menu de la sidebar).
   is_available?: boolean;
   personal_phone?: string;
+  // Vendedor de ejemplo del onboarding self-service (WO F5-03).
+  is_demo?: boolean;
 }
 
 // ==================== Equipo / invitaciones (WO F4-05) ====================
@@ -34,6 +36,8 @@ export interface TeamMember {
   daily_conversations_goal?: number | null;
   last_assigned_at?: string | null;
   created_at?: string | null;
+  // Vendedor de ejemplo del onboarding self-service (WO F5-03) — badge "[DEMO]".
+  is_demo?: boolean;
 }
 
 export type InvitationStatus = 'pendiente' | 'aceptada' | 'expirada' | 'cancelada';
@@ -266,6 +270,9 @@ export interface Property {
   currency: string;
   description?: string;
   ai_analysis?: string;
+  // Propiedad de ejemplo del onboarding self-service (WO F5-03) — el titulo ya
+  // viene prefijado "[DEMO]", este flag habilita el badge/filtro en la UI.
+  is_demo?: boolean;
   photos: PropertyPhoto[];
   created_at: string;
   updated_at: string;

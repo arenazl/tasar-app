@@ -29,7 +29,7 @@ Datos/monoespaciado: **JetBrains Mono**.
 ## CTAs
 
 - **Solicitar demo** → `mailto:hola@tasar.app`
-- **Crear una cuenta** → `/registro` (registro self-service, WO F5-03; ruta pendiente de implementar)
+- **Crear una cuenta** → `/registro` (registro self-service + wizard post-registro, `frontend/src/pages/Registro.tsx`, WO F5-03)
 - **Ingresar** → `/login`
 
 ## Abrir
