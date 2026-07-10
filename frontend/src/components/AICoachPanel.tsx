@@ -22,23 +22,38 @@ interface CoachResponse {
 
 const LS_OPEN = 'tasar_coach_open';
 
-/** Mapeo de pathname → route key del backend */
+/**
+ * Mapeo de pathname → route key del backend (ROUTE_PROMPTS en backend/api/ai_coach.py).
+ * Las keys usan snake_case; el backend además normaliza '-' → '_'.
+ */
+const ROUTE_MAP: Record<string, string> = {
+  '': 'dashboard',
+  'bandeja': 'bandeja',
+  'whatsapp': 'whatsapp',
+  'tasacion-express': 'tasacion_express',
+  'tasaciones': 'tasaciones',
+  'estudios': 'estudios',
+  'propiedades': 'propiedades',
+  'autorizaciones': 'autorizaciones',
+  'pipeline': 'pipeline',
+  'visitas': 'visitas',
+  'clientes': 'clientes',
+  'dmo': 'dmo',
+  'dmo-templates': 'dmo_templates',
+  'dmo-asignaciones': 'dmo_asignaciones',
+  'coaches': 'coaches',
+  'mercado': 'mercado',
+  'mapa': 'mercado',
+  'comparables': 'comparables',
+  'reportes': 'reportes',
+  'datos-ia': 'datos_ia',
+  'tasador-ai': 'tasaciones',
+  'configuracion': 'config',
+};
+
 function routeFromPath(pathname: string): string {
   const seg = pathname.split('/').filter(Boolean)[0] || '';
-  if (!seg || seg === '') return 'dashboard';
-  if (seg === 'propiedades') return 'propiedades';
-  if (seg === 'tasaciones') return 'tasaciones';
-  if (seg === 'estudios') return 'tasaciones';
-  if (seg === 'bandeja') return 'bandeja';
-  if (seg === 'mercado') return 'mercado';
-  if (seg === 'comparables') return 'comparables';
-  if (seg === 'reportes') return 'reportes';
-  if (seg === 'pipeline') return 'pipeline';
-  if (seg === 'clientes') return 'clientes';
-  if (seg === 'mapa') return 'mercado';
-  if (seg === 'configuracion') return 'config';
-  if (seg === 'tasador-ai') return 'tasaciones';
-  return 'dashboard';
+  return ROUTE_MAP[seg] ?? 'dashboard';
 }
 
 export default function AICoachPanel() {

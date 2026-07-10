@@ -4,6 +4,7 @@ import { ArrowLeft, Share2, Download, BookmarkPlus, ChevronRight } from 'lucide-
 import { toast } from 'sonner';
 import { api } from '../services/api';
 import { useTheme } from '../contexts/ThemeContext';
+import { BRAND } from '../config/brand';
 
 interface ReportData {
   id: number;
@@ -54,7 +55,7 @@ export default function EstudioEditorial() {
   const share = async () => {
     const url = window.location.href;
     if (navigator.share) {
-      try { await navigator.share({ title: `Estudio ${r?.code} TasAR`, url }); return; } catch { /* ignore */ }
+      try { await navigator.share({ title: `Estudio ${r?.code} ${BRAND.name}`, url }); return; } catch { /* ignore */ }
     }
     try { await navigator.clipboard.writeText(url); toast.success('Link copiado'); }
     catch { toast.error('No se pudo compartir'); }
@@ -151,7 +152,7 @@ export default function EstudioEditorial() {
             <div className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm"
               style={{ background: theme.primary, color: theme.primaryText }}>TA</div>
             <div className="text-sm">
-              <div className="font-bold" style={{ color: theme.text }}>Equipo TasAR</div>
+              <div className="font-bold" style={{ color: theme.text }}>Equipo {BRAND.name}</div>
               <div className="text-xs" style={{ color: theme.textSecondary }}>
                 Publicado {r.published_at ? new Date(r.published_at).toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' }) : '—'}
                 {' · '}{totalPages} páginas · lectura 18 min
@@ -176,7 +177,7 @@ export default function EstudioEditorial() {
         {/* §01 Índice */}
         <Section num="01" title="Índice" h2={`El índice supera USD ${Math.round((r.median_price_per_m2 || 2847) / 100) * 100}/m² por primera vez desde 2019.`} theme={theme}>
           <p>
-            El <strong style={{ color: theme.text }}>Índice TasAR {r.region}</strong> cerró {MONTHS[r.period_month]?.toLowerCase()} en{' '}
+            El <strong style={{ color: theme.text }}>Índice {BRAND.name} {r.region}</strong> cerró {MONTHS[r.period_month]?.toLowerCase()} en{' '}
             <strong style={{ color: theme.text }}>USD {Math.round(r.median_price_per_m2 || 2847).toLocaleString()}/m²</strong>,
             un +{(r.mom_change_pct || 1.2).toFixed(1)}% mensual y +{(r.yoy_change_pct || 14.2).toFixed(1)}% interanual.
             Es el mejor {MONTHS[r.period_month]?.toLowerCase()} desde 2019 y el séptimo mes consecutivo de suba.
@@ -187,7 +188,7 @@ export default function EstudioEditorial() {
             <strong style={{ color: theme.text }}> recuperación del crédito hipotecario</strong>
             y un cambio de mix — las ventas se están concentrando en barrios de mayor valor por metro.
           </p>
-          <Figure caption={`Fig. 1 — Índice TasAR ${r.region}, USD/m² mediano ponderado. Fuente: TasAR Index v3.2.`} theme={theme}>
+          <Figure caption={`Fig. 1 — Índice ${BRAND.name} ${r.region}, USD/m² mediano ponderado. Fuente: ${BRAND.name} Index v3.2.`} theme={theme}>
             <Sparkline theme={theme} data={[2380, 2410, 2425, 2440, 2460, 2480, 2510, 2530, 2560, 2590, 2620, 2680, 2720, 2780, 2820, 2890, Math.round(r.median_price_per_m2 || 3028)]} />
             <div className="flex justify-between mt-2 text-[11px] font-mono" style={{ color: theme.textSecondary }}>
               <span>Ene 25 · 2.380</span>
@@ -282,21 +283,21 @@ export default function EstudioEditorial() {
             <div>
               <div className="font-bold uppercase tracking-wider mb-2" style={{ color: theme.text }}>Metodología</div>
               <p className="leading-relaxed">
-                El Índice TasAR procesa avisos publicados, escrituras y permisos de obra. Mediana ponderada por
+                El Índice {BRAND.name} procesa avisos publicados, escrituras y permisos de obra. Mediana ponderada por
                 tipología y barrio. Series desestacionalizadas. Documentación completa en tasar.app/methodology.
               </p>
             </div>
             <div>
-              <div className="font-bold uppercase tracking-wider mb-2" style={{ color: theme.text }}>Sobre TasAR</div>
+              <div className="font-bold uppercase tracking-wider mb-2" style={{ color: theme.text }}>Sobre {BRAND.name}</div>
               <p className="leading-relaxed">
-                TasAR es el motor de inteligencia inmobiliaria de Argentina. Procesamos millones de avisos al mes
+                {BRAND.name} es el motor de inteligencia inmobiliaria de Argentina. Procesamos millones de avisos al mes
                 para tasadores, bancos, fondos e inmobiliarias. Reportes mensuales, API y CRM en
                 tasar-app.netlify.app.
               </p>
             </div>
           </div>
           <div className="mt-6 text-center" style={{ color: theme.textSecondary }}>
-            Edición {r.code} · TasAR © {new Date().getFullYear()}
+            Edición {r.code} · {BRAND.name} © {new Date().getFullYear()}
           </div>
         </footer>
       </article>

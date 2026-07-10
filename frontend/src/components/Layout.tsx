@@ -4,54 +4,144 @@ import {
   LayoutDashboard, Inbox, FileCheck2, Building2, Workflow, Users, Map as MapIcon,
   ClipboardList, FileText, Database, Settings, LogOut, ChevronDown, ChevronLeft, ChevronRight,
   Zap, Target, Layers, GraduationCap, CalendarDays, FileSignature, Bot, MessageSquare,
+  Sparkles, Store, TrendingUp, ListChecks, type LucideIcon,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
+import { BRAND } from '../config/brand';
 import ThemeSelector from './ThemeSelector';
 import BrandLogo from './BrandLogo';
 import AICoachPanel from './AICoachPanel';
 import MobileBottomBar from './MobileBottomBar';
 
-const NAV_TRABAJO = [
+// Vocabulario de roles UNIFICADO de la suite (WO F1-01): admin | supervisor | vendedor.
+type Role = 'vendedor' | 'supervisor' | 'admin';
+
+interface NavItem {
+  to: string;
+  icon: LucideIcon;
+  label: string;
+  badge?: 'unread';
+  live?: boolean;
+  /** Roles que ven el item. Omitido = todos. */
+  roles?: Role[];
+}
+interface NavModule {
+  key: string;
+  label: string;
+  icon: LucideIcon;
+  /** Roles que ven el módulo entero. Omitido = todos. */
+  roles?: Role[];
+  items: NavItem[];
+}
+
+// Items sueltos (sin módulo) — home y asistente, visibles a todos los roles.
+const NAV_TOP: NavItem[] = [
   { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/bandeja', icon: Inbox, label: 'Bandeja', badge: 'unread' as const },
-  { to: '/whatsapp', icon: MessageSquare, label: 'WhatsApp' },
-  { to: '/tasacion-express', icon: Zap, label: 'Express' },
-  { to: '/tasaciones', icon: FileCheck2, label: 'Tasaciones' },
-  { to: '/propiedades', icon: Building2, label: 'Propiedades' },
-  { to: '/pipeline', icon: Workflow, label: 'Pipeline ventas' },
-  { to: '/visitas', icon: CalendarDays, label: 'Visitas' },
-  { to: '/autorizaciones', icon: FileSignature, label: 'Autorizaciones' },
-  { to: '/clientes', icon: Users, label: 'Clientes' },
-  { to: '/dmo', icon: Target, label: 'Mi DMO' },
-  { to: '/mercado', icon: MapIcon, label: 'Mercado' },
-  { to: '/estudios', icon: ClipboardList, label: 'ACM' },
-  { to: '/reportes', icon: FileText, label: 'Reportes' },
+  { to: '/tasador-ai', icon: Sparkles, label: 'Tasador AI' },
 ];
-const NAV_EQUIPO = [
-  { to: '/dmo-templates', icon: Layers, label: 'Templates DMO' },
-  { to: '/dmo-asignaciones', icon: Target, label: 'Asignaciones' },
-  { to: '/coaches', icon: GraduationCap, label: 'Coaches' },
+
+// La suite se organiza en 5 módulos (WO F4-01).
+const NAV_MODULES: NavModule[] = [
+  {
+    key: 'captar', label: 'Captar', icon: Zap,
+    items: [
+      { to: '/tasacion-express', icon: Zap, label: 'Tasación express' },
+      { to: '/tasaciones', icon: FileCheck2, label: 'Tasaciones' },
+      { to: '/estudios', icon: ClipboardList, label: 'Estudios ACM' },
+    ],
+  },
+  {
+    key: 'cartera', label: 'Cartera', icon: Building2, roles: ['supervisor', 'admin'],
+    items: [
+      { to: '/propiedades', icon: Building2, label: 'Propiedades' },
+      { to: '/autorizaciones', icon: FileSignature, label: 'Autorizaciones' },
+    ],
+  },
+  {
+    key: 'equipo', label: 'Equipo', icon: Users,
+    items: [
+      { to: '/dmo', icon: Target, label: 'Mi DMO' },
+      { to: '/pipeline', icon: Workflow, label: 'Pipeline de ventas' },
+      { to: '/visitas', icon: CalendarDays, label: 'Visitas' },
+      { to: '/clientes', icon: Users, label: 'Clientes' },
+      { to: '/dmo-templates', icon: Layers, label: 'Templates DMO', roles: ['supervisor', 'admin'] },
+      { to: '/dmo-asignaciones', icon: ListChecks, label: 'Asignaciones', roles: ['supervisor', 'admin'] },
+      { to: '/coaches', icon: GraduationCap, label: 'Coaches', roles: ['supervisor', 'admin'] },
+    ],
+  },
+  {
+    key: 'chat', label: 'Chat', icon: MessageSquare,
+    items: [
+      { to: '/bandeja', icon: Inbox, label: 'Bandeja', badge: 'unread' },
+      { to: '/whatsapp', icon: MessageSquare, label: 'Inbox WhatsApp' },
+      { to: '/datos-ia', icon: Bot, label: 'Datos IA · Bot', roles: ['supervisor', 'admin'] },
+    ],
+  },
+  {
+    key: 'mercado', label: 'Mercado', icon: Store, roles: ['supervisor', 'admin'],
+    items: [
+      { to: '/mercado', icon: TrendingUp, label: 'Mercado' },
+      { to: '/comparables', icon: Database, label: 'Comparables', live: true },
+      { to: '/mapa', icon: MapIcon, label: 'Mapa' },
+      { to: '/reportes', icon: FileText, label: 'Reportes' },
+    ],
+  },
 ];
-const NAV_DATOS = [
-  { to: '/comparables', icon: Database, label: 'Comparables', live: true },
-  { to: '/datos-ia', icon: Bot, label: 'Datos IA · Bot' },
-  { to: '/configuracion', icon: Settings, label: 'Configuración' },
+
+// Item suelto inferior — configuración (solo supervisor/admin).
+const NAV_BOTTOM: NavItem[] = [
+  { to: '/configuracion', icon: Settings, label: 'Configuración', roles: ['supervisor', 'admin'] },
 ];
 
 const LS_COLLAPSED = 'tasar_sidebar_collapsed';
+const LS_MODULES = 'tasar_sidebar_modules';
+
+function roleAllows(roles: Role[] | undefined, userRole?: string): boolean {
+  if (!roles || roles.length === 0) return true;
+  return !!userRole && (roles as string[]).includes(userRole);
+}
+
+/** Items visibles de un módulo según rol. */
+function visibleItems(mod: NavModule, role?: string): NavItem[] {
+  return mod.items.filter(it => roleAllows(it.roles, role));
+}
+
+/** Módulos que el rol puede ver (con al menos un item visible). */
+function visibleModules(role?: string): NavModule[] {
+  return NAV_MODULES
+    .filter(m => roleAllows(m.roles, role))
+    .filter(m => visibleItems(m, role).length > 0);
+}
 
 export default function Layout({ children }: { children: ReactNode }) {
   const { user, logout } = useAuth();
   const { theme } = useTheme();
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem(LS_COLLAPSED) === '1');
+  const [openModules, setOpenModules] = useState<Record<string, boolean>>(() => {
+    try {
+      const raw = localStorage.getItem(LS_MODULES);
+      if (raw) return JSON.parse(raw) as Record<string, boolean>;
+    } catch { /* ignore */ }
+    // Default: todos los módulos abiertos.
+    return Object.fromEntries(NAV_MODULES.map(m => [m.key, true]));
+  });
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
+
+  const role = user?.role;
+  const mods = visibleModules(role);
+  const topItems = NAV_TOP.filter(it => roleAllows(it.roles, role));
+  const bottomItems = NAV_BOTTOM.filter(it => roleAllows(it.roles, role));
 
   useEffect(() => {
     localStorage.setItem(LS_COLLAPSED, collapsed ? '1' : '0');
   }, [collapsed]);
+
+  useEffect(() => {
+    localStorage.setItem(LS_MODULES, JSON.stringify(openModules));
+  }, [openModules]);
 
   useEffect(() => {
     if (!userMenuOpen) return;
@@ -62,8 +152,17 @@ export default function Layout({ children }: { children: ReactNode }) {
     return () => document.removeEventListener('mousedown', h);
   }, [userMenuOpen]);
 
+  const toggleModule = (key: string) => setOpenModules(o => ({ ...o, [key]: !o[key] }));
+
   const initials = (user?.full_name || '?')
     .split(' ').map(s => s.charAt(0)).slice(0, 2).join('').toUpperCase();
+
+  // En modo colapsado la sidebar aplana todo (sin cabeceras de módulo).
+  const flatCollapsedItems: NavItem[] = [
+    ...topItems,
+    ...mods.flatMap(m => visibleItems(m, role)),
+    ...bottomItems,
+  ];
 
   return (
     <div className="h-screen flex overflow-hidden" style={{ background: theme.background }}>
@@ -85,8 +184,8 @@ export default function Layout({ children }: { children: ReactNode }) {
             <div className="flex items-center gap-2.5 w-full">
               <BrandLogo variant="icon" className="h-8 flex-shrink-0" />
               <div className="min-w-0">
-                <div className="font-display font-black text-lg leading-none tracking-tight" style={{ color: theme.text }}>TasAR</div>
-                <div className="text-[10px] tracking-wider uppercase mt-0.5" style={{ color: theme.textSecondary }}>Mapa de valor</div>
+                <div className="font-display font-black text-lg leading-none tracking-tight" style={{ color: theme.text }}>{BRAND.name}</div>
+                <div className="text-[10px] tracking-wider uppercase mt-0.5" style={{ color: theme.textSecondary }}>{BRAND.tagline}</div>
               </div>
             </div>
           )}
@@ -134,12 +233,28 @@ export default function Layout({ children }: { children: ReactNode }) {
 
         {/* Nav */}
         <nav className="flex-1 min-h-0 overflow-y-auto px-3 pb-3">
-          {!collapsed && <SectionLabel theme={theme}>Trabajo</SectionLabel>}
-          {NAV_TRABAJO.map(item => <NavItem key={item.to} item={item} collapsed={collapsed} theme={theme} />)}
-          {!collapsed && <SectionLabel theme={theme} className="mt-4">Equipo</SectionLabel>}
-          {NAV_EQUIPO.map(item => <NavItem key={item.to} item={item} collapsed={collapsed} theme={theme} />)}
-          {!collapsed && <SectionLabel theme={theme} className="mt-4">Datos</SectionLabel>}
-          {NAV_DATOS.map(item => <NavItem key={item.to} item={item} collapsed={collapsed} theme={theme} />)}
+          {collapsed ? (
+            flatCollapsedItems.map(item => <NavItemLink key={item.to} item={item} collapsed theme={theme} />)
+          ) : (
+            <>
+              {topItems.map(item => <NavItemLink key={item.to} item={item} collapsed={false} theme={theme} />)}
+              {mods.map(mod => (
+                <ModuleSection
+                  key={mod.key}
+                  mod={mod}
+                  role={role}
+                  open={openModules[mod.key] !== false}
+                  onToggle={() => toggleModule(mod.key)}
+                  theme={theme}
+                />
+              ))}
+              {bottomItems.length > 0 && (
+                <div className="mt-4">
+                  {bottomItems.map(item => <NavItemLink key={item.to} item={item} collapsed={false} theme={theme} />)}
+                </div>
+              )}
+            </>
+          )}
         </nav>
 
         {/* Collapse button */}
@@ -160,7 +275,7 @@ export default function Layout({ children }: { children: ReactNode }) {
           {/* Logo mobile (sidebar oculta en mobile) */}
           <div className="lg:hidden flex items-center gap-2">
             <BrandLogo variant="icon" className="h-7" />
-            <span className="font-display font-black text-lg tracking-tight" style={{ color: theme.text }}>TasAR</span>
+            <span className="font-display font-black text-lg tracking-tight" style={{ color: theme.text }}>{BRAND.name}</span>
           </div>
           <div className="hidden lg:block" />
           <ThemeSelector />
@@ -181,26 +296,40 @@ export default function Layout({ children }: { children: ReactNode }) {
 }
 
 
-function SectionLabel({ theme, children, className = '' }: any) {
+function ModuleSection({ mod, role, open, onToggle, theme }: {
+  mod: NavModule; role?: string; open: boolean; onToggle: () => void; theme: any;
+}) {
+  const items = visibleItems(mod, role);
+  const ModIcon = mod.icon;
   return (
-    <div className={`text-[10px] uppercase tracking-wider font-bold mb-1.5 mt-2 px-3 ${className}`}
-      style={{ color: theme.textSecondary }}>
-      {children}
+    <div className="mt-3 first:mt-2">
+      <button
+        onClick={onToggle}
+        className="w-full flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all duration-200 active:scale-[0.98]"
+        style={{ color: theme.textSecondary }}
+      >
+        <ModIcon className="h-3.5 w-3.5 flex-shrink-0" strokeWidth={2} />
+        <span className="flex-1 text-left text-[10px] uppercase tracking-wider font-bold">{mod.label}</span>
+        <ChevronDown className={`h-3.5 w-3.5 flex-shrink-0 transition-transform duration-200 ${open ? '' : '-rotate-90'}`} />
+      </button>
+      {open && (
+        <div className="mt-0.5">
+          {items.map(item => <NavItemLink key={item.to} item={item} collapsed={false} theme={theme} />)}
+        </div>
+      )}
     </div>
   );
 }
 
 
-function NavItem({ item, collapsed, theme }: any) {
-  const { to, icon: Icon, label, badge, live } = item;
+function NavItemLink({ item, collapsed, theme }: { item: NavItem; collapsed: boolean; theme: any }) {
+  const { to, icon: Icon, label, live } = item;
   return (
     <NavLink
       to={to}
       end={to === '/'}
       title={collapsed ? label : undefined}
-      className={({ isActive }) =>
-        `relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 active:scale-[0.98] mb-0.5 ${collapsed ? 'justify-center' : ''}`
-      }
+      className={`relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 active:scale-[0.98] mb-0.5 ${collapsed ? 'justify-center' : ''}`}
       style={({ isActive }) => ({
         background: isActive ? theme.text : 'transparent',
         color: isActive ? theme.background : theme.textSecondary,

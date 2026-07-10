@@ -7,6 +7,7 @@ import {
 import { toast } from 'sonner';
 import { api, API_BASE } from '../services/api';
 import { useTheme } from '../contexts/ThemeContext';
+import { BRAND } from '../config/brand';
 import type { Appraisal, Property } from '../types';
 
 interface Comp {
@@ -195,7 +196,7 @@ export default function TasacionDetail() {
       {/* Stat row + main grid */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
         <div className="tasar-panel tasar-stagger-1">
-          <Stat k="Estimación TasAR" v={a.final_value ? `${a.currency} ${Number(a.final_value).toLocaleString()}` : '—'}
+          <Stat k={`Estimación ${BRAND.name}`} v={a.final_value ? `${a.currency} ${Number(a.final_value).toLocaleString()}` : '—'}
             d={a.final_value ? `Rango ${a.currency} ${Math.round(a.final_value * 0.94).toLocaleString()} – ${Math.round(a.final_value * 1.06).toLocaleString()} · ±6%` : 'Sin valor final aún'}
             theme={theme} />
         </div>

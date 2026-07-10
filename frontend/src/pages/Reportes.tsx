@@ -8,6 +8,7 @@ import { downloadCSV } from '../utils/csv';
 import { ABMPage } from '../components/ui/ABMPage';
 import { ModernSelect } from '../components/ui/ModernSelect';
 import PageHint from '../components/ui/PageHint';
+import { BRAND } from '../config/brand';
 
 const SORT_OPTIONS = [
   { value: 'recent', label: 'Más recientes' },
@@ -194,7 +195,7 @@ function ReportCard({ report, isNew, theme }: { report: Report; isNew: boolean; 
   const share = async (e: React.MouseEvent) => {
     e.stopPropagation();
     const url = `${window.location.origin}/reportes/${report.id}`;
-    const text = `${report.code} · ${MONTHS[report.period_month]} ${report.period_year} — TasAR`;
+    const text = `${report.code} · ${MONTHS[report.period_month]} ${report.period_year} — ${BRAND.name}`;
     if (navigator.share) {
       try {
         await navigator.share({ title: text, url });

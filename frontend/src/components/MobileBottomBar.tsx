@@ -1,34 +1,68 @@
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
-  Inbox, FileCheck2, Map as MapIcon, Sparkles, LayoutGrid,
-  LayoutDashboard, Building2, Workflow, Users, ClipboardList, FileText, Database, Settings, LogOut,
-  CalendarDays, FileSignature,
+  MessageSquare, FileCheck2, Users, Store, LayoutGrid,
+  LayoutDashboard, Building2, Workflow, ClipboardList, FileText, Database, Settings, LogOut,
+  CalendarDays, FileSignature, Sparkles, Zap, Bot, Map as MapIcon, Layers, GraduationCap,
+  ListChecks, TrendingUp, type LucideIcon,
 } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useState } from 'react';
 
+type Role = 'vendedor' | 'supervisor' | 'admin';
+
+interface SheetItem {
+  to: string;
+  icon: LucideIcon;
+  label: string;
+  /** Roles que ven el item en el sheet. Omitido = todos. */
+  roles?: Role[];
+}
+
+// Tabs primarios (esqueleto fijo de la app en mobile): Chat, Captar, FAB, Equipo, Mercado.
 const TABS_LEFT = [
-  { to: '/bandeja', icon: Inbox, label: 'Bandeja' },
-  { to: '/tasaciones', icon: FileCheck2, label: 'Tasaciones' },
+  { to: '/bandeja', icon: MessageSquare, label: 'Chat' },
+  { to: '/tasaciones', icon: FileCheck2, label: 'Captar' },
 ];
 const TABS_RIGHT = [
-  { to: '/mercado', icon: MapIcon, label: 'Mercado' },
-  { to: '/tasador-ai', icon: Sparkles, label: 'AI' },
+  { to: '/dmo', icon: Users, label: 'Equipo' },
+  { to: '/mercado', icon: Store, label: 'Mercado' },
 ];
 
-const MORE_ITEMS = [
+// Sheet "Más" — el resto de las pantallas, agrupadas por módulo y filtradas por rol.
+const MORE_ITEMS: SheetItem[] = [
+  // Sueltos
   { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/propiedades', icon: Building2, label: 'Propiedades' },
+  { to: '/tasador-ai', icon: Sparkles, label: 'Tasador AI' },
+  // Captar
+  { to: '/tasacion-express', icon: Zap, label: 'Express' },
+  { to: '/estudios', icon: ClipboardList, label: 'Estudios ACM' },
+  // Cartera
+  { to: '/propiedades', icon: Building2, label: 'Propiedades', roles: ['supervisor', 'admin'] },
+  { to: '/autorizaciones', icon: FileSignature, label: 'Autorizaciones', roles: ['supervisor', 'admin'] },
+  // Equipo
   { to: '/pipeline', icon: Workflow, label: 'Pipeline' },
   { to: '/visitas', icon: CalendarDays, label: 'Visitas' },
-  { to: '/autorizaciones', icon: FileSignature, label: 'Autorizaciones' },
   { to: '/clientes', icon: Users, label: 'Clientes' },
-  { to: '/estudios', icon: ClipboardList, label: 'ACM' },
-  { to: '/reportes', icon: FileText, label: 'Reportes' },
-  { to: '/comparables', icon: Database, label: 'Comparables' },
-  { to: '/configuracion', icon: Settings, label: 'Configuración' },
+  { to: '/dmo-templates', icon: Layers, label: 'Templates DMO', roles: ['supervisor', 'admin'] },
+  { to: '/dmo-asignaciones', icon: ListChecks, label: 'Asignaciones', roles: ['supervisor', 'admin'] },
+  { to: '/coaches', icon: GraduationCap, label: 'Coaches', roles: ['supervisor', 'admin'] },
+  // Chat
+  { to: '/whatsapp', icon: MessageSquare, label: 'WhatsApp' },
+  { to: '/datos-ia', icon: Bot, label: 'Datos IA · Bot', roles: ['supervisor', 'admin'] },
+  // Mercado
+  { to: '/comparables', icon: Database, label: 'Comparables', roles: ['supervisor', 'admin'] },
+  { to: '/mapa', icon: MapIcon, label: 'Mapa', roles: ['supervisor', 'admin'] },
+  { to: '/reportes', icon: FileText, label: 'Reportes', roles: ['supervisor', 'admin'] },
+  { to: '/mercado', icon: TrendingUp, label: 'Mercado', roles: ['supervisor', 'admin'] },
+  // Config
+  { to: '/configuracion', icon: Settings, label: 'Configuración', roles: ['supervisor', 'admin'] },
 ];
+
+function roleAllows(roles: Role[] | undefined, userRole?: string): boolean {
+  if (!roles || roles.length === 0) return true;
+  return !!userRole && (roles as string[]).includes(userRole);
+}
 
 export default function MobileBottomBar() {
   const { theme } = useTheme();
@@ -43,6 +77,7 @@ export default function MobileBottomBar() {
     .split(' ').map(s => s.charAt(0)).slice(0, 2).join('').toUpperCase();
 
   const go = (to: string) => { setMoreOpen(false); navigate(to); };
+  const sheetItems = MORE_ITEMS.filter(it => roleAllows(it.roles, user?.role));
 
   return (
     <>
@@ -94,7 +129,7 @@ export default function MobileBottomBar() {
             onClick={() => setMoreOpen(false)}
           />
           <div
-            className="lg:hidden fixed bottom-0 left-0 right-0 z-50 rounded-t-3xl animate-in slide-in-from-bottom duration-300"
+            className="lg:hidden fixed bottom-0 left-0 right-0 z-50 rounded-t-3xl animate-in slide-in-from-bottom duration-300 max-h-[80vh] overflow-y-auto"
             style={{
               background: theme.card,
               borderTop: `1px solid ${theme.border}`,
@@ -125,7 +160,7 @@ export default function MobileBottomBar() {
 
             {/* Grid 3-cols */}
             <div className="px-4 py-5 grid grid-cols-3 gap-2">
-              {MORE_ITEMS.map(({ to, icon: Icon, label }) => {
+              {sheetItems.map(({ to, icon: Icon, label }) => {
                 const active = location.pathname === to;
                 return (
                   <button
@@ -159,7 +194,7 @@ export default function MobileBottomBar() {
   );
 }
 
-function TabLink({ to, Icon, label, theme }: any) {
+function TabLink({ to, Icon, label, theme }: { to: string; Icon: LucideIcon; label: string; theme: any }) {
   return (
     <NavLink
       to={to}

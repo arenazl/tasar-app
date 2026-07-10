@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { useTheme } from '../contexts/ThemeContext';
 import { api } from '../services/api';
 import { PushTestButton } from '../components/PushOptIn';
+import { BRAND } from '../config/brand';
 
 const CLAUDE_MODELS = [
   { value: 'haiku', label: 'Haiku', desc: 'Rápido y económico', icon: Zap, color: '#16a34a' },
@@ -238,7 +239,7 @@ export default function Configuracion() {
                     {f.description}
                   </div>
                   <div className="text-sm leading-snug" style={{ color: theme.text, fontFamily: f.family }}>
-                    TasAR · Mapa de valor por zona
+                    {BRAND.name} · {BRAND.taglineLong}
                   </div>
                   <div className="text-xs leading-snug mt-1" style={{ color: theme.textSecondary, fontFamily: f.family }}>
                     Análisis comparativo de mercado · USD 2.890/m²

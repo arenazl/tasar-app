@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { TrendingUp, TrendingDown, BarChart3, Building2, Calendar, FileText, ArrowUp, ArrowDown } from 'lucide-react';
 import { api } from '../services/api';
 import { useTheme } from '../contexts/ThemeContext';
+import { BRAND } from '../config/brand';
 
 interface ZoneStat {
   zone: string;
@@ -61,7 +62,7 @@ export default function Mercado() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <Kpi label="Índice TasAR · CABA" value={data ? data.tasar_index.toFixed(0) : '...'} suffix={data?.yoy_change_pct != null ? `+${data.yoy_change_pct}% YoY` : ''}
+        <Kpi label={`Índice ${BRAND.name} · CABA`} value={data ? data.tasar_index.toFixed(0) : '...'} suffix={data?.yoy_change_pct != null ? `+${data.yoy_change_pct}% YoY` : ''}
           icon={BarChart3} color={theme.primary} theme={theme} />
         <Kpi label="Oferta activa" value={data?.active_listings.toLocaleString() || '...'} suffix={data?.mom_change_pct != null ? `${data.mom_change_pct > 0 ? '+' : ''}${data.mom_change_pct}% vs mes ant.` : ''}
           icon={Building2} color={theme.info} theme={theme} />

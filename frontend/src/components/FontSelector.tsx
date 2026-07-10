@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Type, Check } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
+import { BRAND } from '../config/brand';
 
 interface Props {
   collapsed?: boolean;
@@ -74,7 +75,7 @@ export default function FontSelector({ collapsed = false }: Props) {
                 </div>
                 <div className="text-[10px] mt-1" style={{ color: theme.textSecondary }}>{f.description}</div>
                 <div className="text-sm mt-1.5 leading-snug" style={{ color: theme.textSecondary, fontFamily: f.family }}>
-                  TasAR · Mapa de valor por zona
+                  {BRAND.name} · {BRAND.taglineLong}
                 </div>
               </div>
               {isActive && (
