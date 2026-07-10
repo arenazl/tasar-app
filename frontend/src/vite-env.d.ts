@@ -11,3 +11,7 @@ interface ImportMeta {
 
 // Leaflet.heat no tiene tipos oficiales — declaramos el módulo
 declare module 'leaflet.heat';
+
+// Inyectada por vite.config.ts (define) — versión de build para el auto-update
+// de la PWA (base-compartida/6-GUIA-PWA.md).
+declare const __APP_VERSION__: string;

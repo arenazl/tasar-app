@@ -271,7 +271,13 @@ export default function Layout({ children }: { children: ReactNode }) {
       {/* Main area */}
       <div className="flex-1 flex flex-col min-w-0">
         <header className="flex-shrink-0 h-14 flex items-center justify-between px-4 sm:px-6 gap-3"
-          style={{ background: theme.card, borderBottom: `1px solid ${theme.border}` }}>
+          style={{
+            background: theme.card,
+            borderBottom: `1px solid ${theme.border}`,
+            // Header no tapado por status bar/notch/Dynamic Island — base-compartida/11-FIX-VIEWPORT-PWA.md
+            paddingTop: 'max(env(safe-area-inset-top), 12px)',
+            height: 'calc(3.5rem + max(env(safe-area-inset-top), 12px))',
+          }}>
           {/* Logo mobile (sidebar oculta en mobile) */}
           <div className="lg:hidden flex items-center gap-2">
             <BrandLogo variant="icon" className="h-7" />

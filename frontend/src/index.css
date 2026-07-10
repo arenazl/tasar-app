@@ -8,6 +8,10 @@
   --font-display: 'Inter Tight', 'Inter', sans-serif;
   --font-display-tracking: -0.04em;
 
+  /* Safe-area insets iPhone (notch/Dynamic Island) — base-compartida/11-FIX-VIEWPORT-PWA.md */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+
   --bg-app: #f8fafc;
   --bg-topbar: #ffffff;
   --bg-sidebar: #0f172a;
@@ -51,6 +55,23 @@ html, body, #root {
   background: var(--bg-app);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* Sin zoom / sin movimiento horizontal — base-compartida/11-FIX-VIEWPORT-PWA.md */
+html, body {
+  overflow-x: hidden;
+  overscroll-behavior: none;
+  width: 100%;
+  max-width: 100%;
+}
+
+/* iOS hace auto-zoom si un input tiene font-size < 16px al enfocarlo.
+   !important: la app usa utilities de Tailwind (text-sm, text-xs, etc.) directo
+   sobre <input>/<select>/<textarea> en varias pantallas (Coaches, DMOTemplates,
+   Autorizaciones, ...) — esas clases tienen más especificidad que un selector de
+   elemento y ganarían el font-size sin esto, reintroduciendo el zoom en iOS. */
+input, select, textarea {
+  font-size: 16px !important;
 }
 
 /* Heredar la font en TODO descendiente (gana sobre defaults de tailwind base) */

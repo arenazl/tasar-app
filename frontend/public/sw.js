@@ -1,4 +1,6 @@
 // TasAR Service Worker — Web Push + click handler (WO F3-03)
+// + network-first para navegaciones, auto-update sin reinstalar (WO F4-04,
+// base-compartida/6-GUIA-PWA.md Nivel 2). Un solo SW, sin tocar push.
 
 self.addEventListener('install', () => {
   self.skipWaiting()
@@ -6,6 +8,22 @@ self.addEventListener('install', () => {
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(self.clients.claim())
+})
+
+// Network-first SOLO para navegaciones (el index.html de arranque de la PWA).
+// Garantiza que la PWA nunca sirva un index viejo cacheado mientras haya
+// internet — el caso terco de iOS standalone que ignora Cache-Control: no-store.
+self.addEventListener('fetch', (event) => {
+  const req = event.request
+  if (req.mode !== 'navigate') return
+  event.respondWith((async () => {
+    try {
+      return await fetch(req)
+    } catch (e) {
+      const cached = await caches.match(req) // offline: best-effort
+      return cached || Response.error()
+    }
+  })())
 })
 
 self.addEventListener('push', (event) => {
