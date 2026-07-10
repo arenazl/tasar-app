@@ -2,8 +2,11 @@ export interface User {
   id: number;
   email: string;
   full_name: string;
-  // Roles unificados de la suite (WO F1-01) + legacy TasAR.
-  role: 'admin' | 'supervisor' | 'vendedor' | 'tasador' | 'cliente';
+  // Vocabulario de roles UNICO de la suite (WO F1-01, normalizado en fix
+  // transversal post F2-01). Legacy TasAR "tasador" -> "vendedor" (ver
+  // migracion f4a5b6c7d8e9_normalize_user_roles). "cliente" no es un rol de
+  // staff: los clientes viven en su propio modelo (models/client.py).
+  role: 'admin' | 'supervisor' | 'vendedor' | 'cliente';
   workspace_id: number;
   license_number?: string;
   avatar_url?: string;

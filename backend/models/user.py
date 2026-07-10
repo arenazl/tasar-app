@@ -11,13 +11,14 @@ class User(Base):
     email = Column(String(150), unique=True, nullable=False, index=True)
     password_hash = Column(String(255), nullable=False)
     full_name = Column(String(150), nullable=False)
-    role = Column(String(30), default="tasador")
-    # Vocabulario de roles UNIFICADO (WO F1-01): admin | supervisor | vendedor.
-    # Mapeo desde AgentFlow: gerente -> supervisor, coordinador -> supervisor,
-    # vendedor -> vendedor, admin -> admin.
-    # Roles legacy de TasAR (tasador | cliente) SIGUEN siendo validos y el
-    # default se deja en "tasador" para NO romper el alta de usuarios existente.
-    license_number = Column(String(80), nullable=True)  # matrícula tasador
+    role = Column(String(30), default="vendedor")
+    # Vocabulario de roles UNIFICADO y UNICO de la suite (WO F1-01, normalizado
+    # en fix transversal post F2-01): admin | supervisor | vendedor.
+    # Mapeo desde legado: TasAR.tasador -> vendedor (el agente que tasa/vende es
+    # el rol operativo base); AgentFlow.gerente / .coordinador -> supervisor;
+    # vendedor -> vendedor; admin -> admin. Ver migracion de datos
+    # f4a5b6c7d8e9_normalize_user_roles (down_revision=e6f7a8b9c0d1).
+    license_number = Column(String(80), nullable=True)  # matrícula (vendedor/tasador)
     avatar_url = Column(String(500), nullable=True)
     is_active = Column(Boolean, default=True)
 
