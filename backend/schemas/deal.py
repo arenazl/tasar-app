@@ -45,3 +45,12 @@ class DealOut(DealBase):
     workspace_id: int
     created_at: datetime
     updated_at: datetime
+    # Campos de display (los completa el endpoint via JOIN; no son columnas).
+    client_name: Optional[str] = None
+    property_title: Optional[str] = None
+    vendor_name: Optional[str] = None
+
+
+class DealStageUpdate(BaseModel):
+    """Body minimo para el drag-and-drop del kanban (PATCH /deals/{id}/stage)."""
+    stage: str  # captado | publicado | visita | reserva | boleto | escrituracion

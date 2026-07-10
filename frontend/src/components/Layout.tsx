@@ -3,7 +3,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Inbox, FileCheck2, Building2, Workflow, Users, Map as MapIcon,
   ClipboardList, FileText, Database, Settings, LogOut, ChevronDown, ChevronLeft, ChevronRight,
-  Zap, Target, Layers, GraduationCap,
+  Zap, Target, Layers, GraduationCap, CalendarDays, FileSignature,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
@@ -18,7 +18,9 @@ const NAV_TRABAJO = [
   { to: '/tasacion-express', icon: Zap, label: 'Express' },
   { to: '/tasaciones', icon: FileCheck2, label: 'Tasaciones' },
   { to: '/propiedades', icon: Building2, label: 'Propiedades' },
-  { to: '/pipeline', icon: Workflow, label: 'Pipeline' },
+  { to: '/pipeline', icon: Workflow, label: 'Pipeline ventas' },
+  { to: '/visitas', icon: CalendarDays, label: 'Visitas' },
+  { to: '/autorizaciones', icon: FileSignature, label: 'Autorizaciones' },
   { to: '/clientes', icon: Users, label: 'Clientes' },
   { to: '/dmo', icon: Target, label: 'Mi DMO' },
   { to: '/mercado', icon: MapIcon, label: 'Mercado' },

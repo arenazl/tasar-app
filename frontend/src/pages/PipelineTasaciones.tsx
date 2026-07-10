@@ -12,7 +12,7 @@ const STAGES = [
   { key: 'entregada', label: 'Entregada', color: '#22c55e' },
 ];
 
-export default function Pipeline() {
+export default function PipelineTasaciones() {
   const { theme } = useTheme();
   const [items, setItems] = useState<Appraisal[]>([]);
 
@@ -25,7 +25,7 @@ export default function Pipeline() {
       <header className="mb-5 sm:mb-6">
         <h1 className="text-2xl sm:text-3xl font-display font-black tracking-tight flex items-center gap-2" style={{ color: theme.text }}>
           <Workflow className="h-6 sm:h-7 w-6 sm:w-7" style={{ color: theme.primary }} />
-          Pipeline
+          Pipeline de tasaciones
         </h1>
         <p className="text-xs sm:text-sm mt-1" style={{ color: theme.textSecondary }}>
           Embudo de tasaciones por etapa · {items.length} totales

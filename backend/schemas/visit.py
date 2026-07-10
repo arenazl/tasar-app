@@ -38,3 +38,7 @@ class VisitOut(VisitBase):
     id: int
     workspace_id: int
     created_at: datetime
+    # Campos de display (los completa el endpoint via JOIN; no son columnas).
+    client_name: Optional[str] = None
+    property_title: Optional[str] = None
+    vendor_name: Optional[str] = None

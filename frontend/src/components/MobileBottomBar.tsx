@@ -2,6 +2,7 @@ import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
   Inbox, FileCheck2, Map as MapIcon, Sparkles, LayoutGrid,
   LayoutDashboard, Building2, Workflow, Users, ClipboardList, FileText, Database, Settings, LogOut,
+  CalendarDays, FileSignature,
 } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -20,6 +21,8 @@ const MORE_ITEMS = [
   { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/propiedades', icon: Building2, label: 'Propiedades' },
   { to: '/pipeline', icon: Workflow, label: 'Pipeline' },
+  { to: '/visitas', icon: CalendarDays, label: 'Visitas' },
+  { to: '/autorizaciones', icon: FileSignature, label: 'Autorizaciones' },
   { to: '/clientes', icon: Users, label: 'Clientes' },
   { to: '/estudios', icon: ClipboardList, label: 'ACM' },
   { to: '/reportes', icon: FileText, label: 'Reportes' },

@@ -46,3 +46,6 @@ class AuthorizationOut(AuthorizationBase):
     id: int
     workspace_id: int
     created_at: datetime
+    # Campos de display (los completa el endpoint via JOIN; no son columnas).
+    property_title: Optional[str] = None
+    captador_name: Optional[str] = None

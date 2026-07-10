@@ -98,6 +98,94 @@ export interface DmoDay {
   completion_pct: number;
 }
 
+// ==================== CRM: visitas / deals / autorizaciones (WO F2-02) ====================
+
+export type VisitStatus = 'agendada' | 'concretada' | 'cancelada' | 'ausente';
+export type VisitResult = 'interesado' | 'no_interesado' | 'hizo_oferta' | 'indeciso' | 'sin_resultado';
+
+export interface Visit {
+  id: number;
+  workspace_id: number;
+  client_id: number;
+  property_id: number;
+  vendor_id: number;
+  scheduled_at: string; // ISO datetime
+  status: VisitStatus;
+  result?: VisitResult | null;
+  voice_notes?: string | null;
+  created_at: string;
+  // display (JOIN backend)
+  client_name?: string | null;
+  property_title?: string | null;
+  vendor_name?: string | null;
+}
+
+// Las 6 etapas legales del pipeline de ventas, EN ORDEN.
+export type DealStage = 'captado' | 'publicado' | 'visita' | 'reserva' | 'boleto' | 'escrituracion';
+
+export interface Deal {
+  id: number;
+  workspace_id: number;
+  client_id: number;
+  property_id: number;
+  vendor_id: number;
+  stage: DealStage;
+  negotiated_price?: number | null;
+  currency: string;
+  estimated_commission?: number | null;
+  probability_pct: number;
+  estimated_close_date?: string | null;
+  notes?: string | null;
+  created_at: string;
+  updated_at: string;
+  // display (JOIN backend)
+  client_name?: string | null;
+  property_title?: string | null;
+  vendor_name?: string | null;
+}
+
+export type AuthorizationStatus = 'activa' | 'vencida' | 'ejecutada' | 'cancelada';
+
+export interface Authorization {
+  id: number;
+  workspace_id: number;
+  property_id: number;
+  captador_id: number;
+  signed_date: string; // ISO date
+  expiry_date: string;
+  min_price: number;
+  currency: string;
+  commission_pct: number;
+  exclusivity: boolean;
+  pdf_url?: string | null;
+  notes?: string | null;
+  status: AuthorizationStatus;
+  created_at: string;
+  // display (JOIN backend)
+  property_title?: string | null;
+  captador_name?: string | null;
+}
+
+export interface CrmKpis {
+  scope: 'vendedor' | 'team';
+  active_clients: number;
+  visits_7d: number;
+  open_deals: number;
+  deals_by_stage: Record<DealStage, number>;
+  conversations_today: number;
+  conversations_goal: number;
+}
+
+export interface RankingRow {
+  vendor_id: number;
+  name: string;
+  conversations_30d: number;
+  visits_30d: number;
+  deals_total: number;
+  deals_closed: number;
+  conversations_goal: number;
+}
+
 export interface PropertyPhoto {
   id: number;
   url: string;

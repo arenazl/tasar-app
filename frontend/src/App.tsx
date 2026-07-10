@@ -39,7 +39,10 @@ import Mercado from './pages/Mercado';
 import Comparables from './pages/Comparables';
 import Reportes from './pages/Reportes';
 import EstudioEditorial from './pages/EstudioEditorial';
-import Pipeline from './pages/Pipeline';
+import PipelineTasaciones from './pages/PipelineTasaciones';
+import PipelineVentas from './pages/PipelineVentas';
+import Visitas from './pages/Visitas';
+import Autorizaciones from './pages/Autorizaciones';
 import Clientes from './pages/Clientes';
 import DMO from './pages/DMO';
 import Coaches from './pages/Coaches';
@@ -66,7 +69,10 @@ export default function App() {
                   <Route path="/tasaciones" element={<Tasaciones />} />
                   <Route path="/tasacion-express" element={<TasacionExpress />} />
                   <Route path="/tasaciones/:id" element={<TasacionDetail />} />
-                  <Route path="/pipeline" element={<Pipeline />} />
+                  <Route path="/pipeline" element={<PipelineVentas />} />
+                  <Route path="/visitas" element={<Visitas />} />
+                  <Route path="/autorizaciones" element={<Autorizaciones />} />
+                  <Route path="/tasaciones/pipeline" element={<PipelineTasaciones />} />
                   <Route path="/clientes" element={<Clientes />} />
                   <Route path="/dmo" element={<DMO />} />
                   <Route path="/dmo-templates" element={<DMOTemplates />} />

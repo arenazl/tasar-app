@@ -4,7 +4,7 @@ import {
   Plus, FileCheck2, Download, FileSignature, Briefcase, ClipboardList,
   DollarSign, Sparkles, List, FileEdit, ShieldCheck, Send, AlertCircle,
   Link2, ArrowUpDown, Tag, Scroll, Gavel, Landmark, Umbrella, FileText,
-  Building2, Home as HomeIcon, Castle, Trees, Store,
+  Building2, Home as HomeIcon, Castle, Trees, Store, Workflow,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { api, API_BASE } from '../services/api';
@@ -236,6 +236,12 @@ export default function Tasaciones() {
 
   const headerActions = (
     <div className="flex items-center gap-2">
+      <button onClick={() => navigate('/tasaciones/pipeline')}
+        className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all active:scale-95 whitespace-nowrap"
+        style={{ background: theme.card, border: `1px solid ${theme.border}`, color: theme.textSecondary }}
+        title="Ver embudo de tasaciones por etapa">
+        <Workflow className="h-4 w-4" /> Pipeline
+      </button>
       <ArrowUpDown className="h-4 w-4" style={{ color: theme.textSecondary }} />
       <div className="w-44"><ModernSelect value={sortBy} onChange={(v: any) => setSortBy(v)} options={SORT_OPTIONS} placeholder="Ordenar..." /></div>
     </div>
