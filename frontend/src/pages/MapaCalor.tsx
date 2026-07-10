@@ -90,7 +90,7 @@ export default function MapaCalor() {
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(map);
     if (points.length > 0) {
       const heatData = points.map(p => [p.lat, p.lng, p.intensity]) as any;
-      // @ts-ignore
+      // @ts-expect-error -- leaflet.heat no trae tipos, heatLayer no existe en @types/leaflet
       L.heatLayer(heatData, { radius: 28, blur: 22, maxZoom: 14 }).addTo(map);
       points.forEach(p => {
         L.circleMarker([p.lat, p.lng], { radius: 5, color: theme.primary, fillOpacity: 0.7 })
@@ -98,7 +98,7 @@ export default function MapaCalor() {
           .addTo(map);
       });
       const grp = L.featureGroup(points.map(p => L.marker([p.lat, p.lng])));
-      try { map.fitBounds(grp.getBounds().pad(0.3)); } catch {}
+      try { map.fitBounds(grp.getBounds().pad(0.3)); } catch { /* best-effort, ignorar */ }
     }
     return () => { map.remove(); };
   }, [points, loaded, theme.primary]);

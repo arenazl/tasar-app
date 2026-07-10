@@ -83,7 +83,7 @@ export default function Bandeja() {
       await api.post(`/inbox/${id}/read`);
       setItems(prev => prev.map(i => i.id === id ? { ...i, is_read: true } : i));
       setCounts(c => ({ ...c, unread: Math.max(0, c.unread - 1) }));
-    } catch {}
+    } catch { /* best-effort, ignorar */ }
   };
 
   const readAll = async () => {

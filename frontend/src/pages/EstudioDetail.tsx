@@ -95,7 +95,7 @@ export default function EstudioDetail() {
       ]);
       setConsensus(c.data);
       setComments(com.data);
-    } catch {}
+    } catch { /* best-effort, ignorar */ }
   }, [id]);
 
   const fetchSuggestions = useCallback(async () => {

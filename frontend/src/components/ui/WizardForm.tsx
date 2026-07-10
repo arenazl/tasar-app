@@ -15,7 +15,7 @@ function formatMarkdown(text: string, maxItems = 3): string {
 
   for (const line of lines) {
     // Detectar items de lista (numerados o bullets)
-    if (/^\d+\.\s/.test(line) || /^[\-\*]\s/.test(line)) {
+    if (/^\d+\.\s/.test(line) || /^[-*]\s/.test(line)) {
       if (itemCount < maxItems) {
         limitedLines.push(line);
         itemCount++;
@@ -56,7 +56,7 @@ function formatMarkdown(text: string, maxItems = 3): string {
       return `<div class="flex gap-2 mt-2"><span>${emoji}</span><span>${content}</span></div>`;
     })
     // Listas con bullets con emojis
-    .replace(/^[\-\*]\s+(.+)$/gm, (_match, content) => {
+    .replace(/^[-*]\s+(.+)$/gm, (_match, content) => {
       const emoji = emojis[emojiIndex % emojis.length];
       emojiIndex++;
       return `<div class="flex gap-2 mt-2"><span>${emoji}</span><span>${content}</span></div>`;

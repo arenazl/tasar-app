@@ -201,6 +201,7 @@ export function ABMPage({
 
   // Suprimimos el bloque legacy (early return centrado) — lo reemplaza el overlay
   // flotante + los skeletons que cada página renderiza dentro de {children}.
+  // eslint-disable-next-line no-constant-condition, no-constant-binary-expression
   if (false && loading) {
     return (
       <div className="flex flex-col items-center justify-center h-64 gap-4">

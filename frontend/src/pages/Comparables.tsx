@@ -57,7 +57,7 @@ export default function Comparables() {
       try {
         const c = await api.get('/market/zone-centroid', { params: { neighborhood: zone, property_type: type } });
         lat = c.data.lat; lng = c.data.lng;
-      } catch {}
+      } catch { /* best-effort, ignorar */ }
 
       const params: any = {
         neighborhood: zone, property_type: type, rooms: Number(rooms),
@@ -73,7 +73,7 @@ export default function Comparables() {
       setResults(r.data.results);
       setOrderBy(r.data.order_by === 'match' ? 'match' : 'ppm2');
       setStats({ total: r.data.total, min: r.data.min_ppm2, max: r.data.max_ppm2, median: r.data.median_ppm2 });
-    } catch {}
+    } catch { /* best-effort, ignorar */ }
     finally { setLoading(false); }
   };
 
