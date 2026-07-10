@@ -22,6 +22,7 @@ function cleanupOldHintFlags() {
 }
 import Layout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
+import { PushOptIn } from './components/PushOptIn';
 
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
@@ -61,6 +62,7 @@ export default function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/*" element={
             <ProtectedRoute>
+              <PushOptIn />
               <Layout>
                 <Routes>
                   <Route path="/" element={<Dashboard />} />

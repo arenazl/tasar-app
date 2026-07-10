@@ -625,11 +625,26 @@ async def _emit_inbox_event(ctx: BotContext, kind: str, **kwargs: Any) -> None:
     Un fallo del producer NUNCA rompe el flujo del bot (patron de la casa: como los
     bloques de notificacion por email). Import diferido para evitar ciclo con la capa
     de servicios/API.
+
+    WO F3-03: este es el UNICO punto donde los 3 eventos de Bandeja originados
+    por el bot (lead_created, visit_scheduled, conversation_handoff) se
+    disparan -- por eso es tambien el unico punto donde se cablea el push:
+    si el evento tiene un `user_id` destinatario (el vendedor asignado), se le
+    manda una notificacion push ademas de la fila de Bandeja. Un fallo del
+    push (VAPID no configurada, sub vencida, etc.) tampoco rompe el flujo del
+    bot -- mismo try/except que el resto.
     """
     try:
         from services import inbox_service
         fn = getattr(inbox_service, kind)
-        await fn(ctx.db, workspace_id=ctx.workspace_id, **kwargs)
+        msg = await fn(ctx.db, workspace_id=ctx.workspace_id, **kwargs)
+        if msg.user_id:
+            from services.push_notif import notify_user
+            await notify_user(
+                ctx.db, msg.user_id,
+                title=msg.subject, body=msg.preview or "",
+                url=msg.related_url or "/bandeja",
+            )
     except Exception as e:  # noqa: BLE001
         log.warning("inbox event %s fallo (ignorado): %s", kind, type(e).__name__)
 

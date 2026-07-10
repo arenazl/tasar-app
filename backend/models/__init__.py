@@ -20,6 +20,7 @@ from models.dmo import Coach, DmoTemplate, DmoBlock, DmoAssignment, DmoLog
 from models.conversation import WaConversation
 from models.message import WaMessage
 from models.bot_config import WorkspaceBotConfig, BotFaq
+from models.push_subscription import PushSubscription
 
 __all__ = [
     "User", "Workspace",
@@ -43,4 +44,5 @@ __all__ = [
     "WaConversation",
     "WaMessage",
     "WorkspaceBotConfig", "BotFaq",
+    "PushSubscription",
 ]

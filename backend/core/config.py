@@ -81,6 +81,26 @@ class Settings(BaseSettings):
     # puede apagar sin tocar codigo si el shape asumido da falsos positivos.
     COEX_HANDOFF_ENABLED: bool = True
 
+    # --- Web Push (WO F3-03) ---
+    # Par de claves VAPID (par de curva eliptica P-256) que identifican al
+    # servidor ante los push services del browser (FCM/Mozilla/etc). SOLO
+    # env/Secret Manager -- nunca en DB ni en el frontend salvo la PUBLIC key
+    # (se expone via GET /api/push/vapid-public-key, es la mitad publica del
+    # par por diseno del protocolo Web Push). Vacio => push_notif.notify_user
+    # hace no-op (mismo patron fail-soft que SMTP en email_service).
+    VAPID_PUBLIC_KEY: str = ""
+    VAPID_PRIVATE_KEY: str = ""
+    # Contacto (mailto: o https:) que va en el claim VAPID `sub`, requerido
+    # por el protocolo Web Push para que el push service pueda contactar al
+    # operador ante abuso.
+    VAPID_SUBJECT: str = "mailto:admin@tasar.local"
+
+    # --- Cron interno (WO F3-03) ---
+    # Secreto compartido para el scheduler externo (lo define Infra) que
+    # dispara POST /api/cron/weekly-summary. Header `X-Cron-Key`. Vacio o
+    # no coincide => 403 (fail-closed).
+    CRON_KEY: str = ""
+
     @property
     def database_url(self) -> str:
         return (

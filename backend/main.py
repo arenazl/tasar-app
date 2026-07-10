@@ -15,7 +15,7 @@ from api import (
     collaboration, ai, scraping, heatmap, dashboard, settings as settings_api,
     inbox, market, reports, ai_coach, clients, wa_auth, wa_gateway,
     valuations, coaches, dmo, visits, deals, authorizations,
-    whatsapp, bot_config, conversations, meta,
+    whatsapp, bot_config, conversations, meta, push, cron,
 )
 
 
@@ -90,6 +90,12 @@ app.include_router(meta.router)
 # Inbox humano de WhatsApp (WO F2-04): conversaciones (list sin N+1 + tomar mando +
 # responder por gateway + reactivar bot), scoped por workspace + rol.
 app.include_router(conversations.router)
+# Web Push PWA (WO F3-03): subscribe/unsubscribe/test (JWT), cableado a los
+# eventos de inbox_service (lead nuevo, derivacion, visita) via bot_tools.
+app.include_router(push.router)
+# Cron interno (WO F3-03): resumen semanal por email, X-Cron-Key -- el
+# scheduler externo (Infra) lo dispara, este backend solo arma y despacha.
+app.include_router(cron.router)
 
 
 @app.get("/")

@@ -3,6 +3,7 @@ import { Settings, Palette, Bell, Lock, Check, Type, Sparkles, Zap, Brain, Gem, 
 import { toast } from 'sonner';
 import { useTheme } from '../contexts/ThemeContext';
 import { api } from '../services/api';
+import { PushTestButton } from '../components/PushOptIn';
 
 const CLAUDE_MODELS = [
   { value: 'haiku', label: 'Haiku', desc: 'Rápido y económico', icon: Zap, color: '#16a34a' },
@@ -284,6 +285,11 @@ export default function Configuracion() {
             style={{ background: `${theme.primary}15`, color: theme.primary, border: `1px solid ${theme.primary}30` }}>
             Enviar email de prueba
           </button>
+
+          <div className="text-xs mt-4 mb-1" style={{ color: theme.textSecondary }}>
+            Push del navegador — te avisa aunque tengas la app cerrada. Activalo desde el banner que aparece al ingresar.
+          </div>
+          <PushTestButton />
         </div>
 
         {/* PASSWORD */}
