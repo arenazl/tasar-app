@@ -3,9 +3,11 @@
 Regla de la casa: "un solo camino de salida de audio". Este es ESE camino —
 el bot (webhook entrante, auto/mirror) y cualquier otro flujo futuro que
 quiera responder en audio pasan por `synthesize_reply_audio`. El envio fisico
-al gateway sigue siendo `api.whatsapp._send_via_gateway` (el camino UNICO ya
-existente de F2-03/F2-04, extendido con `audio_url`/`ptt`); este modulo NO
-habla con el gateway, solo genera el audio.
+sigue siendo `services.wa_out.send` (WO F3-02: el camino UNICO ya existente de
+F2-03/F2-04 -- antes `api.whatsapp._send_via_gateway` -- se movio a
+`services/wa_out.py` y ahi resuelve baileys|meta, extendido con
+`audio_url`/`ptt`); este modulo NO habla con el gateway ni con Graph API,
+solo genera el audio.
 
 Flujo:
   1. `audio_sanitizer.sanitize_for_tts` — corta <<PAUSE>> y URLs (los DOS

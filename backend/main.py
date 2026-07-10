@@ -15,7 +15,7 @@ from api import (
     collaboration, ai, scraping, heatmap, dashboard, settings as settings_api,
     inbox, market, reports, ai_coach, clients, wa_auth, wa_gateway,
     valuations, coaches, dmo, visits, deals, authorizations,
-    whatsapp, bot_config, conversations,
+    whatsapp, bot_config, conversations, meta,
 )
 
 
@@ -78,10 +78,15 @@ app.include_router(authorizations.router)
 app.include_router(wa_auth.router)
 app.include_router(wa_gateway.router)
 # Bot WhatsApp embebido (WO F2-03):
-#   whatsapp   -> webhook entrante (X-API-Key) + inbox (JWT) + envio via gateway
+#   whatsapp   -> webhook entrante Baileys (X-API-Key)
 #   bot_config -> configuracion del bot POR WORKSPACE (JWT admin/supervisor)
 app.include_router(whatsapp.router)
 app.include_router(bot_config.router)
+# Canal Meta Cloud API oficial (WO F3-02): webhook GET verify + POST incoming
+# (HMAC X-Hub-Signature-256), ruteo por meta_phone_number_id. Mismo pipeline
+# de procesamiento que Baileys (services/wa_inbound.py); envio unico por
+# services/wa_out.py.
+app.include_router(meta.router)
 # Inbox humano de WhatsApp (WO F2-04): conversaciones (list sin N+1 + tomar mando +
 # responder por gateway + reactivar bot), scoped por workspace + rol.
 app.include_router(conversations.router)

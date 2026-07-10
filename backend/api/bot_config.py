@@ -13,6 +13,7 @@ from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from core.config import settings
 from core.database import get_db
 from core.security import get_current_user, require_role
 from models.user import User
@@ -22,6 +23,8 @@ from models.bot_config import (
     DEFAULT_WELCOME, DEFAULT_OFF_HOURS, DEFAULT_DERIVATION,
     DEFAULT_DERIVATION_WORDS, DEFAULT_TONE, DEFAULT_BUSINESS_HOURS, DEFAULT_VOICE_MODE,
 )
+
+_VALID_PROVIDERS = {"baileys", "meta"}
 
 
 router = APIRouter(prefix="/api/bot-config", tags=["bot-config"])
@@ -78,6 +81,17 @@ def _cfg_dict(c: WorkspaceBotConfig) -> dict:
         # Audio full-duplex (WO F3-01). voice_id=None -> voz default global.
         "voice_id": c.voice_id,
         "default_voice_mode": c.default_voice_mode,
+        # Canal Meta Cloud API oficial (WO F3-02). meta_phone_number_id es la
+        # UNICA credencial Meta que vive en DB (clave de ruteo, no secreto).
+        # El access_token/verify_token/app_secret NUNCA salen del backend
+        # (regla dura de credenciales) -- solo se informa si el SERVER los
+        # tiene configurados via env, para que la UI pueda avisar si falta.
+        "meta_phone_number_id": c.meta_phone_number_id,
+        "meta_configured": bool(
+            (settings.META_ACCESS_TOKEN or "").strip()
+            and (settings.META_WEBHOOK_VERIFY_TOKEN or "").strip()
+            and (settings.META_APP_SECRET or "").strip()
+        ),
     }
 
 
@@ -110,6 +124,12 @@ class BotConfigUpdate(BaseModel):
     tone: Optional[str] = None
     voice_id: Optional[str] = None
     default_voice_mode: Optional[str] = None
+    # Canal Meta Cloud API oficial (WO F3-02). channel_provider = baileys|meta;
+    # meta_phone_number_id es la clave de ruteo (NO un secreto -- el token vive
+    # en env, ver _cfg_dict). Editable solo por admin/supervisor, igual que el
+    # resto de esta config.
+    channel_provider: Optional[str] = None
+    meta_phone_number_id: Optional[str] = None
 
 
 _VALID_VOICE_MODES = {"off", "auto", "mirror"}
@@ -125,6 +145,17 @@ async def update_config(
     data = body.model_dump(exclude_unset=True)
     if data.get("default_voice_mode") is not None and data["default_voice_mode"] not in _VALID_VOICE_MODES:
         raise HTTPException(400, "default_voice_mode inválido (off|auto|mirror)")
+    if data.get("channel_provider") is not None and data["channel_provider"] not in _VALID_PROVIDERS:
+        raise HTTPException(400, "channel_provider inválido (baileys|meta)")
+    if data.get("meta_phone_number_id"):
+        dup = (await db.execute(
+            select(WorkspaceBotConfig.id).where(
+                WorkspaceBotConfig.meta_phone_number_id == data["meta_phone_number_id"],
+                WorkspaceBotConfig.id != cfg.id,
+            )
+        )).scalar_one_or_none()
+        if dup:
+            raise HTTPException(409, "Ese phone_number_id de Meta ya está conectado a otro workspace")
     for field, value in data.items():
         setattr(cfg, field, value)
     await db.commit()

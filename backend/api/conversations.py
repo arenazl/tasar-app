@@ -5,8 +5,9 @@ filtros, ver el historial, TOMAR el mando (asignarme + pausar el bot), responder
 como operador por el gateway, reactivar el bot y vincular a un cliente del CRM.
 
 Convive con:
-  - `api/whatsapp.py`  -> webhook entrante + `_send_via_gateway` (camino UNICO de
-    salida a WhatsApp; se reutiliza aca, NO se duplica).
+  - `api/whatsapp.py` / `api/meta.py` -> webhooks entrantes (Baileys / Meta Cloud
+    API, WO F3-02); el envio se reutiliza de `services/wa_out` (camino UNICO de
+    salida, resuelve baileys|meta por workspace) -- NO se duplica.
   - `api/inbox.py`     -> Bandeja de EVENTOS (inbox_messages). Otra cosa: esto es el
     chat de WhatsApp; aquello son las notificaciones del sistema.
 
@@ -32,16 +33,17 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from core.database import get_db
 from core.security import get_current_user
 from models.user import User
-from models.workspace import Workspace
 from models.client import Client
 from models.conversation import (
     WaConversation, STATUS_NUEVA, STATUS_ABIERTA, STATUS_CERRADA, STATUS_BLOQUEADA,
 )
 from models.message import WaMessage, DIRECTION_INBOUND, DIRECTION_OUTBOUND
 from services.cloudinary_service import upload_audio
-# Camino UNICO de salida + pausa de coexistence (definidos en el modulo del webhook;
-# NO se duplican aca para no tener dos rutas de envio ni dos constantes de pausa).
-from api.whatsapp import _send_via_gateway, _local_id, COEXISTENCE_PAUSE
+# Camino UNICO de salida (resuelve baileys|meta) + pausa de coexistence
+# (definidos en services/wa_out.py y services/wa_inbound.py; NO se duplican
+# aca para no tener dos rutas de envio ni dos constantes de pausa).
+from services import wa_out
+from services.wa_inbound import _local_id, COEXISTENCE_PAUSE
 
 router = APIRouter(prefix="/api/conversations", tags=["conversations"])
 
@@ -230,9 +232,9 @@ async def reply(
     c = await _get_scoped(db, conv_id, user)
     if c.status == STATUS_BLOQUEADA:
         raise HTTPException(400, "Conversación bloqueada")
-    ws = (await db.execute(select(Workspace).where(Workspace.id == user.workspace_id))).scalar_one()
+    ws, cfg = await wa_out.load_target(db, user.workspace_id)
 
-    ok, meta_id, err = await _send_via_gateway(ws.slug, c.phone_jid, contenido)
+    ok, meta_id, err = await wa_out.send(ws, cfg, c.phone_jid, contenido)
     db.add(WaMessage(
         conversation_id=c.id, direction=DIRECTION_OUTBOUND, type="text",
         content=contenido, sender_id=user.id, is_read=True,
@@ -254,7 +256,7 @@ async def reply_audio(
     `InboxWhatsApp.tsx`, WO F3-01). Va TAL CUAL la grabo el vendedor -- SIN
     TTS ni sanitizador de <<PAUSE>>/URLs (eso es solo para audio SINTETIZADO
     del bot, ver `services.audio_out`): se sube a Cloudinary y sale por el
-    MISMO camino unico de envio (`_send_via_gateway`, con audio_url), tal
+    MISMO camino unico de envio (`services.wa_out.send`, con audio_url), tal
     como el reply de texto.
     """
     c = await _get_scoped(db, conv_id, user)
@@ -263,14 +265,14 @@ async def reply_audio(
     raw = await file.read()
     if not raw:
         raise HTTPException(400, "Audio vacío")
-    ws = (await db.execute(select(Workspace).where(Workspace.id == user.workspace_id))).scalar_one()
+    ws, cfg = await wa_out.load_target(db, user.workspace_id)
 
     up = await upload_audio(raw, folder="wa-audio")
     media_url = up.get("url")
     if not media_url:
         raise HTTPException(502, "No se pudo subir el audio")
 
-    ok, meta_id, err = await _send_via_gateway(ws.slug, c.phone_jid, audio_url=media_url, ptt=True)
+    ok, meta_id, err = await wa_out.send(ws, cfg, c.phone_jid, audio_url=media_url, ptt=True)
     db.add(WaMessage(
         conversation_id=c.id, direction=DIRECTION_OUTBOUND, type="audio",
         media_url=media_url, sender_id=user.id, is_read=True,

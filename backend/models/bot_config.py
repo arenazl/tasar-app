@@ -77,8 +77,17 @@ class WorkspaceBotConfig(Base):
     derivation_words = Column(Text, nullable=True) # keywords de derivacion implicita
     tone = Column(String(30), default=DEFAULT_TONE)
 
-    # === Conexion (el detalle Meta es de F3-02) ===
+    # === Conexion (WO F3-02: canal Meta Cloud API oficial) ===
+    # baileys (no oficial, riesgo de ban) | meta (Cloud API oficial). UNICO campo
+    # que decide el camino de salida -- ver services/wa_out.py (regla "cada
+    # regla en una capa": solo wa_out.py compara este valor).
     channel_provider = Column(String(20), default="baileys")
+    # Clave de RUTEO del canal Meta (NO es un secreto: Meta lo manda en cada
+    # webhook y con el resolvemos el workspace, igual que el `slug` resuelve el
+    # canal Baileys). El access_token y el verify_token son credenciales de
+    # verdad -- SOLO viven en env/Secret Manager (settings.META_ACCESS_TOKEN /
+    # META_WEBHOOK_VERIFY_TOKEN / META_APP_SECRET), nunca en esta tabla.
+    meta_phone_number_id = Column(String(40), nullable=True, unique=True, index=True)
 
     # === Audio full-duplex (WO F3-01) ===
     # Voz GENERICA de ElevenLabs para este workspace (gate del dueno: SIN

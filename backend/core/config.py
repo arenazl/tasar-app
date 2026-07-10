@@ -61,6 +61,26 @@ class Settings(BaseSettings):
     ELEVENLABS_DEFAULT_VOICE_ID: str = ""
     ELEVENLABS_MODEL: str = "eleven_flash_v2_5"
 
+    # --- Meta Cloud API oficial (WO F3-02) ---
+    # Token de sistema (Bearer) con acceso a TODOS los WABA de los workspaces
+    # conectados por Meta (patron Tech Provider: un Business Manager agrupa los
+    # numeros de varios workspaces). SOLO env/Secret Manager -- jamas en la DB
+    # ni se expone al frontend. El ruteo por workspace es por
+    # workspace_bot_config.meta_phone_number_id, NO por este token.
+    META_ACCESS_TOKEN: str = ""
+    # Verify token del handshake GET del webhook (hub.verify_token). Meta exige
+    # un unico valor por URL de webhook registrada -> es GLOBAL al server, no
+    # por workspace. SOLO env por la misma regla de credenciales.
+    META_WEBHOOK_VERIFY_TOKEN: str = ""
+    # App secret del Meta Developer App, usado para validar la firma
+    # X-Hub-Signature-256 (HMAC-SHA256) de cada POST del webhook. SOLO env.
+    META_APP_SECRET: str = ""
+    # Master switch del handoff por coexistence (WO F3-02, canal Meta). Best
+    # effort / NO verificado contra un webhook real -- ver services/meta_client.py
+    # parse_echo(). Default ON (igual criterio que SalesBot/gupshup.py); se
+    # puede apagar sin tocar codigo si el shape asumido da falsos positivos.
+    COEX_HANDOFF_ENABLED: bool = True
+
     @property
     def database_url(self) -> str:
         return (

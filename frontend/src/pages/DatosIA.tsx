@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import {
   Bot, Building2, MessageSquare, Clock, HelpCircle, Plug, Check, Loader2,
-  Plus, Trash2, Power, RefreshCw, QrCode,
+  Plus, Trash2, Power, RefreshCw, QrCode, Smartphone, ShieldCheck, AlertTriangle,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTheme } from '../contexts/ThemeContext';
@@ -26,6 +26,8 @@ interface BotConfig {
   derivation_words: string | null;
   tone: string | null;
   channel_provider: string | null;
+  meta_phone_number_id: string | null;
+  meta_configured: boolean;
 }
 
 interface Faq {
@@ -214,7 +216,7 @@ export default function DatosIA() {
 
         {tab === 'faqs' && <FaqsTab theme={theme} />}
 
-        {tab === 'conexion' && <ConexionTab theme={theme} cfg={cfg} />}
+        {tab === 'conexion' && <ConexionTab theme={theme} cfg={cfg} reload={load} />}
 
         {tab !== 'faqs' && tab !== 'conexion' && (
           <div className="mt-6 flex justify-end">
@@ -319,9 +321,17 @@ function FaqsTab({ theme }: { theme: any }) {
   );
 }
 
-function ConexionTab({ theme, cfg }: { theme: any; cfg: BotConfig }) {
+function ConexionTab({ theme, cfg, reload }: { theme: any; cfg: BotConfig; reload: () => Promise<void> }) {
   const [status, setStatus] = useState<WaStatus | null>(null);
   const [loading, setLoading] = useState(false);
+  const [provider, setProvider] = useState<'baileys' | 'meta'>((cfg.channel_provider as 'baileys' | 'meta') || 'baileys');
+  const [phoneNumberId, setPhoneNumberId] = useState(cfg.meta_phone_number_id || '');
+  const [savingProvider, setSavingProvider] = useState(false);
+
+  useEffect(() => {
+    setProvider((cfg.channel_provider as 'baileys' | 'meta') || 'baileys');
+    setPhoneNumberId(cfg.meta_phone_number_id || '');
+  }, [cfg.channel_provider, cfg.meta_phone_number_id]);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -332,7 +342,7 @@ function ConexionTab({ theme, cfg }: { theme: any; cfg: BotConfig }) {
       setStatus(null);
     } finally { setLoading(false); }
   }, []);
-  useEffect(() => { refresh(); }, [refresh]);
+  useEffect(() => { if (provider === 'baileys') refresh(); }, [refresh, provider]);
 
   const start = async () => {
     try { await api.post('/wa/start'); toast.success('Sesión iniciada'); refresh(); }
@@ -347,6 +357,20 @@ function ConexionTab({ theme, cfg }: { theme: any; cfg: BotConfig }) {
     } catch { toast.error('No se pudo abrir el QR'); }
   };
 
+  const saveProvider = async () => {
+    setSavingProvider(true);
+    try {
+      await api.put('/bot-config', {
+        channel_provider: provider,
+        meta_phone_number_id: phoneNumberId.trim() || null,
+      });
+      await reload();
+      toast.success('Conexión actualizada');
+    } catch (e: any) {
+      toast.error(e.response?.data?.detail || 'No se pudo guardar la conexión');
+    } finally { setSavingProvider(false); }
+  };
+
   const stateLabel: Record<string, string> = {
     open: 'Conectado', connecting: 'Conectando', close: 'Desconectado', none: 'Sin sesión',
   };
@@ -354,52 +378,127 @@ function ConexionTab({ theme, cfg }: { theme: any; cfg: BotConfig }) {
   const connected = st === 'open';
 
   return (
-    <div className="space-y-4">
-      <div className="p-4 rounded-lg" style={{ background: theme.backgroundSecondary }}>
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <div className="text-xs uppercase tracking-wider font-bold" style={{ color: theme.textSecondary }}>Proveedor de canal</div>
-            <div className="font-semibold capitalize" style={{ color: theme.text }}>{cfg.channel_provider || 'baileys'}</div>
+    <div className="space-y-5">
+      {/* Selector de proveedor */}
+      <div>
+        <div className="text-xs font-bold uppercase tracking-wider mb-1.5" style={{ color: theme.textSecondary }}>
+          Proveedor de canal
+        </div>
+        <div className="flex gap-2">
+          <button onClick={() => setProvider('baileys')}
+            className="flex-1 px-3 py-2.5 rounded-lg text-sm font-semibold flex items-center gap-2 transition-all active:scale-95"
+            style={{
+              background: provider === 'baileys' ? `${theme.primary}15` : theme.backgroundSecondary,
+              color: provider === 'baileys' ? theme.primary : theme.textSecondary,
+              border: `2px solid ${provider === 'baileys' ? theme.primary : 'transparent'}`,
+            }}>
+            <Smartphone className="h-4 w-4" /> WhatsApp Web (Baileys)
+          </button>
+          <button onClick={() => setProvider('meta')}
+            className="flex-1 px-3 py-2.5 rounded-lg text-sm font-semibold flex items-center gap-2 transition-all active:scale-95"
+            style={{
+              background: provider === 'meta' ? `${theme.primary}15` : theme.backgroundSecondary,
+              color: provider === 'meta' ? theme.primary : theme.textSecondary,
+              border: `2px solid ${provider === 'meta' ? theme.primary : 'transparent'}`,
+            }}>
+            <ShieldCheck className="h-4 w-4" /> Meta Cloud API oficial
+          </button>
+        </div>
+        <p className="text-xs mt-1.5" style={{ color: theme.textSecondary }}>
+          Baileys es no oficial (riesgo de bloqueo del número). Meta Cloud API es el canal oficial de Meta — recomendado para producción.
+        </p>
+      </div>
+
+      {provider === 'baileys' ? (
+        <div className="space-y-4">
+          <div className="p-4 rounded-lg" style={{ background: theme.backgroundSecondary }}>
+            <div className="flex items-center justify-between gap-3">
+              <div className="text-xs uppercase tracking-wider font-bold" style={{ color: theme.textSecondary }}>Estado</div>
+              <div className="font-semibold flex items-center gap-1.5"
+                style={{ color: connected ? '#16a34a' : theme.textSecondary }}>
+                <span className="w-2 h-2 rounded-full" style={{ background: connected ? '#16a34a' : theme.border }} />
+                {stateLabel[st] || st}
+              </div>
+            </div>
+            {status?.numero && (
+              <div className="mt-3 text-sm" style={{ color: theme.textSecondary }}>
+                Número conectado: <span style={{ color: theme.text }}>{status.numero}</span>
+              </div>
+            )}
           </div>
-          <div className="text-right">
-            <div className="text-xs uppercase tracking-wider font-bold" style={{ color: theme.textSecondary }}>Estado</div>
-            <div className="font-semibold flex items-center gap-1.5 justify-end"
-              style={{ color: connected ? '#16a34a' : theme.textSecondary }}>
-              <span className="w-2 h-2 rounded-full" style={{ background: connected ? '#16a34a' : theme.border }} />
-              {stateLabel[st] || st}
+          <div className="flex flex-wrap gap-2">
+            <button onClick={refresh} disabled={loading}
+              className="px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-1.5 disabled:opacity-50 active:scale-95"
+              style={{ background: theme.backgroundSecondary, color: theme.text, border: `1px solid ${theme.border}` }}>
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />} Actualizar estado
+            </button>
+            <button onClick={start}
+              className="px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-1.5 active:scale-95"
+              style={{ background: theme.backgroundSecondary, color: theme.text, border: `1px solid ${theme.border}` }}>
+              <Power className="h-4 w-4" /> Iniciar sesión
+            </button>
+            {!connected && (
+              <button onClick={openQr}
+                className="px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-1.5 active:scale-95"
+                style={{ background: theme.primary, color: theme.primaryText }}>
+                <QrCode className="h-4 w-4" /> Escanear QR
+              </button>
+            )}
+          </div>
+          <p className="text-xs" style={{ color: theme.textSecondary }}>
+            Escaneá el QR desde WhatsApp &gt; Dispositivos vinculados.
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          <div className="p-3 rounded-lg flex items-start gap-2.5 text-sm"
+            style={{
+              background: cfg.meta_configured ? `${theme.primary}10` : '#f59e0b15',
+              border: `1px solid ${cfg.meta_configured ? theme.border : '#f59e0b40'}`,
+            }}>
+            {cfg.meta_configured ? (
+              <ShieldCheck className="h-4 w-4 flex-shrink-0 mt-0.5" style={{ color: theme.primary }} />
+            ) : (
+              <AlertTriangle className="h-4 w-4 flex-shrink-0 mt-0.5" style={{ color: '#f59e0b' }} />
+            )}
+            <div style={{ color: theme.text }}>
+              {cfg.meta_configured
+                ? 'El servidor tiene las credenciales de Meta (token, verify token y app secret) configuradas.'
+                : 'El servidor todavía no tiene configuradas las credenciales de Meta (token de acceso, verify token y app secret). Pedile a Infraestructura que las cargue como variables de entorno — nunca se ingresan acá.'}
             </div>
           </div>
-        </div>
-        {status?.numero && (
-          <div className="mt-3 text-sm" style={{ color: theme.textSecondary }}>
-            Número conectado: <span style={{ color: theme.text }}>{status.numero}</span>
+
+          <Field
+            theme={theme}
+            label="Phone Number ID de Meta"
+            hint="El ID del número dentro de tu WhatsApp Business Account, no el número en sí"
+            value={phoneNumberId}
+            onChange={setPhoneNumberId}
+          />
+
+          <div className="flex justify-end">
+            <button onClick={saveProvider} disabled={savingProvider}
+              className="px-5 py-2.5 rounded-lg text-sm font-bold flex items-center gap-2 disabled:opacity-50 transition-all active:scale-95"
+              style={{ background: theme.primary, color: theme.primaryText }}>
+              {savingProvider ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />} Guardar conexión
+            </button>
           </div>
-        )}
-      </div>
 
-      <div className="flex flex-wrap gap-2">
-        <button onClick={refresh} disabled={loading}
-          className="px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-1.5 disabled:opacity-50 active:scale-95"
-          style={{ background: theme.backgroundSecondary, color: theme.text, border: `1px solid ${theme.border}` }}>
-          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />} Actualizar estado
-        </button>
-        <button onClick={start}
-          className="px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-1.5 active:scale-95"
-          style={{ background: theme.backgroundSecondary, color: theme.text, border: `1px solid ${theme.border}` }}>
-          <Power className="h-4 w-4" /> Iniciar sesión
-        </button>
-        {!connected && (
-          <button onClick={openQr}
-            className="px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-1.5 active:scale-95"
-            style={{ background: theme.primary, color: theme.primaryText }}>
-            <QrCode className="h-4 w-4" /> Escanear QR
+          <p className="text-xs" style={{ color: theme.textSecondary }}>
+            Webhook a configurar en Meta: <code>/api/meta/webhook</code>. El verify token y el token de acceso los define el servidor (env), no se cargan en esta pantalla.
+          </p>
+        </div>
+      )}
+
+      {provider === 'baileys' && (
+        <div className="flex justify-end">
+          <button onClick={saveProvider} disabled={savingProvider}
+            className="px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-1.5 disabled:opacity-50 active:scale-95"
+            style={{ background: theme.backgroundSecondary, color: theme.text, border: `1px solid ${theme.border}` }}>
+            {savingProvider ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />} Confirmar proveedor
           </button>
-        )}
-      </div>
-
-      <p className="text-xs" style={{ color: theme.textSecondary }}>
-        Escaneá el QR desde WhatsApp &gt; Dispositivos vinculados. La conexión por Meta oficial se agrega más adelante.
-      </p>
+        </div>
+      )}
     </div>
   );
 }
