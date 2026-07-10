@@ -11,7 +11,7 @@ from sqlalchemy import select
 from typing import Optional
 
 from core.database import get_db
-from core.security import get_current_user
+from core.security import get_current_user, require_role
 from models.user import User
 from models.app_setting import AppSetting
 
@@ -71,7 +71,9 @@ async def set_setting_endpoint(
     key: str,
     body: SettingValue,
     db: AsyncSession = Depends(get_db),
-    user: User = Depends(get_current_user),
+    # Escritura de settings del workspace = accion sensible (WO F4-05): solo
+    # admin/supervisor. La lectura (GET) queda abierta a todo el workspace.
+    user: User = Depends(require_role("admin", "supervisor")),
 ):
     if key == "claude_model" and body.value not in VALID_CLAUDE_MODELS:
         raise HTTPException(400, f"claude_model invalido: {VALID_CLAUDE_MODELS}")

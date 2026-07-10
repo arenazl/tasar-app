@@ -21,6 +21,7 @@ from models.conversation import WaConversation
 from models.message import WaMessage
 from models.bot_config import WorkspaceBotConfig, BotFaq
 from models.push_subscription import PushSubscription
+from models.invitation import Invitation
 
 __all__ = [
     "User", "Workspace",
@@ -45,4 +46,5 @@ __all__ = [
     "WaMessage",
     "WorkspaceBotConfig", "BotFaq",
     "PushSubscription",
+    "Invitation",
 ]

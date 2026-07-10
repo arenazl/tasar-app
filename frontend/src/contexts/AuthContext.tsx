@@ -7,6 +7,8 @@ interface AuthCtx {
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (data: { email: string; password: string; full_name: string; workspace_name: string; license_number?: string }) => Promise<void>;
+  acceptInvitation: (data: { token: string; password: string; full_name?: string }) => Promise<void>;
+  refreshUser: () => Promise<void>;
   logout: () => void;
 }
 
@@ -37,12 +39,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(r.data.user);
   };
 
+  const acceptInvitation = async (data: { token: string; password: string; full_name?: string }) => {
+    const r = await api.post('/auth/accept-invitation', data);
+    localStorage.setItem('tasar_token', r.data.access_token);
+    setUser(r.data.user);
+  };
+
+  const refreshUser = async () => {
+    const r = await api.get<User>('/auth/me');
+    setUser(r.data);
+  };
+
   const logout = () => {
     localStorage.removeItem('tasar_token');
     setUser(null);
   };
 
-  return <Ctx.Provider value={{ user, loading, login, register, logout }}>{children}</Ctx.Provider>;
+  return <Ctx.Provider value={{ user, loading, login, register, acceptInvitation, refreshUser, logout }}>{children}</Ctx.Provider>;
 }
 
 export function useAuth() {

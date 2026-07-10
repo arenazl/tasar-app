@@ -11,6 +11,52 @@ export interface User {
   license_number?: string;
   avatar_url?: string;
   daily_conversations_goal?: number;
+  is_active?: boolean;
+  // is_available alimenta el round-robin de leads (WO F4-05). El propio
+  // usuario lo edita desde su perfil (switch en el menu de la sidebar).
+  is_available?: boolean;
+  personal_phone?: string;
+}
+
+// ==================== Equipo / invitaciones (WO F4-05) ====================
+
+export type TeamRole = 'admin' | 'supervisor' | 'vendedor';
+
+export interface TeamMember {
+  id: number;
+  email: string;
+  full_name: string;
+  role: TeamRole;
+  is_active: boolean;
+  is_available: boolean;
+  license_number?: string | null;
+  personal_phone?: string | null;
+  daily_conversations_goal?: number | null;
+  last_assigned_at?: string | null;
+  created_at?: string | null;
+}
+
+export type InvitationStatus = 'pendiente' | 'aceptada' | 'expirada' | 'cancelada';
+
+export interface Invitation {
+  id: number;
+  email: string;
+  role: TeamRole;
+  full_name?: string | null;
+  status: InvitationStatus;
+  invited_by: number;
+  expires_at: string;
+  accepted_at?: string | null;
+  created_at?: string | null;
+}
+
+export interface InvitationInfo {
+  email: string;
+  role: TeamRole;
+  workspace_name: string;
+  full_name?: string | null;
+  valid: boolean;
+  reason?: string | null;
 }
 
 // ==================== DMO (WO F2-01) ====================

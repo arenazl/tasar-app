@@ -4,8 +4,10 @@ import {
   LayoutDashboard, Inbox, FileCheck2, Building2, Workflow, Users, Map as MapIcon,
   ClipboardList, FileText, Database, Settings, LogOut, ChevronDown, ChevronLeft, ChevronRight,
   Zap, Target, Layers, GraduationCap, CalendarDays, FileSignature, Bot, MessageSquare,
-  Sparkles, Store, TrendingUp, ListChecks, type LucideIcon,
+  Sparkles, Store, TrendingUp, ListChecks, UserCog, type LucideIcon,
 } from 'lucide-react';
+import { toast } from 'sonner';
+import { api } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { BRAND } from '../config/brand';
@@ -61,6 +63,7 @@ const NAV_MODULES: NavModule[] = [
   {
     key: 'equipo', label: 'Equipo', icon: Users,
     items: [
+      { to: '/equipo', icon: UserCog, label: 'Gestión de equipo', roles: ['supervisor', 'admin'] },
       { to: '/dmo', icon: Target, label: 'Mi DMO' },
       { to: '/pipeline', icon: Workflow, label: 'Pipeline de ventas' },
       { to: '/visitas', icon: CalendarDays, label: 'Visitas' },
@@ -115,9 +118,22 @@ function visibleModules(role?: string): NavModule[] {
 }
 
 export default function Layout({ children }: { children: ReactNode }) {
-  const { user, logout } = useAuth();
+  const { user, logout, refreshUser } = useAuth();
   const { theme } = useTheme();
   const navigate = useNavigate();
+  const [availBusy, setAvailBusy] = useState(false);
+
+  const toggleAvailability = async () => {
+    setAvailBusy(true);
+    try {
+      await api.patch('/auth/me', { is_available: !user?.is_available });
+      await refreshUser();
+    } catch {
+      toast.error('No se pudo cambiar tu disponibilidad');
+    } finally {
+      setAvailBusy(false);
+    }
+  };
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem(LS_COLLAPSED) === '1');
   const [openModules, setOpenModules] = useState<Record<string, boolean>>(() => {
     try {
@@ -222,6 +238,23 @@ export default function Layout({ children }: { children: ReactNode }) {
                 <div className="text-xs" style={{ color: theme.textSecondary }}>Sesión iniciada como</div>
                 <div className="font-semibold text-sm mt-0.5 truncate" style={{ color: theme.text }}>{user?.email}</div>
               </div>
+              {/* Disponibilidad para leads (WO F4-05) — el propio usuario la edita;
+                  alimenta el round-robin de asignación. */}
+              <button onClick={toggleAvailability} disabled={availBusy}
+                className="w-full px-4 py-2.5 flex items-center justify-between gap-2 text-sm font-medium transition-all hover:bg-black/5 dark:hover:bg-white/5 disabled:opacity-60"
+                style={{ color: theme.text, borderBottom: `1px solid ${theme.border}` }}>
+                <span className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full" style={{ background: user?.is_available ? theme.success : theme.textSecondary }} />
+                  Disponible para leads
+                </span>
+                <span className="text-xs font-bold px-2 py-0.5 rounded-full"
+                  style={{
+                    background: user?.is_available ? `${theme.success}18` : theme.backgroundSecondary,
+                    color: user?.is_available ? theme.success : theme.textSecondary,
+                  }}>
+                  {user?.is_available ? 'Sí' : 'No'}
+                </span>
+              </button>
               <button onClick={() => { logout(); navigate('/login'); }}
                 className="w-full px-4 py-2.5 flex items-center gap-2 text-sm font-medium transition-all hover:bg-black/5 dark:hover:bg-white/5"
                 style={{ color: theme.danger }}>

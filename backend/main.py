@@ -15,7 +15,7 @@ from api import (
     collaboration, ai, scraping, heatmap, dashboard, settings as settings_api,
     inbox, market, reports, ai_coach, clients, wa_auth, wa_gateway,
     valuations, coaches, dmo, visits, deals, authorizations,
-    whatsapp, bot_config, conversations, meta, push, cron,
+    whatsapp, bot_config, conversations, meta, push, cron, team,
 )
 
 
@@ -96,6 +96,11 @@ app.include_router(push.router)
 # Cron interno (WO F3-03): resumen semanal por email, X-Cron-Key -- el
 # scheduler externo (Infra) lo dispara, este backend solo arma y despacha.
 app.include_router(cron.router)
+# Gestion de equipo (WO F4-05): miembros (ver/editar rol/desactivar) e
+# invitaciones por email (invitar/reenviar/cancelar). Autorizacion por rol
+# real (require_role): ver = admin/supervisor, gestionar = admin. El alta via
+# token es publica y vive en auth.py.
+app.include_router(team.router)
 
 
 @app.get("/")

@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
 from core.database import get_db
-from core.security import get_current_user
+from core.security import get_current_user, require_role
 from models.user import User
 from models.property import Property
 from models.authorization import Authorization
@@ -148,7 +148,10 @@ async def update_authorization(
 async def delete_authorization(
     auth_id: int,
     db: AsyncSession = Depends(get_db),
-    user: User = Depends(get_current_user),
+    # Borrar una autorizacion (documento legal de venta con comision) = accion
+    # sensible (WO F4-05): solo admin/supervisor. Crear/editar la propia sigue
+    # abierto al vendedor captador (diseno F2-02, ownership in-handler).
+    user: User = Depends(require_role("admin", "supervisor")),
 ):
     a = await _get_editable(db, user, auth_id)
     await db.delete(a)

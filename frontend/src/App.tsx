@@ -25,6 +25,8 @@ import ProtectedRoute from './components/ProtectedRoute';
 import { PushOptIn } from './components/PushOptIn';
 
 import Login from './pages/Login';
+import AceptarInvitacion from './pages/AceptarInvitacion';
+import Equipo from './pages/Equipo';
 import Dashboard from './pages/Dashboard';
 import Bandeja from './pages/Bandeja';
 import InboxWhatsApp from './pages/InboxWhatsApp';
@@ -60,6 +62,8 @@ export default function App() {
         <Toaster position="top-right" richColors />
         <Routes>
           <Route path="/login" element={<Login />} />
+          {/* Alta via invitacion (WO F4-05) — publica, sin auth */}
+          <Route path="/invitacion/:token" element={<AceptarInvitacion />} />
           <Route path="/*" element={
             <ProtectedRoute>
               <PushOptIn />
@@ -79,6 +83,7 @@ export default function App() {
                   <Route path="/autorizaciones" element={<Autorizaciones />} />
                   <Route path="/tasaciones/pipeline" element={<PipelineTasaciones />} />
                   <Route path="/clientes" element={<Clientes />} />
+                  <Route path="/equipo" element={<Equipo />} />
                   <Route path="/dmo" element={<DMO />} />
                   <Route path="/dmo-templates" element={<DMOTemplates />} />
                   <Route path="/dmo-asignaciones" element={<AsignacionesDMO />} />
