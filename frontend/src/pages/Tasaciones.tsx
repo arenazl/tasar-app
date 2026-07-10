@@ -79,9 +79,12 @@ function PurposePill({ purpose }: { purpose: string }) {
 }
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, { bg: string; text: string; label: string }> = {
-    draft: { bg: '#fef3c7', text: '#92400e', label: 'Borrador' },
-    signed: { bg: '#d1fae5', text: '#065f46', label: 'Firmada' },
-    delivered: { bg: '#dbeafe', text: '#1e40af', label: 'Entregada' },
+    solicitada: { bg: '#fef3c7', text: '#92400e', label: 'Solicitada' },
+    en_analisis: { bg: '#e0f2fe', text: '#075985', label: 'En análisis' },
+    en_revision: { bg: '#ede9fe', text: '#5b21b6', label: 'En revisión' },
+    aprobada: { bg: '#d1fae5', text: '#065f46', label: 'Aprobada' },
+    entregada: { bg: '#dbeafe', text: '#1e40af', label: 'Entregada' },
+    rechazada: { bg: '#fee2e2', text: '#991b1b', label: 'Rechazada' },
   };
   const c = map[status] || { bg: '#e2e8f0', text: '#475569', label: status };
   return (
@@ -100,7 +103,7 @@ export default function Tasaciones() {
   const [search, setSearch] = useState('');
   const [filterPurpose, setFilterPurpose] = useState('');
   const [filterProperty, setFilterProperty] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all'|'draft'|'signed'|'delivered'|'with_acm'|'old'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all'|'solicitada'|'firmada'|'entregada'|'with_acm'|'old'>('all');
   const [sortBy, setSortBy] = useState('recent');
   const [wizardOpen, setWizardOpen] = useState(false);
   const [step, setStep] = useState(0);
@@ -147,21 +150,21 @@ export default function Tasaciones() {
   const now = Date.now();
   const counts = useMemo(() => ({
     all: baseFiltered.length,
-    draft: baseFiltered.filter(a => a.status === 'draft').length,
-    signed: baseFiltered.filter(a => a.status === 'signed').length,
-    delivered: baseFiltered.filter(a => a.status === 'delivered').length,
+    solicitada: baseFiltered.filter(a => a.status === 'solicitada').length,
+    firmada: baseFiltered.filter(a => a.signatures.length > 0).length,
+    entregada: baseFiltered.filter(a => a.status === 'entregada').length,
     with_acm: baseFiltered.filter(a => a.market_study_id != null).length,
-    old: baseFiltered.filter(a => a.status === 'draft' && (now - new Date(a.created_at).getTime() > THIRTY_DAYS)).length,
+    old: baseFiltered.filter(a => a.status === 'solicitada' && (now - new Date(a.created_at).getTime() > THIRTY_DAYS)).length,
   }), [baseFiltered, now]);
 
   const filtered = useMemo(() => {
     let out = baseFiltered.filter(a => {
       if (statusFilter === 'all') return true;
-      if (statusFilter === 'draft') return a.status === 'draft';
-      if (statusFilter === 'signed') return a.status === 'signed';
-      if (statusFilter === 'delivered') return a.status === 'delivered';
+      if (statusFilter === 'solicitada') return a.status === 'solicitada';
+      if (statusFilter === 'firmada') return a.signatures.length > 0;
+      if (statusFilter === 'entregada') return a.status === 'entregada';
       if (statusFilter === 'with_acm') return a.market_study_id != null;
-      if (statusFilter === 'old') return a.status === 'draft' && (now - new Date(a.created_at).getTime() > THIRTY_DAYS);
+      if (statusFilter === 'old') return a.status === 'solicitada' && (now - new Date(a.created_at).getTime() > THIRTY_DAYS);
       return true;
     });
     out = [...out].sort((a, b) => {
@@ -222,9 +225,9 @@ export default function Tasaciones() {
       </div>
       <div className="flex items-center gap-1.5 flex-wrap">
         <StatusPill icon={List} label="Todas" count={counts.all} active={statusFilter === 'all'} onClick={() => setStatusFilter('all')} color={theme.primary} />
-        <StatusPill icon={FileEdit} label="Borrador" count={counts.draft} active={statusFilter === 'draft'} onClick={() => setStatusFilter('draft')} color={theme.warning} />
-        <StatusPill icon={ShieldCheck} label="Firmadas" count={counts.signed} active={statusFilter === 'signed'} onClick={() => setStatusFilter('signed')} color={theme.success} />
-        <StatusPill icon={Send} label="Entregadas" count={counts.delivered} active={statusFilter === 'delivered'} onClick={() => setStatusFilter('delivered')} color={theme.info} />
+        <StatusPill icon={FileEdit} label="Solicitadas" count={counts.solicitada} active={statusFilter === 'solicitada'} onClick={() => setStatusFilter('solicitada')} color={theme.warning} />
+        <StatusPill icon={ShieldCheck} label="Firmadas" count={counts.firmada} active={statusFilter === 'firmada'} onClick={() => setStatusFilter('firmada')} color={theme.success} />
+        <StatusPill icon={Send} label="Entregadas" count={counts.entregada} active={statusFilter === 'entregada'} onClick={() => setStatusFilter('entregada')} color={theme.info} />
         <StatusPill icon={Link2} label="Con ACM" count={counts.with_acm} active={statusFilter === 'with_acm'} onClick={() => setStatusFilter('with_acm')} color="#7c3aed" />
         <StatusPill icon={AlertCircle} label="Por vencer" count={counts.old} active={statusFilter === 'old'} onClick={() => setStatusFilter('old')} color={theme.danger} />
       </div>
@@ -242,7 +245,7 @@ export default function Tasaciones() {
     <>
       {filtered.map((a, i) => {
         const prop = properties.find(p => p.id === a.property_id);
-        const signed = a.status === 'signed' || a.status === 'delivered';
+        const firmada = a.signatures.length > 0;
         return (
           <ABMCard key={a.id} index={i} onClick={() => navigate(`/tasaciones/${a.id}`)}>
             <div className="flex items-center justify-between gap-4 flex-wrap">
@@ -264,7 +267,7 @@ export default function Tasaciones() {
                   <div className="text-[10px] uppercase tracking-wide font-semibold" style={{ color: theme.textSecondary }}>Valor final</div>
                   <div className="text-xl font-bold" style={{ color: theme.text }}>{a.currency} {Number(a.final_value).toLocaleString()}</div>
                 </div>
-                {!signed && (
+                {!firmada && (
                   <button onClick={(e) => { e.stopPropagation(); sign(a); }}
                     className="px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-1 transition-all active:scale-95"
                     style={{ background: `${theme.success}20`, color: theme.success }}>
@@ -345,7 +348,7 @@ export default function Tasaciones() {
       ]}
       actions={(a) => (
         <>
-          {a.status === 'draft' && <ABMTableAction icon={<FileSignature className="h-4 w-4" />} title="Firmar" onClick={() => sign(a)} variant="primary" />}
+          {a.signatures.length === 0 && <ABMTableAction icon={<FileSignature className="h-4 w-4" />} title="Firmar" onClick={() => sign(a)} variant="primary" />}
           <ABMTableAction icon={<Download className="h-4 w-4" />} title="Descargar PDF" onClick={() => downloadPdf(a)} variant="primary" />
         </>
       )}

@@ -11,8 +11,8 @@ from core.database import get_db
 from core.security import get_current_user
 from models.user import User
 from models.property import Property
-from models.market_study import MarketStudy, Comparable
-from models.appraisal import Appraisal, AppraisalSignature
+from models.market_listing import MarketListing
+from models.appraisal import Appraisal, AppraisalSignature, AppraisalComparable
 from schemas.appraisal import AppraisalCreate, AppraisalOut, AppraisalSignatureOut
 from services.pdf_service import generate_appraisal_pdf
 from services.cloudinary_service import upload_image
@@ -57,8 +57,9 @@ async def create_appraisal(
     if not res.scalar_one_or_none():
         raise HTTPException(404, "Propiedad inexistente")
 
-    # Filtrar keys que ya no existen en el modelo refactorizado
-    payload = body.model_dump(exclude={"market_study_id"})
+    # Filtrar keys del schema que ya no existen como columna en el modelo
+    # refactorizado (ej. campos legacy tipo el viejo link a market_study).
+    payload = {k: v for k, v in body.model_dump().items() if hasattr(Appraisal, k)}
     a = Appraisal(
         workspace_id=user.workspace_id,
         created_by=user.id,
@@ -95,7 +96,11 @@ async def sign_appraisal(
         signature_hash=sig_hash,
     )
     db.add(sig)
-    a.status = "signed"
+    # La firma NO es un status del workflow (vive en appraisal_signatures).
+    # Si estaba en revisión, firmar la aprueba; en cualquier otro estado
+    # el status vigente se mantiene sin inventar valores fuera del enum.
+    if a.status == "en_revision":
+        a.status = "aprobada"
     await db.commit()
     await db.refresh(sig)
 
@@ -136,29 +141,33 @@ async def list_appraisal_comparables(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
-    """Devuelve los comparables del market_study linkeado a la tasación."""
+    """Devuelve los comparables (market_listings) vinculados a la tasación
+    via appraisal_comparables. Lista vacía si todavía no se linkeó ninguno."""
     a = (await db.execute(
         select(Appraisal).where(
             Appraisal.id == appraisal_id,
             Appraisal.workspace_id == user.workspace_id,
         )
     )).scalar_one_or_none()
-    if not a or not a.market_study_id:
-        return []
-    comps = (await db.execute(
-        select(Comparable).where(Comparable.market_study_id == a.market_study_id)
-    )).scalars().all()
+    if not a:
+        raise HTTPException(404, "Tasación no encontrada")
+
+    rows = (await db.execute(
+        select(AppraisalComparable, MarketListing)
+        .join(MarketListing, AppraisalComparable.market_listing_id == MarketListing.id)
+        .where(AppraisalComparable.appraisal_id == appraisal_id)
+    )).all()
     return [{
-        "address": c.address or c.title,
-        "total_area_m2": c.total_area_m2,
-        "rooms": c.rooms,
-        "price": c.price,
-        "currency": c.currency,
-        "price_per_m2": c.adjusted_price_per_m2 or (c.price / c.total_area_m2 if c.total_area_m2 and c.price else None),
-        "distance_m": getattr(c, "distance_m", None),
-        "days_on_market": getattr(c, "days_on_market", None),
-        "match_score": c.weight,
-    } for c in comps]
+        "address": listing.address or listing.title,
+        "total_area_m2": listing.total_area_m2,
+        "rooms": listing.rooms,
+        "price": listing.price,
+        "currency": listing.currency,
+        "price_per_m2": ac.adjusted_price_per_m2 or listing.price_per_m2,
+        "distance_m": ac.distance_m,
+        "days_on_market": listing.days_on_market,
+        "match_score": ac.match_score,
+    } for ac, listing in rows]
 
 
 @router.get("/{appraisal_id}/pdf")
@@ -178,20 +187,27 @@ async def generate_pdf(
         raise HTTPException(404, "Tasación no encontrada")
 
     prop = (await db.execute(select(Property).where(Property.id == a.property_id))).scalar_one()
-    ms = None
-    comps_data = None
-    if a.market_study_id:
-        ms = (await db.execute(select(MarketStudy).where(MarketStudy.id == a.market_study_id))).scalar_one_or_none()
-        if ms:
-            comps = (await db.execute(
-                select(Comparable).where(Comparable.market_study_id == ms.id)
-            )).scalars().all()
-            comps_data = [{
-                "title": c.title, "total_area_m2": c.total_area_m2,
-                "price": c.price, "currency": c.currency,
-                "adjusted_price_per_m2": c.adjusted_price_per_m2,
-                "weight": c.weight,
-            } for c in comps]
+
+    # El análisis (antes "market_study" aparte) ahora está embebido en la propia tasación.
+    market_study_data = None
+    if a.suggested_value_min is not None or a.suggested_value_max is not None:
+        market_study_data = {
+            "suggested_value_min": a.suggested_value_min,
+            "suggested_value_max": a.suggested_value_max,
+            "confidence_score": a.confidence_score,
+        }
+
+    comps_rows = (await db.execute(
+        select(AppraisalComparable, MarketListing)
+        .join(MarketListing, AppraisalComparable.market_listing_id == MarketListing.id)
+        .where(AppraisalComparable.appraisal_id == a.id)
+    )).all()
+    comps_data = [{
+        "title": listing.title, "total_area_m2": listing.total_area_m2,
+        "price": listing.price, "currency": listing.currency,
+        "adjusted_price_per_m2": ac.adjusted_price_per_m2 or listing.price_per_m2,
+        "weight": ac.weight,
+    } for ac, listing in comps_rows] or None
 
     pdf_bytes = generate_appraisal_pdf(
         appraisal={
@@ -206,11 +222,7 @@ async def generate_pdf(
             "rooms": prop.rooms, "age_years": prop.age_years,
             "condition": prop.condition,
         },
-        market_study={
-            "suggested_value_min": ms.suggested_value_min,
-            "suggested_value_max": ms.suggested_value_max,
-            "confidence_score": ms.confidence_score,
-        } if ms else None,
+        market_study=market_study_data,
         comparables=comps_data,
         signer={"full_name": user.full_name, "license_number": user.license_number},
     )

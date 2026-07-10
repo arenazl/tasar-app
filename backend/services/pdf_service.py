@@ -84,7 +84,11 @@ def generate_appraisal_pdf(
 
     # Resultado
     story.append(Paragraph("3. Valor de tasación", h2))
-    final_val = f"{appraisal.get('currency','USD')} {appraisal.get('final_value','-'):,.2f}"
+    _final = appraisal.get("final_value")
+    final_val = (
+        f"{appraisal.get('currency','USD')} {_final:,.2f}"
+        if _final is not None else "Pendiente de firma"
+    )
     story.append(Paragraph(f"<b>{final_val}</b>", title))
     if market_study:
         story.append(Paragraph(
