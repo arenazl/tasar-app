@@ -56,3 +56,36 @@ El baseline se generó diffeando `Base.metadata` (motor SQLite en memoria, solo 
 blanco") porque no había un MySQL disponible al autorarlo y está prohibido correr Alembic contra la
 Aiven compartida. Los tipos son genéricos de SQLAlchemy (válidos para MySQL). El primer
 `alembic upgrade head` real contra una DB MySQL vacía debe correrse en dev/Infra para confirmar el DDL.
+
+## Smoke de invariantes del núcleo (correr antes de pushear cambios de F1/F2)
+
+`scripts/smoke_core.py` (WO F1-04) es la vara ejecutable del motor ACM, el anclaje de
+mercado y el aislamiento multi-tenant. **Corrélo antes de cada push que toque
+`services/acm_service.py`, `services/anchor_service.py` o cualquier endpoint con
+`workspace_id`:**
+
+```bash
+cd backend
+python scripts/smoke_core.py
+```
+
+Corre en <1s local. Dos invariantes son matemática pura (sin DB, corren siempre):
+motor ACM determinista (valor sugerido + confianza + pesos exactos sobre un fixture
+de 4 comparables) y anchor determinista (mediana/p25/p75/min/max exactos sobre un
+subset congelado de 10 listings). Si tocaste un coeficiente y rompiste algo, esto
+lo detecta con exit code != 0.
+
+Las otras dos invariantes (aislamiento multi-tenant entre 2 workspaces de fixture, y
+que los endpoints críticos — login, properties, appraisal PDF, valuations/express,
+market/comparables — respondan 200) necesitan una DB MySQL local + `uvicorn main:app
+--reload --port 8600` corriendo. **Está prohibido correrlas contra la Aiven
+compartida** — si `DB_HOST` no es `localhost`/`127.0.0.1`, el script las SKIPPEA
+automáticamente sin abrir conexión (no explota, no toca la DB compartida). Para
+forzarlas con una DB local o de test propia:
+
+```bash
+TASAR_SMOKE_ALLOW_REMOTE_DB=1 python scripts/smoke_core.py   # solo con DB local/propia
+```
+
+El bloque de endpoints críticos asume el usuario demo `admin@tasar.demo` /
+`admin123` (`scripts/seed_demo.py`).

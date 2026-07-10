@@ -8,6 +8,7 @@ Scripts operativos vivos (usables hoy):
 | `seed_demo.py` | Seedea workspace + 3 usuarios + 12 propiedades demo en Argentina (coords reales de barrios, marcadas `[DEMO]`) + price_history. |
 | `seed_v2.py` | Seedea data demo de `market_listings`, `monthly_reports` e `inbox` (datos `[DEMO]`, coords reales, montos de ejemplo). |
 | `add_demo_users.py` | Asegura (idempotente) que existan los usuarios admin/supervisor/vendedor del workspace `tasar-demo`. |
+| `smoke_core.py` | Smoke de invariantes del núcleo (WO F1-04): motor ACM + anchor deterministas (matemática pura, sin DB, corren siempre) + aislamiento multi-tenant y endpoints críticos (SKIP elegante si no hay DB local/servidor — nunca corre contra la Aiven compartida). Correr antes de cada push que toque F1/F2. Ver `backend/README.md`. |
 | `smoke.py` | Smoke test síncrono de los endpoints críticos contra `http://127.0.0.1:8600/api` (local). |
 | `smoke_ai.py` | Smoke test del flujo IA-first de estudios (local). |
 | `smoke_ia_full.py` | Smoke test integral de todos los endpoints que usan IA/Claude (local). |
