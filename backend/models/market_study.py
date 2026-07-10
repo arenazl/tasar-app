@@ -1,4 +1,5 @@
 from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Text, func
+from sqlalchemy.orm import relationship
 from core.database import Base
 
 
@@ -27,12 +28,25 @@ class MarketStudy(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
+    # cascade="all, delete-orphan" (WO F3-05): borrar un estudio borra sus
+    # comparables (y en cadena, los adjustments de cada uno via el cascade
+    # de Comparable.adjustments). Antes NO habia cascade -> delete_market_study
+    # tiraba IntegrityError con estudios que ya tenian comparables cargados.
+    comparables = relationship(
+        "Comparable",
+        back_populates="market_study",
+        cascade="all, delete-orphan",
+        order_by="Comparable.id",
+    )
+
 
 class Comparable(Base):
     __tablename__ = "comparables"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    market_study_id = Column(Integer, ForeignKey("market_studies.id"), nullable=False, index=True)
+    market_study_id = Column(
+        Integer, ForeignKey("market_studies.id", ondelete="CASCADE"), nullable=False, index=True
+    )
 
     source = Column(String(40), default="manual")  # manual | zonaprop | argenprop | mercadolibre
     source_url = Column(String(500), nullable=True)
@@ -68,14 +82,28 @@ class Comparable(Base):
     notes = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
+    market_study = relationship("MarketStudy", back_populates="comparables")
+    # cascade="all, delete-orphan": borrar/desasociar un comparable borra sus
+    # adjustments (encadena con el cascade de MarketStudy.comparables).
+    adjustments = relationship(
+        "Adjustment",
+        back_populates="comparable",
+        cascade="all, delete-orphan",
+        order_by="Adjustment.id",
+    )
+
 
 class Adjustment(Base):
     __tablename__ = "adjustments"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    comparable_id = Column(Integer, ForeignKey("comparables.id"), nullable=False, index=True)
+    comparable_id = Column(
+        Integer, ForeignKey("comparables.id", ondelete="CASCADE"), nullable=False, index=True
+    )
 
     factor = Column(String(50), nullable=False)  # area | condition | age | location | orientation | other
     description = Column(String(250), nullable=True)
     coefficient = Column(Float, nullable=False)  # 1.05 = +5%
     amount = Column(Float, nullable=True)
+
+    comparable = relationship("Comparable", back_populates="adjustments")

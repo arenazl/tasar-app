@@ -126,7 +126,9 @@ async def add_comment(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
-    await ensure_study_in_workspace(study_id, user, db)
+    # `study` ya viene resuelto por ensure_study_in_workspace -- antes se
+    # volvia a consultar MarketStudy dos veces mas abajo (hallazgo F0-02/F3-05).
+    study = await ensure_study_in_workspace(study_id, user, db)
     c = CollaborationComment(
         market_study_id=study_id,
         user_id=user.id,
@@ -137,50 +139,43 @@ async def add_comment(
     db.add(c)
     await db.flush()
 
+    # Colaboradores del estudio (no el autor) -- UN solo fetch, reusado para
+    # el evento de Bandeja (pre-commit) y el email (post-commit). Antes eran
+    # DOS fetches identicos de Collaboration (hallazgo F3-05).
+    collabs = (await db.execute(
+        select(Collaboration).where(Collaboration.market_study_id == study_id)
+    )).scalars().all()
+    recipient_ids = {x.user_id for x in collabs if x.user_id and x.user_id != user.id}
+    study_code = f"ACM-{study.id:04d}"
+    snippet = (body.body or "")[:280]
+
     # Evento de Bandeja: comentario en estudio -> UNA fila por colaborador (no al
     # autor). En la MISMA transacción (inbox_service.notify no commitea). Best-effort.
     try:
         from services import inbox_service
-        study_evt = (await db.execute(select(MarketStudy).where(MarketStudy.id == study_id))).scalar_one_or_none()
-        if study_evt:
-            code = f"ACM-{study_evt.id:04d}"
-            collabs_evt = (await db.execute(
-                select(Collaboration).where(Collaboration.market_study_id == study_id)
-            )).scalars().all()
-            recipient_ids = {x.user_id for x in collabs_evt if x.user_id and x.user_id != user.id}
-            snip = (body.body or "")[:280]
-            for rid in recipient_ids:
-                await inbox_service.study_comment(
-                    db, workspace_id=user.workspace_id, study_id=study_id, study_code=code,
-                    author_name=user.full_name or user.email, recipient_user_id=rid, snippet=snip,
-                )
+        for rid in recipient_ids:
+            await inbox_service.study_comment(
+                db, workspace_id=user.workspace_id, study_id=study_id, study_code=study_code,
+                author_name=user.full_name or user.email, recipient_user_id=rid, snippet=snippet,
+            )
     except Exception as e:
         print(f"[inbox] study_comment event fallo: {e}")
 
     await db.commit()
     await db.refresh(c)
 
-    # Notificar a colaboradores del estudio (no al autor)
+    # Notificar a colaboradores del estudio (no al autor) -- mismos
+    # recipient_ids ya calculados arriba, sin re-consultar Collaboration.
     try:
         from services.email_service import notify_comment
-        from models.collaboration import Collaboration
-        from models.market_study import MarketStudy
 
-        study = (await db.execute(select(MarketStudy).where(MarketStudy.id == study_id))).scalar_one_or_none()
-        if study:
-            study_code = f"ACM-{study.id:04d}"
-            collabs = (await db.execute(
-                select(Collaboration).where(Collaboration.market_study_id == study_id)
+        if recipient_ids:
+            recipients = (await db.execute(
+                select(User).where(User.id.in_(recipient_ids))
             )).scalars().all()
-            collab_user_ids = {x.user_id for x in collabs if x.user_id and x.user_id != user.id}
-            if collab_user_ids:
-                recipients = (await db.execute(
-                    select(User).where(User.id.in_(collab_user_ids))
-                )).scalars().all()
-                snippet = (body.body or "")[:280]
-                for r in recipients:
-                    if r.email:
-                        await notify_comment(db, user.workspace_id, r.email, user.full_name or user.email, study_code, snippet)
+            for r in recipients:
+                if r.email:
+                    await notify_comment(db, user.workspace_id, r.email, user.full_name or user.email, study_code, snippet)
     except Exception as e:
         print(f"[email] notify_comment fallo: {e}")
 

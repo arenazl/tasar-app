@@ -13,7 +13,7 @@ cloudinary.config(
 )
 
 
-async def upload_image(file_bytes: bytes, folder: str, filename: str | None = None) -> dict:
+def _upload_image_sync(file_bytes: bytes, folder: str, filename: str | None) -> dict:
     result = cloudinary.uploader.upload(
         file_bytes,
         folder=f"tasar/{folder}",
@@ -27,6 +27,13 @@ async def upload_image(file_bytes: bytes, folder: str, filename: str | None = No
         "width": result.get("width"),
         "height": result.get("height"),
     }
+
+
+async def upload_image(file_bytes: bytes, folder: str, filename: str | None = None) -> dict:
+    """Sube una foto de propiedad. to_thread: el SDK de Cloudinary es
+    sync/bloqueante -- bloqueaba el event loop en cada subida (hallazgo
+    F3-05). Mismo patron que upload_audio (WO F3-01)."""
+    return await asyncio.to_thread(_upload_image_sync, file_bytes, folder, filename)
 
 
 def delete_image(public_id: str) -> bool:

@@ -62,17 +62,26 @@ async def market_dashboard(
             top_raw = json.loads(latest_report.top_zones or "[]")
         except json.JSONDecodeError:
             top_raw = []
+
+        # Counts por zona en 1 sola query GROUP BY (WO F3-05, hallazgo N+1:
+        # antes era 1 count() por zona, hasta 12 queries).
+        zone_names = [z.get("zone") for z in top_raw[:12] if z.get("zone")]
+        counts_by_zone: dict = {}
+        if zone_names:
+            rows = (await db.execute(
+                select(MarketListing.neighborhood, func.count())
+                .where(MarketListing.neighborhood.in_(zone_names), MarketListing.status == "active")
+                .group_by(MarketListing.neighborhood)
+            )).all()
+            counts_by_zone = {row[0]: row[1] for row in rows}
+
         top_zones = []
         for z in top_raw[:12]:
-            cnt = (await db.execute(
-                select(func.count()).select_from(MarketListing)
-                .where(MarketListing.neighborhood == z.get("zone"), MarketListing.status == "active")
-            )).scalar() or 0
             top_zones.append(ZoneStat(
                 zone=z.get("zone", ""),
                 usd_m2=float(z.get("usd_m2", 0)),
                 change_pct=z.get("change_pct"),
-                listings_count=cnt,
+                listings_count=counts_by_zone.get(z.get("zone"), 0),
             ))
         yoy = latest_report.yoy_change_pct
         mom = latest_report.mom_change_pct
