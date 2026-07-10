@@ -36,3 +36,6 @@ input/
 
 # Local Netlify folder
 .netlify
+
+# Docs del rework (fuente unica: d:\Code\base-compartida\tasar\)
+/tasar/
