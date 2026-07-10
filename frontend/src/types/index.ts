@@ -281,12 +281,16 @@ export interface Appraisal {
   id: number;
   workspace_id: number;
   property_id: number;
-  market_study_id?: number;
   created_by: number;
   purpose: string;
   status: string;
-  final_value: number;
+  final_value: number | null;
   currency: string;
+  // Análisis embebido real (services/acm_service) — usar para mostrar rango,
+  // nunca fabricar un ±% sobre final_value (regla dura 11 / WO F4-02).
+  suggested_value_min?: number | null;
+  suggested_value_max?: number | null;
+  confidence_score?: number | null;
   methodology?: string;
   observations?: string;
   legal_remarks?: string;

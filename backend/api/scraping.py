@@ -65,8 +65,13 @@ def _source_from_url(url: str) -> str:
     return "other"
 
 
-async def _fetch_html(url: str) -> str:
-    """Intenta usar Playwright; si no está instalado, fallback a httpx (sin JS)."""
+async def _fetch_html(url: str) -> tuple[str, bool]:
+    """Intenta usar Playwright; si falla (no instalado, timeout, crash del
+    browser), degrada a httpx (sin JS). Devuelve (html, degraded) — el
+    llamador DEBE avisar al usuario cuando degraded=True, porque una página
+    con JS puede rendir muy poco contenido sin el navegador real y el
+    resultado se veria "completo" sin serlo (regla dura 11 / WO F4-02,
+    hallazgo acumulado: antes degradaba en silencio)."""
     try:
         from playwright.async_api import async_playwright
         async with async_playwright() as p:
@@ -78,14 +83,14 @@ async def _fetch_html(url: str) -> str:
             await page.goto(url, wait_until="domcontentloaded", timeout=20000)
             content = await page.content()
             await browser.close()
-            return content
+            return content, False
     except Exception:
         import httpx
         async with httpx.AsyncClient(timeout=15, follow_redirects=True) as client:
             r = await client.get(url, headers={
                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
             })
-            return r.text
+            return r.text, True
 
 
 async def _upsert_external_listing(
@@ -172,11 +177,12 @@ async def extract_from_url(
             "url": body.url,
             "extracted": data,
             "cached": True,
+            "degraded": False,
             "external_listing_id": cached.id,
         }
 
     try:
-        html = await _fetch_html(body.url)
+        html, degraded = await _fetch_html(body.url)
     except Exception as e:
         raise HTTPException(502, f"No se pudo descargar la URL: {e}")
 
@@ -191,6 +197,12 @@ async def extract_from_url(
         "url": body.url,
         "extracted": data,
         "cached": False,
+        # WO F4-02 — degraded=True: Playwright no estaba disponible o fallo y
+        # se bajo el HTML sin JS (httpx). El extractor puede haber leido mucho
+        # menos contenido del que la pagina real muestra. El frontend TIENE
+        # que mostrar esto, no presentar el resultado como una extraccion
+        # completa (hallazgo acumulado de honestidad, antes degradaba en silencio).
+        "degraded": degraded,
         "external_listing_id": listing.id if listing else None,
         "raw": raw[:500] if not data else None,
     }

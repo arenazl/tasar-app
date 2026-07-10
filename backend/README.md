@@ -101,6 +101,12 @@ con JS). El `Dockerfile` ahora corre `playwright install --with-deps chromium`
 después del `pip install`, para que el `chromium.launch()` real funcione en
 Cloud Run.
 
+**Honestidad del fallback (WO F4-02):** cuando SÍ degrada a `httpx`, la
+respuesta de `POST /api/scraping/extract` trae `degraded: true` y el
+frontend lo tiene que mostrar (antes degradaba en silencio y el usuario
+creía que había extraído con JS aunque el HTML sin renderizar rindiera
+mucho menos contenido).
+
 **Decisión de peso de imagen:** se instala **solo Chromium** (no Firefox ni
 WebKit) sobre `python:3.11-slim`. Estimación (no medida con un build real en
 este WO — no se pudo buildear la imagen acá, ver limitación abajo):

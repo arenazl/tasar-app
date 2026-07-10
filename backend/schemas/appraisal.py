@@ -5,7 +5,6 @@ from datetime import datetime
 
 class AppraisalCreate(BaseModel):
     property_id: int
-    market_study_id: Optional[int] = None
     purpose: str
     final_value: Optional[float] = None  # nullable hasta firmar
     currency: str = "USD"
@@ -31,7 +30,6 @@ class AppraisalOut(BaseModel):
     code: Optional[str] = None
     workspace_id: int
     property_id: int
-    market_study_id: Optional[int] = None
     created_by: int
     assigned_to: Optional[int] = None
     client_name: Optional[str] = None

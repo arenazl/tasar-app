@@ -1,8 +1,12 @@
-import { useEffect, useState } from 'react';
-import { TrendingUp, TrendingDown, BarChart3, Building2, Calendar, FileText, ArrowUp, ArrowDown } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import L from 'leaflet';
+import 'leaflet.heat';
+import { Link } from 'react-router-dom';
+import { BarChart3, Building2, Calendar, FileText, ArrowUp, ArrowDown, Map as MapIcon } from 'lucide-react';
 import { api } from '../services/api';
 import { useTheme } from '../contexts/ThemeContext';
 import { BRAND } from '../config/brand';
+import type { HeatPoint } from '../types';
 
 interface ZoneStat {
   zone: string;
@@ -14,18 +18,36 @@ interface ZoneStat {
 interface MarketDashboard {
   tasar_index: number;
   median_price_per_m2: number;
-  yoy_change_pct?: number;
-  mom_change_pct?: number;
+  yoy_change_pct?: number | null;
+  mom_change_pct?: number | null;
   active_listings: number;
   avg_days_on_market: number;
-  new_permits: number;
+  new_permits: number | null;
   top_zones: ZoneStat[];
+  // Reales (WO F4-02) — reemplazan el "Mayo 2026 · hace 24 horas" hardcodeado.
+  report_period_label: string | null;
+  listings_updated_at: string | null;
+}
+
+/** Formatea un timestamp real como "hace X min/h/d" — sin inventar una cifra fija. */
+function timeAgo(iso: string): string {
+  const diffMs = Date.now() - new Date(iso).getTime();
+  const diffMin = Math.floor(diffMs / 60000);
+  if (diffMin < 1) return 'hace instantes';
+  if (diffMin < 60) return `hace ${diffMin} min`;
+  const diffH = Math.floor(diffMin / 60);
+  if (diffH < 24) return `hace ${diffH} h`;
+  const diffD = Math.floor(diffH / 24);
+  return `hace ${diffD} d`;
 }
 
 export default function Mercado() {
   const { theme } = useTheme();
+  const mapEl = useRef<HTMLDivElement>(null);
   const [data, setData] = useState<MarketDashboard | null>(null);
   const [period, setPeriod] = useState<'7d' | '30d' | '90d' | '12m' | '5a'>('90d');
+  const [points, setPoints] = useState<HeatPoint[]>([]);
+  const [mapLoaded, setMapLoaded] = useState(false);
 
   useEffect(() => {
     setData(null);
@@ -33,6 +55,31 @@ export default function Mercado() {
       .then(r => setData(r.data))
       .catch(() => api.get<MarketDashboard>('/market/dashboard').then(r => setData(r.data)));
   }, [period]);
+
+  // Heatmap real (WO F4-02): antes esto era una grilla 16x12 dibujada por
+  // fórmula ("Grid de calor simulada", sin dato real detrás). Ahora reusa
+  // /heatmap/points — el mismo endpoint del mapa completo en /mapa — que
+  // además ahora suma market_listings (con coords reales) como fuente.
+  useEffect(() => {
+    api.get<HeatPoint[]>('/heatmap/points', { params: { city: 'Capital Federal' } })
+      .then(r => setPoints(r.data))
+      .catch(() => setPoints([]))
+      .finally(() => setMapLoaded(true));
+  }, []);
+
+  useEffect(() => {
+    if (!mapEl.current || !mapLoaded || points.length === 0) return;
+    const map = L.map(mapEl.current, { zoomControl: false, attributionControl: false }).setView([-34.6, -58.44], 12);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+    const heatData = points.map(p => [p.lat, p.lng, p.intensity]) as any;
+    // @ts-expect-error -- leaflet.heat no trae tipos, heatLayer no existe en @types/leaflet
+    L.heatLayer(heatData, { radius: 24, blur: 20, maxZoom: 14 }).addTo(map);
+    try {
+      const bounds = L.latLngBounds(points.map(p => [p.lat, p.lng] as [number, number]));
+      map.fitBounds(bounds.pad(0.2));
+    } catch { /* best-effort, ignorar */ }
+    return () => { map.remove(); };
+  }, [points, mapLoaded]);
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto animate-fade-in">
@@ -43,7 +90,10 @@ export default function Mercado() {
             Mercado · CABA
           </h1>
           <p className="mt-1 text-sm" style={{ color: theme.textSecondary }}>
-            Mayo 2026 · datos actualizados hace 24 horas · {data?.active_listings.toLocaleString() || '...'} avisos activos
+            {data?.report_period_label ? `Reporte ${data.report_period_label}` : 'Sin reporte mensual publicado'}
+            {' · '}
+            {data?.listings_updated_at ? `listings actualizados ${timeAgo(data.listings_updated_at)}` : 'sin listings con fecha'}
+            {' · '}{data ? data.active_listings.toLocaleString() : '...'} avisos activos en el período
           </p>
         </div>
         <div className="flex gap-1 p-1 rounded-lg" style={{ background: theme.card, border: `1px solid ${theme.border}` }}>
@@ -64,48 +114,37 @@ export default function Mercado() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <Kpi label={`Índice ${BRAND.name} · CABA`} value={data ? data.tasar_index.toFixed(0) : '...'} suffix={data?.yoy_change_pct != null ? `+${data.yoy_change_pct}% YoY` : ''}
           icon={BarChart3} color={theme.primary} theme={theme} />
-        <Kpi label="Oferta activa" value={data?.active_listings.toLocaleString() || '...'} suffix={data?.mom_change_pct != null ? `${data.mom_change_pct > 0 ? '+' : ''}${data.mom_change_pct}% vs mes ant.` : ''}
+        <Kpi label="Oferta activa" value={data ? data.active_listings.toLocaleString() : '...'} suffix="listings reales del período"
           icon={Building2} color={theme.info} theme={theme} />
-        <Kpi label="Tiempo medio de venta" value={`${data?.avg_days_on_market || '...'} días`} suffix=""
+        <Kpi label="Tiempo medio de venta" value={data ? `${data.avg_days_on_market} días` : '...'} suffix="listings reales del período"
           icon={Calendar} color={theme.warning} theme={theme} />
-        <Kpi label="Permisos nuevos" value={data?.new_permits.toLocaleString() || '...'} suffix="último mes"
+        <Kpi label="Permisos nuevos" value={data?.new_permits != null ? data.new_permits.toLocaleString() : 'Sin dato'} suffix={data?.new_permits != null ? 'último mes (reporte)' : ''}
           icon={FileText} color={theme.success} theme={theme} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Mapa de calor placeholder */}
+        {/* Mapa de calor real */}
         <div className="lg:col-span-2 p-5 rounded-xl"
           style={{ background: theme.card, border: `1px solid ${theme.border}` }}>
           <div className="flex items-center justify-between mb-3">
             <h3 className="font-bold" style={{ color: theme.text }}>Mapa de calor · USD/m²</h3>
-            <div className="flex items-center gap-2 text-xs" style={{ color: theme.textSecondary }}>
-              <span>menor</span>
-              <div className="flex gap-0.5">
-                {[0.2, 0.4, 0.6, 0.8, 1].map(o => (
-                  <div key={o} className="w-4 h-4 rounded" style={{ background: theme.primary, opacity: o }} />
-                ))}
-              </div>
-              <span>mayor</span>
-            </div>
+            <Link to="/mapa" className="inline-flex items-center gap-1 text-xs font-semibold" style={{ color: theme.primary }}>
+              <MapIcon className="h-3.5 w-3.5" /> Ver mapa completo
+            </Link>
           </div>
           <div className="text-xs mb-3" style={{ color: theme.textSecondary }}>
-            Capital Federal · valor mediano por celda de 200m
+            {points.length > 0 ? `${points.length.toLocaleString()} puntos reales con coordenadas` : 'Sin listings geocodificados para mostrar'}
           </div>
-          {/* Grid de calor simulada (CABA shape) */}
-          <div className="gap-1 max-w-3xl mx-auto"
-            style={{ display: 'grid', gridTemplateColumns: 'repeat(16, minmax(0, 1fr))' }}>
-            {Array.from({ length: 12 * 16 }).map((_, i) => {
-              const row = Math.floor(i / 16);
-              const col = i % 16;
-              const centerR = 6, centerC = 8;
-              const dist = Math.sqrt((row - centerR) ** 2 + (col - centerC) ** 2);
-              if (dist > 7) return <div key={i} className="aspect-square" />;
-              const intensity = Math.max(0.15, 1 - dist / 7) + ((i * 7) % 5) / 20;
-              return (
-                <div key={i} className="aspect-square rounded"
-                  style={{ background: theme.primary, opacity: Math.min(1, intensity) }} />
-              );
-            })}
+          <div className="rounded-lg overflow-hidden" style={{ height: 280, background: theme.backgroundSecondary }}>
+            {!mapLoaded ? (
+              <div className="w-full h-full animate-pulse" />
+            ) : points.length > 0 ? (
+              <div ref={mapEl} className="w-full h-full" />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-xs text-center px-4" style={{ color: theme.textSecondary }}>
+                No hay listings con coordenadas cargadas todavía
+              </div>
+            )}
           </div>
         </div>
 

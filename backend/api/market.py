@@ -1,5 +1,6 @@
 """Endpoints para el módulo Mercado (dashboard macro) y Comparables (live search)."""
 import json
+from datetime import datetime
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, and_, or_
@@ -16,6 +17,17 @@ from services.acm_service import haversine_m
 
 router = APIRouter(prefix="/api/market", tags=["market"])
 
+# period acepta '7d', '30d', '90d', '12m', '5a' -> ventana real en dias.
+# Ya NO escala numeros del reporte (era period_factor, fabricaba YoY/MoM/permisos
+# segun la ventana elegida — regla dura 11 / WO F4-02). Solo filtra listings reales
+# por su columna real days_on_market.
+PERIOD_DAYS = {"7d": 7, "30d": 30, "90d": 90, "12m": 365, "5a": 1825}
+
+MONTHS_ES = [
+    "", "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+    "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre",
+]
+
 
 class ZoneStat(BaseModel):
     zone: str
@@ -31,8 +43,11 @@ class MarketDashboard(BaseModel):
     mom_change_pct: Optional[float]
     active_listings: int
     avg_days_on_market: int
-    new_permits: int
+    new_permits: Optional[int] = None
     top_zones: List[ZoneStat]
+    # Reales, reemplazan hardcodes del frontend ("Mayo 2026 · hace 24 horas"):
+    report_period_label: Optional[str] = None  # ej "Mayo 2026", derivado de monthly_report; None si no hay reporte
+    listings_updated_at: Optional[datetime] = None  # MAX(market_listings.updated_at) real
 
 
 @router.get("/dashboard", response_model=MarketDashboard)
@@ -41,11 +56,13 @@ async def market_dashboard(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
-    # period acepta '7d', '30d', '90d', '12m', '5a'. Escala los cambios YoY/MoM
-    # para que el filtro produzca variaciones visibles segun la ventana elegida.
-    period_factor = {"7d": 0.15, "30d": 0.45, "90d": 1.0, "12m": 1.8, "5a": 3.2}.get(period, 1.0)
-    """Resumen macro del mercado: usa el último monthly_report si existe,
-    + suma de listings activos en tiempo real."""
+    """Resumen macro del mercado: usa el último monthly_report si existe
+    (índice, YoY, MoM, permisos — foto real mensual, NO varía con `period`
+    porque no hay fuente por-ventana para esos campos) + listings en tiempo
+    real filtrados por `period` sobre la columna real `days_on_market`
+    (oferta activa y tiempo medio de venta SÍ reaccionan al selector, con
+    datos reales — ver WO F4-02)."""
+    period_days = PERIOD_DAYS.get(period, 90)
 
     latest_report = (await db.execute(
         select(MonthlyReport).where(MonthlyReport.region == "CABA")
@@ -53,9 +70,19 @@ async def market_dashboard(
         .limit(1)
     )).scalar_one_or_none()
 
-    active_listings = (await db.execute(
-        select(func.count()).select_from(MarketListing).where(MarketListing.status == "active")
-    )).scalar() or 0
+    # Oferta activa dentro de la ventana de período elegida — cuenta real,
+    # nada escalado. Ambos KPIs reaccionan al selector con datos reales.
+    period_stats = (await db.execute(
+        select(func.count(), func.avg(MarketListing.days_on_market))
+        .select_from(MarketListing)
+        .where(MarketListing.status == "active", MarketListing.days_on_market <= period_days)
+    )).one()
+    period_listings_count = period_stats[0] or 0
+    period_avg_days = int(period_stats[1]) if period_stats[1] is not None else 0
+
+    listings_updated_at = (await db.execute(
+        select(func.max(MarketListing.updated_at)).where(MarketListing.status == "active")
+    )).scalar()
 
     if latest_report:
         try:
@@ -83,20 +110,24 @@ async def market_dashboard(
                 change_pct=z.get("change_pct"),
                 listings_count=counts_by_zone.get(z.get("zone"), 0),
             ))
-        yoy = latest_report.yoy_change_pct
-        mom = latest_report.mom_change_pct
+        report_period_label = f"{MONTHS_ES[latest_report.period_month]} {latest_report.period_year}" \
+            if 1 <= latest_report.period_month <= 12 else None
         return MarketDashboard(
             tasar_index=latest_report.tasar_index or 0,
             median_price_per_m2=latest_report.median_price_per_m2 or 0,
-            yoy_change_pct=round(yoy * period_factor, 1) if yoy is not None else None,
-            mom_change_pct=round(mom * period_factor, 1) if mom is not None else None,
-            active_listings=active_listings,
-            avg_days_on_market=latest_report.avg_days_on_market or 0,
-            new_permits=int((latest_report.new_permits or 0) * period_factor),
+            # Sin escalar: el reporte mensual es una unica foto real, no hay
+            # fuente por-ventana para YoY/MoM/permisos (antes: period_factor).
+            yoy_change_pct=latest_report.yoy_change_pct,
+            mom_change_pct=latest_report.mom_change_pct,
+            active_listings=period_listings_count,
+            avg_days_on_market=period_avg_days,
+            new_permits=latest_report.new_permits,
             top_zones=top_zones,
+            report_period_label=report_period_label,
+            listings_updated_at=listings_updated_at,
         )
 
-    # Fallback: calculamos desde listings
+    # Fallback: calculamos todo desde listings en vivo (sin monthly_report)
     median_ppm2 = (await db.execute(
         select(func.avg(MarketListing.price_per_m2)).where(MarketListing.status == "active")
     )).scalar() or 0
@@ -104,10 +135,12 @@ async def market_dashboard(
         tasar_index=float(median_ppm2),
         median_price_per_m2=float(median_ppm2),
         yoy_change_pct=None, mom_change_pct=None,
-        active_listings=active_listings,
-        avg_days_on_market=90,
-        new_permits=0,
+        active_listings=period_listings_count,
+        avg_days_on_market=period_avg_days,
+        new_permits=None,
         top_zones=[],
+        report_period_label=None,
+        listings_updated_at=listings_updated_at,
     )
 
 

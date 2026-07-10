@@ -206,7 +206,14 @@ export default function EstudioDetail() {
       const r = await api.post('/scraping/extract', { url: scrapeUrl }, { timeout: 300000 });
       const d = r.data.extracted || {};
       setComp({ ...emptyComp, ...d, source_url: scrapeUrl, source: 'scraped', title: d.title || `Listing ${new URL(scrapeUrl).hostname}` });
-      toast.success('Datos extraídos — revisalos antes de guardar');
+      if (r.data.degraded) {
+        // El navegador con JS no estaba disponible: se bajó el HTML sin
+        // renderizar (WO F4-02, hallazgo de honestidad — antes degradaba
+        // en silencio y el usuario creía que había extraído con JS).
+        toast.warning('El sitio no se pudo abrir con navegador (JS) — se extrajo del HTML plano. Revisá los datos con más cuidado, pueden estar incompletos.');
+      } else {
+        toast.success('Datos extraídos — revisalos antes de guardar');
+      }
       setWizardStep(1);
     } catch { toast.error('No se pudo extraer'); }
     finally { setScraping(false); }

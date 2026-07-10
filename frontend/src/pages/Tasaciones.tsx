@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   Plus, FileCheck2, Download, FileSignature, Briefcase, ClipboardList,
   DollarSign, Sparkles, List, FileEdit, ShieldCheck, Send, AlertCircle,
-  Link2, ArrowUpDown, Tag, Scroll, Gavel, Landmark, Umbrella, FileText,
+  ArrowUpDown, Tag, Scroll, Gavel, Landmark, Umbrella, FileText,
   Building2, Home as HomeIcon, Castle, Trees, Store, Workflow,
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -103,7 +103,7 @@ export default function Tasaciones() {
   const [search, setSearch] = useState('');
   const [filterPurpose, setFilterPurpose] = useState('');
   const [filterProperty, setFilterProperty] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all'|'solicitada'|'firmada'|'entregada'|'with_acm'|'old'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all'|'solicitada'|'firmada'|'entregada'|'old'>('all');
   const [sortBy, setSortBy] = useState('recent');
   const [wizardOpen, setWizardOpen] = useState(false);
   const [step, setStep] = useState(0);
@@ -153,7 +153,6 @@ export default function Tasaciones() {
     solicitada: baseFiltered.filter(a => a.status === 'solicitada').length,
     firmada: baseFiltered.filter(a => a.signatures.length > 0).length,
     entregada: baseFiltered.filter(a => a.status === 'entregada').length,
-    with_acm: baseFiltered.filter(a => a.market_study_id != null).length,
     old: baseFiltered.filter(a => a.status === 'solicitada' && (now - new Date(a.created_at).getTime() > THIRTY_DAYS)).length,
   }), [baseFiltered, now]);
 
@@ -163,14 +162,13 @@ export default function Tasaciones() {
       if (statusFilter === 'solicitada') return a.status === 'solicitada';
       if (statusFilter === 'firmada') return a.signatures.length > 0;
       if (statusFilter === 'entregada') return a.status === 'entregada';
-      if (statusFilter === 'with_acm') return a.market_study_id != null;
       if (statusFilter === 'old') return a.status === 'solicitada' && (now - new Date(a.created_at).getTime() > THIRTY_DAYS);
       return true;
     });
     out = [...out].sort((a, b) => {
       switch (sortBy) {
-        case 'value_desc': return b.final_value - a.final_value;
-        case 'value_asc': return a.final_value - b.final_value;
+        case 'value_desc': return (b.final_value ?? -Infinity) - (a.final_value ?? -Infinity);
+        case 'value_asc': return (a.final_value ?? Infinity) - (b.final_value ?? Infinity);
         case 'purpose': return a.purpose.localeCompare(b.purpose);
         case 'recent':
         default: return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
@@ -185,10 +183,13 @@ export default function Tasaciones() {
   };
 
   const create = async () => {
-    const payload: any = { ...form };
+    // market_study_id es solo un helper client-side para sugerir el valor
+    // inicial (ver stepStudy) — el backend ya no tiene esa columna en
+    // Appraisal (refactor de analisis embebido) y NUNCA la persistio, asi
+    // que no la mandamos (hallazgo de honestidad WO F4-02).
+    const { market_study_id: _unused, ...form_rest } = form;
+    const payload: any = { ...form_rest };
     payload.property_id = Number(payload.property_id);
-    if (payload.market_study_id) payload.market_study_id = Number(payload.market_study_id);
-    else delete payload.market_study_id;
     payload.final_value = Number(payload.final_value);
     if (!payload.property_id || !payload.final_value) return toast.error('Faltan propiedad o valor');
     setSaving(true);
@@ -228,7 +229,6 @@ export default function Tasaciones() {
         <StatusPill icon={FileEdit} label="Solicitadas" count={counts.solicitada} active={statusFilter === 'solicitada'} onClick={() => setStatusFilter('solicitada')} color={theme.warning} />
         <StatusPill icon={ShieldCheck} label="Firmadas" count={counts.firmada} active={statusFilter === 'firmada'} onClick={() => setStatusFilter('firmada')} color={theme.success} />
         <StatusPill icon={Send} label="Entregadas" count={counts.entregada} active={statusFilter === 'entregada'} onClick={() => setStatusFilter('entregada')} color={theme.info} />
-        <StatusPill icon={Link2} label="Con ACM" count={counts.with_acm} active={statusFilter === 'with_acm'} onClick={() => setStatusFilter('with_acm')} color="#7c3aed" />
         <StatusPill icon={AlertCircle} label="Por vencer" count={counts.old} active={statusFilter === 'old'} onClick={() => setStatusFilter('old')} color={theme.danger} />
       </div>
     </div>
@@ -261,7 +261,6 @@ export default function Tasaciones() {
                   <span className="font-semibold truncate" style={{ color: theme.text }}>{prop?.title.replace(/^\[DEMO\]\s*/, '') || `Tasación #${a.id}`}</span>
                   <StatusBadge status={a.status} />
                   <PurposePill purpose={a.purpose} />
-                  {a.market_study_id && <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-md font-medium" style={{ background: `${theme.info}15`, color: theme.info }}><Link2 className="h-2.5 w-2.5" /> ACM #{a.market_study_id}</span>}
                 </div>
                 <div className="text-sm flex items-center gap-3 flex-wrap" style={{ color: theme.textSecondary }}>
                   <span>{new Date(a.created_at).toLocaleDateString()}</span>
@@ -271,7 +270,9 @@ export default function Tasaciones() {
               <div className="flex items-center gap-3">
                 <div className="text-right">
                   <div className="text-[10px] uppercase tracking-wide font-semibold" style={{ color: theme.textSecondary }}>Valor final</div>
-                  <div className="text-xl font-bold" style={{ color: theme.text }}>{a.currency} {Number(a.final_value).toLocaleString()}</div>
+                  <div className="text-xl font-bold" style={{ color: a.final_value != null ? theme.text : theme.textSecondary }}>
+                    {a.final_value != null ? `${a.currency} ${Number(a.final_value).toLocaleString()}` : 'Pendiente'}
+                  </div>
                 </div>
                 {!firmada && (
                   <button onClick={(e) => { e.stopPropagation(); sign(a); }}
@@ -330,11 +331,6 @@ export default function Tasaciones() {
         { key: 'status', header: 'Estado', render: (a) => <StatusBadge status={a.status} />, sortValue: (a) => a.status },
         { key: 'purpose', header: 'Finalidad', render: (a) => <PurposePill purpose={a.purpose} />, sortValue: (a) => a.purpose },
         {
-          key: 'acm', header: 'ACM',
-          render: (a) => a.market_study_id ? <span className="font-mono text-xs" style={{ color: theme.info }}>#{a.market_study_id}</span> : <span style={{ color: theme.textSecondary }}>—</span>,
-          sortValue: (a) => a.market_study_id || 0,
-        },
-        {
           key: 'signatures', header: 'Firmas',
           render: (a) => a.signatures.length > 0 ? <span className="font-semibold" style={{ color: theme.text }}>{a.signatures.length}</span> : <span style={{ color: theme.textSecondary }}>—</span>,
           sortValue: (a) => a.signatures.length,
@@ -389,11 +385,12 @@ export default function Tasaciones() {
 
   const stepStudy = (
     <div className="space-y-4 animate-fade-in">
-      <ABMInfoPanel title="Vincular estudio de mercado" icon={<ClipboardList className="h-4 w-4" />} variant="info">
-        Si la propiedad tiene un estudio ACM, vinculalo para que aparezca en el PDF con comparables y rango sugerido.
+      <ABMInfoPanel title="Estudio de mercado de referencia" icon={<ClipboardList className="h-4 w-4" />} variant="info">
+        Elegí un estudio ACM de la propiedad para ver su valor sugerido y usarlo como referencia al cargar el valor final.
+        Es solo una ayuda de este paso: no queda vinculado a la tasación ni aparece en el PDF.
       </ABMInfoPanel>
       {form.property_id ? (
-        <ModernSelect label="Estudio ACM" value={form.market_study_id} onChange={(v: any) => setForm({...form, market_study_id: v})} options={studyOptions} />
+        <ModernSelect label="Estudio ACM (referencia)" value={form.market_study_id} onChange={(v: any) => setForm({...form, market_study_id: v})} options={studyOptions} />
       ) : (
         <div className="p-3 rounded-lg text-sm" style={{ background: `${theme.warning}15`, color: theme.text }}>
           Volvé al paso anterior y elegí una propiedad primero.
