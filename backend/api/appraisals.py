@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, delete
 from typing import List
 from datetime import datetime
 import hashlib
@@ -16,6 +16,10 @@ from models.appraisal import Appraisal, AppraisalSignature, AppraisalComparable
 from schemas.appraisal import AppraisalCreate, AppraisalOut, AppraisalSignatureOut
 from services.pdf_service import generate_appraisal_pdf
 from services.cloudinary_service import upload_image
+from services.comparable_ai_service import (
+    market_listing_candidates, compute_market_comparable_link,
+)
+from services.acm_service import compute_market_study
 
 
 router = APIRouter(prefix="/api/appraisals", tags=["appraisals"])
@@ -168,6 +172,92 @@ async def list_appraisal_comparables(
         "days_on_market": listing.days_on_market,
         "match_score": ac.match_score,
     } for ac, listing in rows]
+
+
+@router.post("/{appraisal_id}/generate-comparables")
+async def generate_appraisal_comparables(
+    appraisal_id: int,
+    limit: int = 8,
+    replace: bool = True,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Conecta el motor ACM ↔ market_listings para una TASACIÓN.
+
+    Toma la propiedad objetivo de la tasación, busca comparables en el catálogo
+    GLOBAL market_listings (tipo + ciudad/barrio + haversine si hay coords),
+    homogeneiza precio/m² con ajustes determinísticos y PERSISTE los links en
+    appraisal_comparables (market_listing_id, match_score, distance_m,
+    adjusted_price_per_m2, adjustments_json, weight). Además refresca el análisis
+    embebido de la tasación (suggested_value_*, confidence, comparables_count).
+
+    Es el punto de entrada del poblado de appraisal_comparables que después lee
+    GET /api/appraisals/{id}/comparables.
+    """
+    a = (await db.execute(
+        select(Appraisal).where(
+            Appraisal.id == appraisal_id,
+            Appraisal.workspace_id == user.workspace_id,
+        )
+    )).scalar_one_or_none()
+    if not a:
+        raise HTTPException(404, "Tasación no encontrada")
+
+    prop = (await db.execute(
+        select(Property).where(Property.id == a.property_id)
+    )).scalar_one_or_none()
+    if not prop:
+        raise HTTPException(404, "Propiedad de la tasación inexistente")
+
+    scored = await market_listing_candidates(db, prop, limit=limit)
+
+    if replace:
+        await db.execute(
+            delete(AppraisalComparable).where(AppraisalComparable.appraisal_id == a.id)
+        )
+
+    comps_payload = []
+    created = 0
+    for listing, distance_m, match in scored:
+        link = compute_market_comparable_link(prop, listing, distance_m, match)
+        adjustments = link.pop("adjustments")  # lista (para el cálculo ACM)
+        db.add(AppraisalComparable(appraisal_id=a.id, status="included", **link))
+        created += 1
+        comps_payload.append({
+            "id": listing.id,
+            "price": listing.price,
+            "total_area_m2": listing.total_area_m2,
+            "covered_area_m2": listing.covered_area_m2,
+            "rooms": listing.rooms,
+            "age_years": listing.age_years,
+            "adjustments": adjustments,
+        })
+
+    # Refrescar análisis embebido con el motor ACM (media ponderada homogeneizada)
+    target = {
+        "total_area_m2": prop.total_area_m2,
+        "covered_area_m2": prop.covered_area_m2,
+        "rooms": prop.rooms,
+        "age_years": prop.age_years,
+    }
+    study = compute_market_study(target, comps_payload)
+    a.suggested_value_min = study["suggested_value_min"]
+    a.suggested_value_max = study["suggested_value_max"]
+    a.suggested_value_mode = study["suggested_value_mode"]
+    a.confidence_score = study["confidence_score"]
+    a.comparables_count = created
+    a.last_analyzed_at = datetime.utcnow()
+
+    await db.commit()
+
+    return {
+        "appraisal_id": a.id,
+        "comparables_created": created,
+        "suggested_value_min": a.suggested_value_min,
+        "suggested_value_max": a.suggested_value_max,
+        "suggested_value_mode": a.suggested_value_mode,
+        "confidence_score": a.confidence_score,
+    }
 
 
 @router.get("/{appraisal_id}/pdf")

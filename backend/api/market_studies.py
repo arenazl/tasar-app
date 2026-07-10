@@ -9,6 +9,7 @@ from core.security import get_current_user
 from models.user import User
 from models.property import Property
 from models.market_study import MarketStudy, Comparable, Adjustment
+from models.market_listing import MarketListing
 from models.external_listing import ExternalListing
 from schemas.market_study import (
     MarketStudyCreate, MarketStudyOut, ComparableCreate, ComparableOut, AdjustmentOut
@@ -258,6 +259,7 @@ class SuggestionsResponse(BaseModel):
     ai_evaluated: bool
     fallback_used: bool
     workspace_candidates: int = 0
+    market_candidates: int = 0
     external_candidates: int = 0
     suggestions: List[SuggestionItem]
     message: str | None = None
@@ -287,7 +289,7 @@ async def ai_suggest(
 
 class AcceptSuggestionBody(BaseModel):
     candidate_id: int
-    candidate_kind: str  # workspace | external
+    candidate_kind: str  # workspace | market | external
     similarity_reason: str = ""
     adjustments: List[SuggestionAdjustment] = []
 
@@ -338,6 +340,25 @@ async def accept_suggestion(
             "price": p.asking_price or 0,
             "currency": p.currency,
         }
+    elif body.candidate_kind == "market":
+        # Catálogo GLOBAL market_listings (sin workspace_id). Se snapshotea como
+        # Comparable del estudio (fuente = portal/seed de origen).
+        m = (await db.execute(
+            select(MarketListing).where(MarketListing.id == body.candidate_id)
+        )).scalar_one_or_none()
+        if not m:
+            raise HTTPException(404, "Listing de mercado inexistente")
+        source_str = m.source
+        source_url = m.source_url
+        comp_data = {
+            "title": m.title,
+            "address": m.address,
+            "latitude": m.latitude, "longitude": m.longitude,
+            "total_area_m2": m.total_area_m2, "covered_area_m2": m.covered_area_m2,
+            "rooms": m.rooms, "bedrooms": m.bedrooms, "bathrooms": m.bathrooms,
+            "age_years": m.age_years, "condition": m.condition,
+            "price": m.price, "currency": m.currency,
+        }
     elif body.candidate_kind == "external":
         e = (await db.execute(
             select(ExternalListing).where(
@@ -360,7 +381,7 @@ async def accept_suggestion(
             "price": e.price, "currency": e.currency,
         }
     else:
-        raise HTTPException(400, "candidate_kind inválido (debe ser workspace o external)")
+        raise HTTPException(400, "candidate_kind inválido (debe ser workspace, market o external)")
 
     if comp_data.get("price") and (comp_data.get("total_area_m2") or comp_data.get("covered_area_m2")):
         area = comp_data.get("total_area_m2") or comp_data.get("covered_area_m2")

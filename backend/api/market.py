@@ -1,6 +1,5 @@
 """Endpoints para el módulo Mercado (dashboard macro) y Comparables (live search)."""
 import json
-import math
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, and_, or_
@@ -12,6 +11,7 @@ from core.security import get_current_user
 from models.user import User
 from models.market_listing import MarketListing
 from models.monthly_report import MonthlyReport
+from services.acm_service import haversine_m
 
 
 router = APIRouter(prefix="/api/market", tags=["market"])
@@ -131,7 +131,47 @@ class ComparablesSearchResponse(BaseModel):
     min_ppm2: Optional[float]
     max_ppm2: Optional[float]
     median_ppm2: Optional[float]
+    order_by: str = "ppm2"  # "match" si se ordenó por cercanía+similitud, "ppm2" si por USD/m²
     results: List[ComparableResult]
+
+
+class ZoneCentroid(BaseModel):
+    lat: Optional[float]
+    lng: Optional[float]
+    count: int
+
+
+@router.get("/zone-centroid", response_model=ZoneCentroid)
+async def zone_centroid(
+    neighborhood: Optional[str] = None,
+    city: Optional[str] = None,
+    property_type: Optional[str] = None,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Centro geográfico REAL de una zona: promedio de lat/lng de los listings
+    activos con coords en ese barrio/ciudad. NO inventa coords — si la zona no
+    tiene listings geocodificados devuelve null y el front cae a orden por USD/m².
+    """
+    stmt = select(
+        func.avg(MarketListing.latitude),
+        func.avg(MarketListing.longitude),
+        func.count(),
+    ).where(
+        MarketListing.status == "active",
+        MarketListing.latitude.isnot(None),
+        MarketListing.longitude.isnot(None),
+    )
+    if neighborhood:
+        stmt = stmt.where(MarketListing.neighborhood == neighborhood)
+    if city:
+        stmt = stmt.where(MarketListing.city == city)
+    if property_type:
+        stmt = stmt.where(MarketListing.property_type == property_type)
+    lat, lng, count = (await db.execute(stmt)).one()
+    if not count or lat is None or lng is None:
+        return ZoneCentroid(lat=None, lng=None, count=0)
+    return ZoneCentroid(lat=round(float(lat), 6), lng=round(float(lng), 6), count=int(count))
 
 
 @router.get("/comparables", response_model=ComparablesSearchResponse)
@@ -183,7 +223,7 @@ async def search_comparables(
         distance_m = None
         match_score = None
         if target_lat is not None and target_lng is not None and r.latitude and r.longitude:
-            distance_m = int(_haversine_m(target_lat, target_lng, r.latitude, r.longitude))
+            distance_m = int(haversine_m(target_lat, target_lng, r.latitude, r.longitude))
             if radius_m and distance_m > radius_m:
                 continue
             match_score = _match_score(distance_m, r, rooms, min_m2, max_m2)
@@ -192,9 +232,12 @@ async def search_comparables(
         item.match_score = match_score
         results.append(item)
 
-    # Sort por match_score si hay, sino por price_per_m2
-    if results and results[0].match_score is not None:
+    # Sort por match_score si hay coords (cercanía+similitud), sino por price_per_m2.
+    # order_by refleja honestamente por qué criterio quedó ordenada la lista.
+    order_by = "ppm2"
+    if results and any(r.match_score is not None for r in results):
         results.sort(key=lambda x: x.match_score or 0, reverse=True)
+        order_by = "match"
     else:
         results.sort(key=lambda x: x.price_per_m2 or 0, reverse=True)
 
@@ -204,19 +247,9 @@ async def search_comparables(
         min_ppm2=min(ppm2_list) if ppm2_list else None,
         max_ppm2=max(ppm2_list) if ppm2_list else None,
         median_ppm2=sorted(ppm2_list)[len(ppm2_list) // 2] if ppm2_list else None,
+        order_by=order_by,
         results=results[:limit],
     )
-
-
-def _haversine_m(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
-    R = 6_371_000
-    p1 = math.radians(lat1)
-    p2 = math.radians(lat2)
-    dp = math.radians(lat2 - lat1)
-    dl = math.radians(lon2 - lon1)
-    a = math.sin(dp / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(dl / 2) ** 2
-    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
-    return R * c
 
 
 def _match_score(distance_m: int, listing: MarketListing, target_rooms, target_min_m2, target_max_m2) -> float:
