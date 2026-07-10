@@ -9,7 +9,7 @@ from core.database import get_db
 from core.security import get_current_user
 from models.user import User
 from models.property import Property
-from models.market_study import Comparable
+from models.market_study import Comparable, MarketStudy
 from models.price_history import PriceHistoryPoint
 
 
@@ -57,10 +57,16 @@ async def points(
                 label=p.title, price_per_m2=round(ppm2, 2),
             ))
 
-    # 2) Comparables registrados con coords
-    cstmt = select(Comparable).where(
-        Comparable.latitude.is_not(None),
-        Comparable.longitude.is_not(None),
+    # 2) Comparables registrados con coords — SOLO de estudios del workspace del user
+    #    (comparables no tiene workspace_id propio: se filtra por su market_study).
+    cstmt = (
+        select(Comparable)
+        .join(MarketStudy, Comparable.market_study_id == MarketStudy.id)
+        .where(
+            MarketStudy.workspace_id == user.workspace_id,
+            Comparable.latitude.is_not(None),
+            Comparable.longitude.is_not(None),
+        )
     )
     comps = (await db.execute(cstmt)).scalars().all()
     for c in comps:

@@ -268,7 +268,7 @@ Devolvé EXCLUSIVAMENTE un bloque ```json ... ``` con EXACTAMENTE esta estructur
 ```
 
 La key top-level DEBE llamarse "suggestions" (plural). Es OBLIGATORIO usar los IDs reales de los candidatos."""
-    raw = await chat_complete(prompt, system=SYSTEM_COMPARABLE_PROPOSER)
+    raw = await chat_complete(prompt, system=SYSTEM_COMPARABLE_PROPOSER, workspace_id=study.workspace_id)
     parsed = _extract_json(raw)
     ai_evaluated = bool(parsed and parsed.get("suggestions"))
 

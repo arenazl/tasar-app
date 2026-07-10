@@ -82,13 +82,13 @@ async def set_setting_endpoint(
 
     await set_setting(db, user.workspace_id, key, body.value or "")
 
-    # Invalidar caches relevantes
+    # Invalidar caches relevantes SOLO para este workspace (no cruza tenants)
     if key == "claude_model":
-        from services import claude_service; claude_service.invalidate_model_cache()
+        from services import claude_service; claude_service.invalidate_model_cache(user.workspace_id)
     if key == "gemini_model":
-        from services import gemini_service; gemini_service.invalidate_model_cache()
+        from services import gemini_service; gemini_service.invalidate_model_cache(user.workspace_id)
     if key == "ai_provider":
-        from services import ai_router; ai_router.invalidate_provider_cache()
+        from services import ai_router; ai_router.invalidate_provider_cache(user.workspace_id)
 
     return {"key": key, "value": body.value}
 

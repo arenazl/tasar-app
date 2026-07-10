@@ -101,7 +101,7 @@ Devolvé 1-3 tips. Sé conciso, no decoraciones, no saludos, no preguntas. Texto
 Tu rol es dar recomendaciones contextuales cortas y accionables al tasador.
 Hablás en argentino (vos, no tú). Devolvés SOLO JSON estructurado, sin texto antes ni después."""
 
-    raw = await chat_complete(user_prompt, system=system)
+    raw = await chat_complete(user_prompt, system=system, workspace_id=user.workspace_id)
 
     parsed = _extract_tips(raw)
 

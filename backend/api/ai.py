@@ -27,6 +27,7 @@ async def stream_chat(body: ChatRequest, user: User = Depends(get_current_user))
             prompt=body.message,
             system=body.system or SYSTEM_TASADOR,
             session_id=body.session_id,
+            workspace_id=user.workspace_id,
         ):
             # SSE: cada evento como `data: ...`
             data = chunk.replace("\n", "\\n")
@@ -39,5 +40,5 @@ async def stream_chat(body: ChatRequest, user: User = Depends(get_current_user))
 @router.post("/chat")
 async def complete_chat(body: ChatRequest, user: User = Depends(get_current_user)):
     """Versión sync (no streaming)."""
-    out = await chat_complete(body.message, system=body.system or SYSTEM_TASADOR)
+    out = await chat_complete(body.message, system=body.system or SYSTEM_TASADOR, workspace_id=user.workspace_id)
     return {"response": out}

@@ -182,7 +182,7 @@ async def extract_from_url(
 
     snippet = html[:60000]
     prompt = f"{SCRAPER_PROMPT}\n\nHTML:\n```html\n{snippet}\n```"
-    raw = await chat_complete(prompt, system="Sos un extractor de datos web. Devolvé solo JSON válido.")
+    raw = await chat_complete(prompt, system="Sos un extractor de datos web. Devolvé solo JSON válido.", workspace_id=user.workspace_id)
     data = _extract_json(raw)
 
     listing = await _upsert_external_listing(db, user.workspace_id, body.url, data)

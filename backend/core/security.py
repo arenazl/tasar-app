@@ -63,3 +63,23 @@ def require_role(*roles: str):
             raise HTTPException(status_code=403, detail="Sin permisos")
         return user
     return _check
+
+
+async def ensure_study_in_workspace(study_id: int, user: User, db: AsyncSession):
+    """Verifica que el market_study pertenezca al workspace del usuario.
+
+    Devuelve el MarketStudy si es del workspace, o 404 si no existe / es de otro
+    tenant. Usamos 404 (no 403) a propósito para NO filtrar la existencia de
+    estudios de otros workspaces (anti-IDOR).
+    """
+    from models.market_study import MarketStudy
+
+    study = (await db.execute(
+        select(MarketStudy).where(
+            MarketStudy.id == study_id,
+            MarketStudy.workspace_id == user.workspace_id,
+        )
+    )).scalar_one_or_none()
+    if study is None:
+        raise HTTPException(status_code=404, detail="Estudio no encontrado")
+    return study

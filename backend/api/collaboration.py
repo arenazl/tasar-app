@@ -5,7 +5,7 @@ from typing import List
 import statistics
 
 from core.database import get_db
-from core.security import get_current_user
+from core.security import get_current_user, ensure_study_in_workspace
 from models.user import User
 from models.market_study import MarketStudy
 from models.collaboration import Collaboration, CollaborationComment
@@ -66,6 +66,7 @@ async def submit_opinion(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
+    await ensure_study_in_workspace(study_id, user, db)
     col = (await db.execute(
         select(Collaboration).where(
             Collaboration.market_study_id == study_id,
@@ -92,6 +93,7 @@ async def get_consensus(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
+    await ensure_study_in_workspace(study_id, user, db)
     cols = (await db.execute(
         select(Collaboration).where(Collaboration.market_study_id == study_id)
     )).scalars().all()
@@ -124,6 +126,7 @@ async def add_comment(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
+    await ensure_study_in_workspace(study_id, user, db)
     c = CollaborationComment(
         market_study_id=study_id,
         user_id=user.id,
@@ -168,6 +171,7 @@ async def list_comments(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
+    await ensure_study_in_workspace(study_id, user, db)
     res = await db.execute(
         select(CollaborationComment).where(CollaborationComment.market_study_id == study_id)
         .order_by(CollaborationComment.created_at.asc())

@@ -202,7 +202,7 @@ async def ai_analyze_property(
         "condition": p.condition,
         "description": p.description,
     }
-    analysis = await analyze_property(payload)
+    analysis = await analyze_property(payload, workspace_id=user.workspace_id)
     p.ai_analysis = json.dumps(analysis, ensure_ascii=False)
     await db.commit()
     return analysis
