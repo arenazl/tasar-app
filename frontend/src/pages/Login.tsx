@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import {
-  Loader2, Shield, Eye, User as UserIcon, ArrowRight, Sparkles, TrendingUp, Database, Zap,
+  Loader2, Shield, Eye, User as UserIcon, ArrowRight, Sparkles, Target, Users, MessageCircle, CheckCircle2,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import BrandLogo from '../components/BrandLogo';
@@ -75,24 +75,25 @@ export default function Login() {
         {/* Centro: hero */}
         <div className="relative max-w-xl">
           <div className="text-[11px] font-bold uppercase tracking-[0.25em] mb-5" style={{ color: theme.textSecondary }}>
-            Mayo 2026 · Reporte #047
+            Suite inmobiliaria
           </div>
           <h1 className="font-display font-black tracking-tight leading-[0.95] mb-6 text-[44px] xl:text-[60px]"
             style={{ color: theme.text }}>
-            El mercado<br />inmobiliario,<br />
-            <span style={{ color: theme.primary }}>en datos.</span>
+            Del primer<br />contacto<br />
+            <span style={{ color: theme.primary }}>al cierre.</span>
           </h1>
           <p className="text-base xl:text-lg leading-relaxed max-w-md" style={{ color: theme.textSecondary }}>
-            {BRAND.name} procesa millones de avisos, escrituras y permisos al mes
-            para darte el precio real de cada zona, edificio y tipología.
-            Sin opiniones. Sin "estimaciones".
+            {BRAND.name} reúne la tasación inteligente, el CRM, el seguimiento del
+            equipo y el bot de WhatsApp en una sola plataforma. Todo el ciclo de la
+            operación, de punta a punta.
           </p>
 
-          {/* 3 features */}
-          <div className="mt-8 grid grid-cols-3 gap-3 max-w-md">
-            <Stat icon={Database} value="2.1M" label="Avisos" theme={theme} />
-            <Stat icon={TrendingUp} value="48 hs" label="Update" theme={theme} />
-            <Stat icon={Zap} value="IA" label="Tasador" theme={theme} />
+          {/* 4 pilares de la suite */}
+          <div className="mt-8 grid grid-cols-2 gap-3 max-w-md">
+            <Pillar icon={Target} name="Captar" desc="Tasación + leads" theme={theme} />
+            <Pillar icon={Users} name="Gestionar" desc="CRM + pipeline + equipo" theme={theme} />
+            <Pillar icon={MessageCircle} name="Atender" desc="Bot WhatsApp 24/7" theme={theme} />
+            <Pillar icon={CheckCircle2} name="Cerrar" desc="Visitas + reservas" theme={theme} />
           </div>
         </div>
 
@@ -202,12 +203,12 @@ export default function Login() {
   );
 }
 
-function Stat({ icon: Icon, value, label, theme }: any) {
+function Pillar({ icon: Icon, name, desc, theme }: any) {
   return (
     <div className="p-3 rounded-xl" style={{ background: theme.background, border: `1px solid ${theme.border}` }}>
       <Icon className="h-4 w-4 mb-1.5" style={{ color: theme.primary }} />
-      <div className="font-display font-black text-xl tracking-tight" style={{ color: theme.text }}>{value}</div>
-      <div className="text-[10px] uppercase tracking-wider font-bold" style={{ color: theme.textSecondary }}>{label}</div>
+      <div className="font-display font-black text-lg tracking-tight" style={{ color: theme.text }}>{name}</div>
+      <div className="text-[10px] uppercase tracking-wider font-bold" style={{ color: theme.textSecondary }}>{desc}</div>
     </div>
   );
 }
