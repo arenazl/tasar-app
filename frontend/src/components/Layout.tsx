@@ -3,7 +3,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Inbox, FileCheck2, Building2, Workflow, Users, Map as MapIcon,
   ClipboardList, FileText, Database, Settings, LogOut, ChevronDown, ChevronLeft, ChevronRight,
-  Zap,
+  Zap, Target, Layers, GraduationCap,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
@@ -20,9 +20,15 @@ const NAV_TRABAJO = [
   { to: '/propiedades', icon: Building2, label: 'Propiedades' },
   { to: '/pipeline', icon: Workflow, label: 'Pipeline' },
   { to: '/clientes', icon: Users, label: 'Clientes' },
+  { to: '/dmo', icon: Target, label: 'Mi DMO' },
   { to: '/mercado', icon: MapIcon, label: 'Mercado' },
   { to: '/estudios', icon: ClipboardList, label: 'ACM' },
   { to: '/reportes', icon: FileText, label: 'Reportes' },
+];
+const NAV_EQUIPO = [
+  { to: '/dmo-templates', icon: Layers, label: 'Templates DMO' },
+  { to: '/dmo-asignaciones', icon: Target, label: 'Asignaciones' },
+  { to: '/coaches', icon: GraduationCap, label: 'Coaches' },
 ];
 const NAV_DATOS = [
   { to: '/comparables', icon: Database, label: 'Comparables', live: true },
@@ -126,6 +132,8 @@ export default function Layout({ children }: { children: ReactNode }) {
         <nav className="flex-1 min-h-0 overflow-y-auto px-3 pb-3">
           {!collapsed && <SectionLabel theme={theme}>Trabajo</SectionLabel>}
           {NAV_TRABAJO.map(item => <NavItem key={item.to} item={item} collapsed={collapsed} theme={theme} />)}
+          {!collapsed && <SectionLabel theme={theme} className="mt-4">Equipo</SectionLabel>}
+          {NAV_EQUIPO.map(item => <NavItem key={item.to} item={item} collapsed={collapsed} theme={theme} />)}
           {!collapsed && <SectionLabel theme={theme} className="mt-4">Datos</SectionLabel>}
           {NAV_DATOS.map(item => <NavItem key={item.to} item={item} collapsed={collapsed} theme={theme} />)}
         </nav>

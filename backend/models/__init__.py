@@ -16,6 +16,7 @@ from models.visit import Visit
 from models.deal import Deal
 from models.authorization import Authorization
 from models.express_valuation import ExpressValuation
+from models.dmo import Coach, DmoTemplate, DmoBlock, DmoAssignment, DmoLog
 
 __all__ = [
     "User", "Workspace",
@@ -35,4 +36,5 @@ __all__ = [
     "Deal",
     "Authorization",
     "ExpressValuation",
+    "Coach", "DmoTemplate", "DmoBlock", "DmoAssignment", "DmoLog",
 ]

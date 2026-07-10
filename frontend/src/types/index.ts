@@ -2,10 +2,97 @@ export interface User {
   id: number;
   email: string;
   full_name: string;
-  role: 'admin' | 'tasador' | 'cliente';
+  // Roles unificados de la suite (WO F1-01) + legacy TasAR.
+  role: 'admin' | 'supervisor' | 'vendedor' | 'tasador' | 'cliente';
   workspace_id: number;
   license_number?: string;
   avatar_url?: string;
+  daily_conversations_goal?: number;
+}
+
+// ==================== DMO (WO F2-01) ====================
+
+export type MetricType = 'checkbox' | 'quantity';
+
+export interface Coach {
+  id: number;
+  name: string;
+  description?: string | null;
+  photo_url?: string | null;
+  source_url?: string | null;
+  is_official: boolean;
+  templates_count?: number;
+  created_at: string;
+}
+
+export interface DmoBlock {
+  id: number;
+  template_id: number;
+  name: string;
+  description?: string | null;
+  start_time: string; // "HH:MM:SS"
+  end_time: string;
+  color: string;
+  sort_order: number;
+  is_money_block: boolean;
+  metric_type: MetricType;
+  metric_label?: string | null;
+  metric_goal: number;
+}
+
+export interface DmoTemplate {
+  id: number;
+  workspace_id?: number | null; // NULL = catalogo oficial global
+  coach_id: number;
+  coach_name?: string | null;
+  name: string;
+  description?: string | null;
+  market?: string | null;
+  is_active: boolean;
+  is_office_default: boolean;
+  is_official: boolean; // true si es del catalogo global
+  blocks: DmoBlock[];
+  assignments_count?: number;
+  created_at: string;
+}
+
+export interface VendorOut {
+  id: number;
+  full_name: string;
+  email: string;
+  role: string;
+  daily_conversations_goal: number;
+}
+
+export interface DmoAssignment {
+  id: number;
+  vendor_id: number;
+  vendor_name?: string | null;
+  template_id: number;
+  template_name?: string | null;
+  coach_name?: string | null;
+  assigned_at: string;
+}
+
+export interface DmoLog {
+  id: number;
+  vendor_id: number;
+  block_id: number;
+  date: string;
+  completed: boolean;
+  metric_value: number;
+  notes?: string | null;
+  created_at: string;
+}
+
+export interface DmoDay {
+  date: string;
+  template: DmoTemplate | null;
+  blocks: DmoBlock[];
+  logs: DmoLog[];
+  conversations_goal: number;
+  conversations_done: number;
+  completion_pct: number;
 }
 
 export interface PropertyPhoto {

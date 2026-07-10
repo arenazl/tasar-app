@@ -14,7 +14,7 @@ from api import (
     auth, properties, market_studies, appraisals,
     collaboration, ai, scraping, heatmap, dashboard, settings as settings_api,
     inbox, market, reports, ai_coach, clients, wa_auth, wa_gateway,
-    valuations,
+    valuations, coaches, dmo,
 )
 
 
@@ -62,6 +62,10 @@ app.include_router(reports.router)
 app.include_router(ai_coach.router)
 app.include_router(clients.router)
 app.include_router(valuations.router)
+# DMO (Daily Method of Operation, WO F2-01): catalogo global de coaches +
+# templates/asignaciones/dia (scoping por workspace + roles).
+app.include_router(coaches.router)
+app.include_router(dmo.router)
 # wa-gateway (WhatsApp / Baileys, WO F0-05):
 #   wa_auth   -> maquina-a-maquina (X-API-Key): /api/wa-auth/{key} + /api/wa/tenants
 #   wa_gateway-> proxy JWT admin -> gateway: /api/wa/status|start|stop|qr.html

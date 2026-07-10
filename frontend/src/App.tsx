@@ -41,6 +41,10 @@ import Reportes from './pages/Reportes';
 import EstudioEditorial from './pages/EstudioEditorial';
 import Pipeline from './pages/Pipeline';
 import Clientes from './pages/Clientes';
+import DMO from './pages/DMO';
+import Coaches from './pages/Coaches';
+import DMOTemplates from './pages/DMOTemplates';
+import AsignacionesDMO from './pages/AsignacionesDMO';
 
 export default function App() {
   useEffect(() => { cleanupOldHintFlags(); }, []);
@@ -64,6 +68,10 @@ export default function App() {
                   <Route path="/tasaciones/:id" element={<TasacionDetail />} />
                   <Route path="/pipeline" element={<Pipeline />} />
                   <Route path="/clientes" element={<Clientes />} />
+                  <Route path="/dmo" element={<DMO />} />
+                  <Route path="/dmo-templates" element={<DMOTemplates />} />
+                  <Route path="/dmo-asignaciones" element={<AsignacionesDMO />} />
+                  <Route path="/coaches" element={<Coaches />} />
                   <Route path="/mercado" element={<Mercado />} />
                   <Route path="/comparables" element={<Comparables />} />
                   <Route path="/reportes" element={<Reportes />} />
