@@ -17,6 +17,9 @@ from models.deal import Deal
 from models.authorization import Authorization
 from models.express_valuation import ExpressValuation
 from models.dmo import Coach, DmoTemplate, DmoBlock, DmoAssignment, DmoLog
+from models.conversation import WaConversation
+from models.message import WaMessage
+from models.bot_config import WorkspaceBotConfig, BotFaq
 
 __all__ = [
     "User", "Workspace",
@@ -37,4 +40,7 @@ __all__ = [
     "Authorization",
     "ExpressValuation",
     "Coach", "DmoTemplate", "DmoBlock", "DmoAssignment", "DmoLog",
+    "WaConversation",
+    "WaMessage",
+    "WorkspaceBotConfig", "BotFaq",
 ]

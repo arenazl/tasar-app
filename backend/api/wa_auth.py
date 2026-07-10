@@ -52,14 +52,20 @@ async def list_tenants(
     x_api_key: Optional[str] = Header(None, alias="X-API-Key"),
     db: AsyncSession = Depends(get_db),
 ):
-    """Workspaces con canal Baileys activo (para el bootstrap del gateway).
+    """Workspaces con el bot de WhatsApp HABILITADO (bootstrap de sesiones del gateway).
 
-    TODO(F2-03): filtrar por el flag/config del bot por workspace cuando exista
-    ese modelo. Hoy ese modelo NO existe todavia, asi que devolvemos TODOS los
-    workspaces (comportamiento seguro documentado en el WO F0-05).
+    F2-03: ya existe `workspace_bot_config`. Solo devolvemos los workspaces cuyo bot
+    esta `enabled=True` — el gateway arranca una sesion Baileys por cada uno. Un
+    workspace sin bot habilitado no consume una sesion.
     """
     _check_api_key(x_api_key)
-    rows = (await db.execute(select(Workspace).order_by(Workspace.id))).scalars().all()
+    from models.bot_config import WorkspaceBotConfig
+    rows = (await db.execute(
+        select(Workspace)
+        .join(WorkspaceBotConfig, WorkspaceBotConfig.workspace_id == Workspace.id)
+        .where(WorkspaceBotConfig.enabled == True)  # noqa: E712
+        .order_by(Workspace.id)
+    )).scalars().all()
     return [TenantOut(id=w.id, slug=w.slug, name=w.name) for w in rows]
 
 

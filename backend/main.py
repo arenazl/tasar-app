@@ -15,6 +15,7 @@ from api import (
     collaboration, ai, scraping, heatmap, dashboard, settings as settings_api,
     inbox, market, reports, ai_coach, clients, wa_auth, wa_gateway,
     valuations, coaches, dmo, visits, deals, authorizations,
+    whatsapp, bot_config,
 )
 
 
@@ -76,6 +77,11 @@ app.include_router(authorizations.router)
 #   wa_gateway-> proxy JWT admin -> gateway: /api/wa/status|start|stop|qr.html
 app.include_router(wa_auth.router)
 app.include_router(wa_gateway.router)
+# Bot WhatsApp embebido (WO F2-03):
+#   whatsapp   -> webhook entrante (X-API-Key) + inbox (JWT) + envio via gateway
+#   bot_config -> configuracion del bot POR WORKSPACE (JWT admin/supervisor)
+app.include_router(whatsapp.router)
+app.include_router(bot_config.router)
 
 
 @app.get("/")

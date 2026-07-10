@@ -13,7 +13,7 @@ import asyncio
 import json
 import logging
 import time
-from typing import AsyncIterator, Optional
+from typing import Any, AsyncIterator, Dict, List, Optional
 
 import httpx
 
@@ -171,6 +171,62 @@ async def chat_stream(
             await asyncio.sleep(0.02)
     except Exception as e:
         yield f"[Gemini error: {type(e).__name__}]"
+
+
+async def generate_with_tools(
+    contents: List[Dict[str, Any]],
+    tools: List[Dict[str, Any]],
+    system_instruction: Optional[str] = None,
+    workspace_id: int | None = None,
+    max_tokens: int = 1500,
+) -> Optional[Dict[str, Any]]:
+    """Gemini con function calling habilitado (motor del bot WhatsApp, WO F2-03).
+
+    Portado de AgentFlow/backend/services/gemini.generate_with_tools, adaptado a la
+    suite: el modelo se resuelve POR WORKSPACE (misma cache keyed que el resto del
+    service). Este es el UNICO punto de integracion de function-calling con Gemini
+    en la suite.
+
+    Args:
+      contents: mensajes en formato Gemini, ej [{"role":"user","parts":[{"text":...}]}].
+      tools: function_declarations, ej [{"name":..., "description":..., "parameters":{...}}].
+      system_instruction: prompt de sistema separado (no se concatena con el user).
+
+    Devuelve el primer `part` de la respuesta:
+      {"text": "..."}                              si Gemini responde con texto.
+      {"functionCall": {"name": "...", "args": {}}}  si decide llamar una tool.
+      None                                          si la API no esta disponible o falla.
+    """
+    if not _gemini_available():
+        return None
+    model = await _get_active_model(workspace_id)
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+    payload: Dict[str, Any] = {
+        "contents": contents,
+        "tools": [{"function_declarations": tools}] if tools else [],
+        "generationConfig": {"temperature": 0.4, "maxOutputTokens": max_tokens},
+        "toolConfig": {"functionCallingConfig": {"mode": "AUTO"}},
+    }
+    if not tools:
+        payload.pop("tools")
+        payload.pop("toolConfig")
+    if system_instruction:
+        payload["systemInstruction"] = {"parts": [{"text": system_instruction}]}
+    try:
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            r = await client.post(url, params={"key": settings.GEMINI_API_KEY}, json=payload)
+            if r.status_code != 200:
+                log.warning("gemini tools %s -> %d %s", model, r.status_code, r.text[:300])
+                return None
+            data = r.json()
+            candidates = data.get("candidates", [])
+            if not candidates:
+                return None
+            parts = candidates[0].get("content", {}).get("parts", [])
+            return parts[0] if parts else None
+    except Exception as e:
+        log.warning("gemini generate_with_tools failed: %s", type(e).__name__)
+        return None
 
 
 async def analyze_property(property_data: dict, workspace_id: int | None = None) -> dict:

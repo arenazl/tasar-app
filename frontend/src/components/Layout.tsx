@@ -3,7 +3,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Inbox, FileCheck2, Building2, Workflow, Users, Map as MapIcon,
   ClipboardList, FileText, Database, Settings, LogOut, ChevronDown, ChevronLeft, ChevronRight,
-  Zap, Target, Layers, GraduationCap, CalendarDays, FileSignature,
+  Zap, Target, Layers, GraduationCap, CalendarDays, FileSignature, Bot,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
@@ -34,6 +34,7 @@ const NAV_EQUIPO = [
 ];
 const NAV_DATOS = [
   { to: '/comparables', icon: Database, label: 'Comparables', live: true },
+  { to: '/datos-ia', icon: Bot, label: 'Datos IA · Bot' },
   { to: '/configuracion', icon: Settings, label: 'Configuración' },
 ];
 
