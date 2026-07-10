@@ -1,18 +1,26 @@
-"""WhatsApp — webhook entrante + inbox + envio (WO F2-03).
+"""WhatsApp — webhook entrante + inbox + envio (WO F2-03, audio en F3-01).
 
 UN solo webhook entrante (`POST /api/whatsapp/webhook/incoming`, auth X-API-Key ==
 WA_GATEWAY_KEY, contrato de F0-05) y UN solo camino de salida (`_send_via_gateway`
 -> `POST {WA_GATEWAY_URL}/send`). Todo scoped al workspace resuelto por el `tenant`
 (slug) del payload.
 
+`_send_via_gateway` es el UNICO camino de salida tanto para texto como para
+audio (params `audio_url`/`ptt` opcionales) — regla de la casa "un solo camino
+de salida de audio". La generacion del audio (TTS + sanitizado de <<PAUSE>>/URLs)
+vive aparte en `services.audio_out` (WO F3-01); este modulo solo lo LLAMA y
+manda el resultado por el mismo POST /send de siempre.
+
 Flujo del webhook:
   1. Idempotencia por meta_message_id (WhatsApp Multi-Device reentrega).
   2. Resolucion @lid -> PN normalizado.
   3. Ruteo al workspace por slug (anti-cross-tenant).
-  4. Guarda el mensaje entrante.
+  4. Guarda el mensaje entrante. Si es audio, lo transcribe con Groq Whisper
+     (F3-01) y guarda la transcripcion en `WaMessage.transcription`.
   5. Coexistence: si hay assignee humano o el bot esta pausado -> NO responde el bot
      (lo maneja el humano desde el inbox). Si no, y el bot esta habilitado, corre el
-     motor, envia la respuesta y, si deriva, manda el mensaje de derivación al cliente.
+     motor, decide si responde en audio (`voice_mode` de la conv, default del
+     workspace) y envia la respuesta; si deriva, manda el mensaje de derivación.
 
 El inbox HUMANO (listar/ver/responder/tomar mando/reactivar) vive en
 `api/conversations.py` (WO F2-04) y reutiliza de aca el camino UNICO de salida
@@ -40,6 +48,8 @@ from models.message import WaMessage, DIRECTION_INBOUND, DIRECTION_OUTBOUND
 from models.bot_config import WorkspaceBotConfig
 from services.bot_tools import BotContext, _phone_from_jid
 from services.bot_engine import procesar_mensaje_entrante, render_message, _business_name
+from services.transcribe import transcribe_audio_from_url
+from services.audio_out import synthesize_reply_audio, quiere_audio
 
 
 log = logging.getLogger("tasar.whatsapp")
@@ -53,17 +63,27 @@ COEXISTENCE_PAUSE = timedelta(minutes=45)
 # ── Camino UNICO de salida a WhatsApp (proxy al wa-gateway) ────────────────
 
 async def _send_via_gateway(
-    slug: str, telefono: str, contenido: str,
+    slug: str, telefono: str, contenido: str = "",
+    audio_url: Optional[str] = None, ptt: bool = True,
 ) -> tuple[bool, Optional[str], Optional[str]]:
-    """Envia un mensaje de texto por el gateway del workspace. (ok, meta_message_id, error)."""
+    """Envia un mensaje por el gateway del workspace: texto, o audio (ptt) +
+    opcionalmente un texto aparte (ej. URLs que se cortaron antes del TTS).
+
+    UNICO camino de salida a WhatsApp -- texto Y audio pasan por aca, nunca
+    por un POST /send separado. (ok, meta_message_id, error).
+    """
     base = (settings.WA_GATEWAY_URL or "").rstrip("/")
     if not base or not settings.WA_GATEWAY_KEY:
         return (False, None, "wa-gateway no configurado")
+    payload: dict = {"tenant": slug, "telefono": telefono, "contenido": contenido}
+    if audio_url:
+        payload["audio_url"] = audio_url
+        payload["ptt"] = ptt
     try:
         async with httpx.AsyncClient(timeout=30) as client:
             r = await client.post(
                 f"{base}/send",
-                json={"tenant": slug, "telefono": telefono, "contenido": contenido},
+                json=payload,
                 headers={"X-API-Key": settings.WA_GATEWAY_KEY},
             )
             data = r.json()
@@ -102,10 +122,11 @@ def _check_gateway_key(x_api_key: Optional[str]) -> None:
 
 async def _persist_bot_message(
     db: AsyncSession, conv: WaConversation, text: str, meta_id: Optional[str],
+    media_url: Optional[str] = None, msg_type: str = "text",
 ) -> None:
     db.add(WaMessage(
-        conversation_id=conv.id, direction=DIRECTION_OUTBOUND, type="text",
-        content=text, sender_id=None, is_read=True, meta_message_id=meta_id,
+        conversation_id=conv.id, direction=DIRECTION_OUTBOUND, type=msg_type,
+        content=text, media_url=media_url, sender_id=None, is_read=True, meta_message_id=meta_id,
     ))
 
 
@@ -172,17 +193,22 @@ async def webhook_incoming(
         db.add(conv)
         await db.flush()
 
-    # 4. Guardar el mensaje entrante.
+    # 4. Guardar el mensaje entrante. Si es audio, transcribir con Groq Whisper
+    # (WO F3-01) -- best-effort: si falla o no esta configurado, el bot recibe
+    # el placeholder "[audio]" (ver bot_engine._msg_text) y no rompe el webhook.
     content = payload.contenido
+    transcription: Optional[str] = None
     if payload.tipo == "audio" and payload.media_url:
-        # La transcripcion de audio es de F3 (voice). Por ahora se guarda la referencia.
-        content = content or "[audio]"
+        transcription = await transcribe_audio_from_url(payload.media_url)
+        if not content:
+            content = "[audio]"
     inbound = WaMessage(
         conversation_id=conv.id,
         direction=DIRECTION_INBOUND,
         type=payload.tipo or "text",
         content=content,
         media_url=payload.media_url,
+        transcription=transcription,
         meta_message_id=payload.meta_message_id,
         is_read=False,
     )
@@ -214,8 +240,23 @@ async def webhook_incoming(
     bot_text, action = await procesar_mensaje_entrante(ctx, inbound)
 
     if bot_text:
-        ok, meta_id, _err = await _send_via_gateway(ws.slug, conv.phone_jid, bot_text)
-        await _persist_bot_message(db, conv, bot_text, meta_id or _local_id("bot"))
+        # Audio saliente (WO F3-01): decide segun voice_mode efectivo de la
+        # conv (override) / bot_config.default_voice_mode (default del
+        # workspace). Si el TTS falla por lo que sea, media_url da None y cae
+        # a texto sin romper el envio (audio_out.synthesize_reply_audio nunca
+        # levanta excepcion).
+        media_url = None
+        urls_aparte = ""
+        if quiere_audio(conv.voice_mode, cfg.default_voice_mode, payload.tipo):
+            media_url, urls_aparte = await synthesize_reply_audio(bot_text, voice_id=cfg.voice_id)
+        if media_url:
+            ok, meta_id, _err = await _send_via_gateway(
+                ws.slug, conv.phone_jid, contenido=urls_aparte, audio_url=media_url,
+            )
+            await _persist_bot_message(db, conv, bot_text, meta_id or _local_id("bot"), media_url=media_url, msg_type="audio")
+        else:
+            ok, meta_id, _err = await _send_via_gateway(ws.slug, conv.phone_jid, bot_text)
+            await _persist_bot_message(db, conv, bot_text, meta_id or _local_id("bot"))
 
     # Derivacion: mandar al cliente el mensaje de derivación configurado (rendereado).
     if action == "derivar":

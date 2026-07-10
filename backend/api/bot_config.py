@@ -20,7 +20,7 @@ from models.workspace import Workspace
 from models.bot_config import (
     WorkspaceBotConfig, BotFaq,
     DEFAULT_WELCOME, DEFAULT_OFF_HOURS, DEFAULT_DERIVATION,
-    DEFAULT_DERIVATION_WORDS, DEFAULT_TONE, DEFAULT_BUSINESS_HOURS,
+    DEFAULT_DERIVATION_WORDS, DEFAULT_TONE, DEFAULT_BUSINESS_HOURS, DEFAULT_VOICE_MODE,
 )
 
 
@@ -45,6 +45,7 @@ async def _get_or_create(db: AsyncSession, workspace_id: int) -> WorkspaceBotCon
         business_hours=DEFAULT_BUSINESS_HOURS,
         tone=DEFAULT_TONE,
         channel_provider="baileys",
+        default_voice_mode=DEFAULT_VOICE_MODE,
     )
     db.add(cfg)
     await db.commit()
@@ -74,6 +75,9 @@ def _cfg_dict(c: WorkspaceBotConfig) -> dict:
         "derivation_words": c.derivation_words,
         "tone": c.tone,
         "channel_provider": c.channel_provider,
+        # Audio full-duplex (WO F3-01). voice_id=None -> voz default global.
+        "voice_id": c.voice_id,
+        "default_voice_mode": c.default_voice_mode,
     }
 
 
@@ -104,6 +108,11 @@ class BotConfigUpdate(BaseModel):
     business_hours: Optional[str] = None
     derivation_words: Optional[str] = None
     tone: Optional[str] = None
+    voice_id: Optional[str] = None
+    default_voice_mode: Optional[str] = None
+
+
+_VALID_VOICE_MODES = {"off", "auto", "mirror"}
 
 
 @router.put("")
@@ -113,7 +122,10 @@ async def update_config(
     user: User = Depends(require_role("admin", "supervisor")),
 ):
     cfg = await _get_or_create(db, user.workspace_id)
-    for field, value in body.model_dump(exclude_unset=True).items():
+    data = body.model_dump(exclude_unset=True)
+    if data.get("default_voice_mode") is not None and data["default_voice_mode"] not in _VALID_VOICE_MODES:
+        raise HTTPException(400, "default_voice_mode inválido (off|auto|mirror)")
+    for field, value in data.items():
         setattr(cfg, field, value)
     await db.commit()
     await db.refresh(cfg)

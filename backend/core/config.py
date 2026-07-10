@@ -50,6 +50,17 @@ class Settings(BaseSettings):
     # Secreto compartido gateway<->suite (X-API-Key). Vacio => wa-auth responde 503.
     WA_GATEWAY_KEY: str = ""
 
+    # --- Audio full-duplex WhatsApp (WO F3-01) ---
+    # Groq Whisper: transcripcion de notas de voz entrantes.
+    GROQ_API_KEY: str = ""
+    GROQ_WHISPER_MODEL: str = "whisper-large-v3"
+    # ElevenLabs: TTS de la respuesta saliente (voz GENERICA, sin clonado —
+    # gate del dueno F3-01: nada de voice-clone). voice_id por workspace
+    # (workspace_bot_config.voice_id) pisa este default global.
+    ELEVENLABS_API_KEY: str = ""
+    ELEVENLABS_DEFAULT_VOICE_ID: str = ""
+    ELEVENLABS_MODEL: str = "eleven_flash_v2_5"
+
     @property
     def database_url(self) -> str:
         return (

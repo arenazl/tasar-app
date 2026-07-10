@@ -24,7 +24,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 from pydantic import BaseModel
 from sqlalchemy import and_, desc, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -38,6 +38,7 @@ from models.conversation import (
     WaConversation, STATUS_NUEVA, STATUS_ABIERTA, STATUS_CERRADA, STATUS_BLOQUEADA,
 )
 from models.message import WaMessage, DIRECTION_INBOUND, DIRECTION_OUTBOUND
+from services.cloudinary_service import upload_audio
 # Camino UNICO de salida + pausa de coexistence (definidos en el modulo del webhook;
 # NO se duplican aca para no tener dos rutas de envio ni dos constantes de pausa).
 from api.whatsapp import _send_via_gateway, _local_id, COEXISTENCE_PAUSE
@@ -77,6 +78,7 @@ def _conv_row(c: WaConversation, last: Optional[WaMessage], assignee_name: Optio
         "unread_count": c.unread_count or 0,
         "bot_paused_until": _aware(c.bot_paused_until).isoformat() if c.bot_paused_until else None,
         "bot_paused": bool(c.bot_paused_until and _aware(c.bot_paused_until) > _now()),
+        "voice_mode": c.voice_mode,
         "last_activity_at": _aware(c.last_activity_at).isoformat() if c.last_activity_at else None,
         "last_message": (last.content or "")[:200] if last else None,
         "last_direction": last.direction if last else None,
@@ -196,6 +198,18 @@ class ReplyBody(BaseModel):
     contenido: str
 
 
+def _take_control(c: WaConversation, user: User) -> None:
+    """Tomar el mando + pausar el bot (coexistence). Compartido por `reply`
+    (texto) y `reply_audio` (nota de voz, WO F3-01) -- una sola regla, un
+    solo lugar; no se duplica por canal."""
+    if c.assignee_id is None:
+        c.assignee_id = user.id
+    if c.status == STATUS_NUEVA:
+        c.status = STATUS_ABIERTA
+    c.bot_paused_until = _now() + COEXISTENCE_PAUSE
+    c.last_activity_at = _now()
+
+
 @router.post("/{conv_id}/reply")
 async def reply(
     conv_id: int,
@@ -224,15 +238,47 @@ async def reply(
         content=contenido, sender_id=user.id, is_read=True,
         meta_message_id=meta_id or _local_id(f"u{user.id}"),
     ))
-    # Tomar el mando + pausar el bot (coexistence).
-    if c.assignee_id is None:
-        c.assignee_id = user.id
-    if c.status == STATUS_NUEVA:
-        c.status = STATUS_ABIERTA
-    c.bot_paused_until = _now() + COEXISTENCE_PAUSE
-    c.last_activity_at = _now()
+    _take_control(c, user)
     await db.commit()
     return {"ok": True, "sent_via_gateway": ok, "error": err}
+
+
+@router.post("/{conv_id}/reply-audio")
+async def reply_audio(
+    conv_id: int,
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Nota de voz grabada por el vendedor desde el Inbox (press-and-hold en
+    `InboxWhatsApp.tsx`, WO F3-01). Va TAL CUAL la grabo el vendedor -- SIN
+    TTS ni sanitizador de <<PAUSE>>/URLs (eso es solo para audio SINTETIZADO
+    del bot, ver `services.audio_out`): se sube a Cloudinary y sale por el
+    MISMO camino unico de envio (`_send_via_gateway`, con audio_url), tal
+    como el reply de texto.
+    """
+    c = await _get_scoped(db, conv_id, user)
+    if c.status == STATUS_BLOQUEADA:
+        raise HTTPException(400, "Conversación bloqueada")
+    raw = await file.read()
+    if not raw:
+        raise HTTPException(400, "Audio vacío")
+    ws = (await db.execute(select(Workspace).where(Workspace.id == user.workspace_id))).scalar_one()
+
+    up = await upload_audio(raw, folder="wa-audio")
+    media_url = up.get("url")
+    if not media_url:
+        raise HTTPException(502, "No se pudo subir el audio")
+
+    ok, meta_id, err = await _send_via_gateway(ws.slug, c.phone_jid, audio_url=media_url, ptt=True)
+    db.add(WaMessage(
+        conversation_id=c.id, direction=DIRECTION_OUTBOUND, type="audio",
+        media_url=media_url, sender_id=user.id, is_read=True,
+        meta_message_id=meta_id or _local_id(f"u{user.id}"),
+    ))
+    _take_control(c, user)
+    await db.commit()
+    return {"ok": True, "sent_via_gateway": ok, "error": err, "media_url": media_url}
 
 
 @router.post("/{conv_id}/assign-me")
@@ -286,10 +332,16 @@ async def mark_read(
     return {"ok": True}
 
 
+_VALID_VOICE_MODES = {"off", "auto", "mirror"}
+
+
 class ConvUpdate(BaseModel):
     assignee_id: Optional[int] = None
     status: Optional[str] = None
     client_id: Optional[int] = None
+    # Override de voice_mode SOLO de esta conversación (WO F3-01). None/ausente
+    # -> hereda bot_config.default_voice_mode del workspace.
+    voice_mode: Optional[str] = None
 
 
 @router.patch("/{conv_id}")
@@ -335,6 +387,12 @@ async def update_conversation(
             if not valid:
                 raise HTTPException(404, "Cliente inexistente en el workspace")
         c.client_id = cid
+
+    if "voice_mode" in data:
+        vm = data["voice_mode"]
+        if vm is not None and vm not in _VALID_VOICE_MODES:
+            raise HTTPException(400, "voice_mode inválido (off|auto|mirror)")
+        c.voice_mode = vm
 
     await db.commit()
     assignee_name = None

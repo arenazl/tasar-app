@@ -40,6 +40,8 @@ DEFAULT_DERIVATION_WORDS = (
 )
 DEFAULT_TONE = "profesional"
 DEFAULT_BUSINESS_HOURS = "Lunes a viernes de 9 a 18 hs. Sábados de 9 a 13 hs."
+# Audio full-duplex (WO F3-01). off = nunca responde en audio (default seguro).
+DEFAULT_VOICE_MODE = "off"
 
 
 class WorkspaceBotConfig(Base):
@@ -77,6 +79,14 @@ class WorkspaceBotConfig(Base):
 
     # === Conexion (el detalle Meta es de F3-02) ===
     channel_provider = Column(String(20), default="baileys")
+
+    # === Audio full-duplex (WO F3-01) ===
+    # Voz GENERICA de ElevenLabs para este workspace (gate del dueno: SIN
+    # voice-clone). NULL => usa settings.ELEVENLABS_DEFAULT_VOICE_ID.
+    voice_id = Column(String(80), nullable=True)
+    # Default de voice_mode para conversaciones NUEVAS de este workspace
+    # (off|auto|mirror). El override puntual vive en wa_conversations.voice_mode.
+    default_voice_mode = Column(String(10), default=DEFAULT_VOICE_MODE)
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())

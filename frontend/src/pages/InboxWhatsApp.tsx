@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
   MessageSquare, Send, Search, Phone, ArrowLeft, RefreshCw, CheckCheck,
-  Bot, UserCheck, Hand, Circle,
+  Bot, UserCheck, Hand, Circle, Mic, Square,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { api } from '../services/api';
@@ -23,6 +23,7 @@ interface ConvRow {
   unread_count: number;
   bot_paused_until?: string | null;
   bot_paused: boolean;
+  voice_mode?: string | null;
   last_activity_at?: string | null;
   last_message?: string | null;
   last_direction?: 'inbound' | 'outbound' | null;
@@ -95,7 +96,12 @@ export default function InboxWhatsApp() {
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [recording, setRecording] = useState(false);
+  const [sendingAudio, setSendingAudio] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const audioStreamRef = useRef<MediaStream | null>(null);
 
   const isManager = user?.role === 'supervisor' || user?.role === 'admin';
 
@@ -190,6 +196,56 @@ export default function InboxWhatsApp() {
     } catch { toast.error('No se pudo enviar'); }
     finally { setSending(false); }
   };
+
+  // Nota de voz del vendedor (press-and-hold, WO F3-01). Se sube tal cual se
+  // grabo -- sin TTS -- por `/conversations/{id}/reply-audio`.
+  const stopStream = () => {
+    audioStreamRef.current?.getTracks().forEach((t) => t.stop());
+    audioStreamRef.current = null;
+  };
+
+  const startRecording = async () => {
+    if (!detail || recording || sendingAudio || detail.status === 'bloqueada') return;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      audioStreamRef.current = stream;
+      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+        ? 'audio/webm;codecs=opus' : 'audio/webm';
+      const recorder = new MediaRecorder(stream, { mimeType });
+      audioChunksRef.current = [];
+      recorder.ondataavailable = (e) => { if (e.data.size > 0) audioChunksRef.current.push(e.data); };
+      recorder.onstop = async () => {
+        stopStream();
+        const blob = new Blob(audioChunksRef.current, { type: mimeType });
+        audioChunksRef.current = [];
+        if (blob.size < 500) return; // grabacion demasiado corta (toque accidental)
+        setSendingAudio(true);
+        try {
+          const form = new FormData();
+          form.append('file', blob, 'nota-de-voz.webm');
+          const r = await api.post(`/conversations/${detail.id}/reply-audio`, form);
+          if (!r.data?.sent_via_gateway) toast.warning('Guardado, pero el gateway no confirmó el envío');
+          await loadDetail(detail.id);
+          load();
+        } catch { toast.error('No se pudo enviar la nota de voz'); }
+        finally { setSendingAudio(false); }
+      };
+      mediaRecorderRef.current = recorder;
+      recorder.start();
+      setRecording(true);
+    } catch {
+      toast.error('No se pudo acceder al micrófono');
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop();
+    }
+    setRecording(false);
+  };
+
+  useEffect(() => () => { stopStream(); }, []);
 
   const takeControl = async () => {
     if (!detail || busy) return;
@@ -459,14 +515,36 @@ export default function InboxWhatsApp() {
                   disabled={detail.status === 'bloqueada' || sending}
                   className="flex-1 px-3 py-2.5 rounded-2xl border focus:outline-none disabled:opacity-50 text-base md:text-sm resize-none"
                   style={{ background: theme.background, borderColor: theme.border, color: theme.text, minHeight: 44 }} />
-                <button onClick={handleSend} disabled={sending || !draft.trim() || detail.status === 'bloqueada'}
-                  className="flex-shrink-0 flex items-center justify-center w-11 h-11 rounded-full transition-all active:scale-95 disabled:opacity-40"
-                  style={{ background: theme.primary, color: theme.primaryText }} aria-label="Enviar">
-                  <Send className="h-5 w-5" />
-                </button>
+                {draft.trim() ? (
+                  <button onClick={handleSend} disabled={sending || detail.status === 'bloqueada'}
+                    className="flex-shrink-0 flex items-center justify-center w-11 h-11 rounded-full transition-all active:scale-95 disabled:opacity-40"
+                    style={{ background: theme.primary, color: theme.primaryText }} aria-label="Enviar">
+                    <Send className="h-5 w-5" />
+                  </button>
+                ) : (
+                  <button
+                    onMouseDown={startRecording}
+                    onMouseUp={stopRecording}
+                    onMouseLeave={() => { if (recording) stopRecording(); }}
+                    onTouchStart={(e) => { e.preventDefault(); startRecording(); }}
+                    onTouchEnd={(e) => { e.preventDefault(); stopRecording(); }}
+                    disabled={sendingAudio || detail.status === 'bloqueada'}
+                    className={`flex-shrink-0 flex items-center justify-center w-11 h-11 rounded-full transition-all active:scale-95 disabled:opacity-40 select-none ${recording ? 'animate-pulse' : ''}`}
+                    style={{ background: recording ? '#ef4444' : theme.primary, color: theme.primaryText }}
+                    aria-label="Mantener presionado para grabar una nota de voz"
+                    title="Mantener presionado para grabar">
+                    {recording ? <Square className="h-4 w-4" /> : <Mic className="h-5 w-5" />}
+                  </button>
+                )}
               </div>
               <div className="mt-1.5 text-[10px] flex items-center gap-1" style={{ color: theme.textSecondary }}>
-                <Circle className="h-2 w-2" /> Responder toma el mando y pausa el bot 45 min.
+                {recording ? (
+                  <><Circle className="h-2 w-2 text-red-500" /> Grabando… soltá para enviar.</>
+                ) : sendingAudio ? (
+                  <><Circle className="h-2 w-2" /> Enviando nota de voz…</>
+                ) : (
+                  <><Circle className="h-2 w-2" /> Responder toma el mando y pausa el bot 45 min.</>
+                )}
               </div>
             </footer>
           </>

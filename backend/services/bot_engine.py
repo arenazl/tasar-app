@@ -163,12 +163,25 @@ async def _build_system_instruction(ctx: BotContext, total_msgs: int) -> str:
     return "\n\n".join(parts)
 
 
+def _msg_text(m: WaMessage) -> str:
+    """Texto que le llega a Gemini para este mensaje.
+
+    Audio con transcripcion disponible (WO F3-01, Groq Whisper) se manda como
+    "[audio] {url}\\n[Transcripcion] {texto}" -- asi el bot ve tanto que fue
+    una nota de voz como lo que dijo. Si no hay transcripcion (GROQ_API_KEY
+    sin configurar, o Groq fallo), cae al content crudo (placeholder "[audio]").
+    """
+    if m.type == "audio" and m.transcription:
+        return f"[audio] {m.media_url}\n[Transcripcion] {m.transcription}"
+    return m.content or ""
+
+
 def _historial_a_contents(historial: List[WaMessage], nuevo: WaMessage) -> List[Dict[str, Any]]:
     contents: List[Dict[str, Any]] = []
     for m in historial:
         role = "user" if m.direction == DIRECTION_INBOUND else "model"
-        contents.append({"role": role, "parts": [{"text": m.content or ""}]})
-    contents.append({"role": "user", "parts": [{"text": nuevo.content or ""}]})
+        contents.append({"role": role, "parts": [{"text": _msg_text(m)}]})
+    contents.append({"role": "user", "parts": [{"text": _msg_text(nuevo)}]})
     return contents
 
 
