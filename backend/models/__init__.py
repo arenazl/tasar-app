@@ -15,6 +15,7 @@ from models.wa_session import WaSession
 from models.visit import Visit
 from models.deal import Deal
 from models.authorization import Authorization
+from models.express_valuation import ExpressValuation
 
 __all__ = [
     "User", "Workspace",
@@ -33,4 +34,5 @@ __all__ = [
     "Visit",
     "Deal",
     "Authorization",
+    "ExpressValuation",
 ]
