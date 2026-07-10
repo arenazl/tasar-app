@@ -15,7 +15,7 @@ from api import (
     collaboration, ai, scraping, heatmap, dashboard, settings as settings_api,
     inbox, market, reports, ai_coach, clients, wa_auth, wa_gateway,
     valuations, coaches, dmo, visits, deals, authorizations,
-    whatsapp, bot_config,
+    whatsapp, bot_config, conversations,
 )
 
 
@@ -82,6 +82,9 @@ app.include_router(wa_gateway.router)
 #   bot_config -> configuracion del bot POR WORKSPACE (JWT admin/supervisor)
 app.include_router(whatsapp.router)
 app.include_router(bot_config.router)
+# Inbox humano de WhatsApp (WO F2-04): conversaciones (list sin N+1 + tomar mando +
+# responder por gateway + reactivar bot), scoped por workspace + rol.
+app.include_router(conversations.router)
 
 
 @app.get("/")

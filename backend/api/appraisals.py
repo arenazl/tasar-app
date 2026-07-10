@@ -105,6 +105,18 @@ async def sign_appraisal(
     # el status vigente se mantiene sin inventar valores fuera del enum.
     if a.status == "en_revision":
         a.status = "aprobada"
+
+    # Evento de Bandeja: tasación firmada (workspace-wide, best-effort). Se agrega en
+    # la MISMA transacción que la firma (inbox_service.notify no commitea).
+    try:
+        from services import inbox_service
+        await inbox_service.appraisal_signed(
+            db, workspace_id=user.workspace_id, appraisal_id=a.id,
+            signer_name=user.full_name, client_name=a.client_name,
+        )
+    except Exception as e:
+        print(f"[inbox] appraisal_signed event fallo: {e}")
+
     await db.commit()
     await db.refresh(sig)
 

@@ -135,6 +135,28 @@ async def add_comment(
         anchor=body.anchor,
     )
     db.add(c)
+    await db.flush()
+
+    # Evento de Bandeja: comentario en estudio -> UNA fila por colaborador (no al
+    # autor). En la MISMA transacción (inbox_service.notify no commitea). Best-effort.
+    try:
+        from services import inbox_service
+        study_evt = (await db.execute(select(MarketStudy).where(MarketStudy.id == study_id))).scalar_one_or_none()
+        if study_evt:
+            code = f"ACM-{study_evt.id:04d}"
+            collabs_evt = (await db.execute(
+                select(Collaboration).where(Collaboration.market_study_id == study_id)
+            )).scalars().all()
+            recipient_ids = {x.user_id for x in collabs_evt if x.user_id and x.user_id != user.id}
+            snip = (body.body or "")[:280]
+            for rid in recipient_ids:
+                await inbox_service.study_comment(
+                    db, workspace_id=user.workspace_id, study_id=study_id, study_code=code,
+                    author_name=user.full_name or user.email, recipient_user_id=rid, snippet=snip,
+                )
+    except Exception as e:
+        print(f"[inbox] study_comment event fallo: {e}")
+
     await db.commit()
     await db.refresh(c)
 

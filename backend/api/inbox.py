@@ -1,7 +1,7 @@
 """Bandeja (Inbox) endpoints."""
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, update
+from sqlalchemy import select, func, update, or_
 from pydantic import BaseModel
 from typing import List, Optional
 from datetime import datetime
@@ -13,6 +13,16 @@ from models.inbox import InboxMessage
 
 
 router = APIRouter(prefix="/api/inbox", tags=["inbox"])
+
+
+def _scope(user: User):
+    """Scoping por rol de la Bandeja: supervisor/admin ven todo el workspace;
+    el vendedor ve lo del workspace (user_id NULL) + lo dirigido a él (user_id == él).
+    Los eventos con destinatario (F2-04) respetan así el aislamiento por rol."""
+    base = InboxMessage.workspace_id == user.workspace_id
+    if user.role in ("supervisor", "admin"):
+        return base
+    return base & or_(InboxMessage.user_id.is_(None), InboxMessage.user_id == user.id)
 
 
 class InboxItem(BaseModel):
@@ -49,7 +59,8 @@ async def list_inbox(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
-    base = select(InboxMessage).where(InboxMessage.workspace_id == user.workspace_id)
+    scope = _scope(user)
+    base = select(InboxMessage).where(scope)
     if filter == "unread":
         base = base.where(InboxMessage.is_read == False)
     elif filter == "assigned":
@@ -57,16 +68,13 @@ async def list_inbox(
     items = (await db.execute(base.order_by(InboxMessage.created_at.desc()))).scalars().all()
 
     total = (await db.execute(
-        select(func.count()).select_from(InboxMessage)
-        .where(InboxMessage.workspace_id == user.workspace_id)
+        select(func.count()).select_from(InboxMessage).where(scope)
     )).scalar() or 0
     unread = (await db.execute(
-        select(func.count()).select_from(InboxMessage)
-        .where(InboxMessage.workspace_id == user.workspace_id, InboxMessage.is_read == False)
+        select(func.count()).select_from(InboxMessage).where(scope, InboxMessage.is_read == False)
     )).scalar() or 0
     assigned = (await db.execute(
-        select(func.count()).select_from(InboxMessage)
-        .where(InboxMessage.workspace_id == user.workspace_id, InboxMessage.is_assigned_to_me == True)
+        select(func.count()).select_from(InboxMessage).where(scope, InboxMessage.is_assigned_to_me == True)
     )).scalar() or 0
 
     return InboxListResponse(
@@ -82,10 +90,7 @@ async def get_inbox_msg(
     user: User = Depends(get_current_user),
 ):
     m = (await db.execute(
-        select(InboxMessage).where(
-            InboxMessage.id == msg_id,
-            InboxMessage.workspace_id == user.workspace_id,
-        )
+        select(InboxMessage).where(_scope(user), InboxMessage.id == msg_id)
     )).scalar_one_or_none()
     if not m:
         raise HTTPException(404, "Mensaje no encontrado")
@@ -99,10 +104,7 @@ async def mark_read(
     user: User = Depends(get_current_user),
 ):
     m = (await db.execute(
-        select(InboxMessage).where(
-            InboxMessage.id == msg_id,
-            InboxMessage.workspace_id == user.workspace_id,
-        )
+        select(InboxMessage).where(_scope(user), InboxMessage.id == msg_id)
     )).scalar_one_or_none()
     if not m:
         raise HTTPException(404)
@@ -120,7 +122,7 @@ async def read_all(
 ):
     await db.execute(
         update(InboxMessage)
-        .where(InboxMessage.workspace_id == user.workspace_id, InboxMessage.is_read == False)
+        .where(_scope(user), InboxMessage.is_read == False)
         .values(is_read=True, read_at=datetime.utcnow())
     )
     await db.commit()

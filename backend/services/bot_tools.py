@@ -235,8 +235,11 @@ async def asignar_round_robin(db: AsyncSession, workspace_id: int) -> Optional[U
     return r.scalar_one_or_none()
 
 
-async def _get_or_create_client(ctx: BotContext, nombre: Optional[str]) -> Optional[Client]:
+async def _get_or_create_client(ctx: BotContext, nombre: Optional[str]) -> tuple[Optional[Client], bool]:
     """Busca (o crea) el Client del workspace por el telefono de la conversacion.
+
+    Devuelve (client, created): `created=True` solo cuando se dio de ALTA un lead
+    nuevo (lo usa el producer de Bandeja para no notificar en cada actualizacion).
 
     origin='whatsapp' (valido en el enum de la suite desde F1-01; el bug de AgentFlow
     de crear con un origen inexistente NO se porta). Vincula la conversacion al client.
@@ -250,7 +253,7 @@ async def _get_or_create_client(ctx: BotContext, nombre: Optional[str]) -> Optio
             select(Client).where(Client.id == conv.client_id, Client.workspace_id == ctx.workspace_id)
         )).scalar_one_or_none()
         if existing:
-            return existing
+            return existing, False
 
     # Buscar por telefono dentro del workspace.
     client = None
@@ -259,6 +262,7 @@ async def _get_or_create_client(ctx: BotContext, nombre: Optional[str]) -> Optio
             select(Client).where(Client.workspace_id == ctx.workspace_id, Client.phone == phone)
         )).scalar_one_or_none()
 
+    created = False
     if client is None:
         vendor = await asignar_round_robin(ctx.db, ctx.workspace_id)
         client = Client(
@@ -271,9 +275,10 @@ async def _get_or_create_client(ctx: BotContext, nombre: Optional[str]) -> Optio
         )
         ctx.db.add(client)
         await ctx.db.flush()
+        created = True
 
     conv.client_id = client.id
-    return client
+    return client, created
 
 
 # ── Implementaciones ─────────────────────────────────────────────────────
@@ -380,7 +385,7 @@ async def agendar_visita(
     except (ValueError, AttributeError):
         return {"ok": False, "error": f"Fecha inválida: {fecha_propuesta}"}
 
-    client = await _get_or_create_client(ctx, nombre_cliente)
+    client, _created = await _get_or_create_client(ctx, nombre_cliente)
     if client is None:
         return {"ok": False, "error": "No se pudo identificar al cliente"}
 
@@ -404,6 +409,15 @@ async def agendar_visita(
     )
     ctx.db.add(visit)
     await ctx.db.flush()
+
+    # Evento de Bandeja: visita agendada por el bot (dirigida al vendedor asignado).
+    await _emit_inbox_event(
+        ctx, "visit_scheduled",
+        conversation_id=ctx.conversation.id, user_id=vendor_id,
+        property_title=p.title or f"Propiedad #{p.id}",
+        when_label=scheduled_at.strftime("%d/%m %H:%M") + " hs",
+        client_name=client.name,
+    )
 
     # Notificar al vendedor (best-effort, via el unico camino de salida).
     await _notify_vendor(
@@ -430,7 +444,7 @@ async def registrar_lead(
     presupuesto_max_usd: Optional[int] = None,
     temperatura: Optional[str] = None,
 ) -> Dict[str, Any]:
-    client = await _get_or_create_client(ctx, nombre)
+    client, created = await _get_or_create_client(ctx, nombre)
     if client is None:
         return {"ok": False, "error": "No se pudo identificar al cliente"}
 
@@ -449,6 +463,15 @@ async def registrar_lead(
         client.lead_status = "contactado"
     client.last_contact_at = datetime.now(timezone.utc)
     await ctx.db.flush()
+
+    # Evento de Bandeja: SOLO en el alta real de un lead nuevo (no en cada update).
+    if created:
+        await _emit_inbox_event(
+            ctx, "lead_created",
+            conversation_id=ctx.conversation.id,
+            contact_name=client.name, phone=client.phone,
+            user_id=client.assigned_to, interes=interes,
+        )
     return {"ok": True, "cliente_id": client.id, "lead_status": client.lead_status}
 
 
@@ -558,8 +581,15 @@ async def derivar_a_humano(ctx: BotContext, motivo: Optional[str] = None) -> Dic
     vendor.last_assigned_at = datetime.now(timezone.utc)
 
     # Vincular/crear el cliente para que el vendedor tenga la ficha.
-    client = await _get_or_create_client(ctx, None)
+    client, _created = await _get_or_create_client(ctx, None)
     await ctx.db.flush()
+
+    # Evento de Bandeja: conversacion DERIVADA a un humano, todavia sin tomar.
+    await _emit_inbox_event(
+        ctx, "conversation_handoff",
+        conversation_id=conv.id, user_id=vendor.id,
+        contact_name=conv.contact_name, motivo=motivo,
+    )
 
     # Notificar al vendedor con resumen + tarjeta wa.me del cliente.
     phone = _phone_from_jid(conv.phone_jid)
@@ -588,6 +618,21 @@ async def cerrar_conversacion(ctx: BotContext, motivo: Optional[str] = None) -> 
 
 
 # ── Notificacion / resumen (usan el unico camino de salida) ────────────────
+
+async def _emit_inbox_event(ctx: BotContext, kind: str, **kwargs: Any) -> None:
+    """Dispara un evento de Bandeja (producer inbox_service) — best-effort.
+
+    Un fallo del producer NUNCA rompe el flujo del bot (patron de la casa: como los
+    bloques de notificacion por email). Import diferido para evitar ciclo con la capa
+    de servicios/API.
+    """
+    try:
+        from services import inbox_service
+        fn = getattr(inbox_service, kind)
+        await fn(ctx.db, workspace_id=ctx.workspace_id, **kwargs)
+    except Exception as e:  # noqa: BLE001
+        log.warning("inbox event %s fallo (ignorado): %s", kind, type(e).__name__)
+
 
 async def _notify_vendor(ctx: BotContext, vendor_id: int, text: str) -> None:
     if ctx.send is None:

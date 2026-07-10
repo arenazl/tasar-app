@@ -3,7 +3,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Inbox, FileCheck2, Building2, Workflow, Users, Map as MapIcon,
   ClipboardList, FileText, Database, Settings, LogOut, ChevronDown, ChevronLeft, ChevronRight,
-  Zap, Target, Layers, GraduationCap, CalendarDays, FileSignature, Bot,
+  Zap, Target, Layers, GraduationCap, CalendarDays, FileSignature, Bot, MessageSquare,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
@@ -15,6 +15,7 @@ import MobileBottomBar from './MobileBottomBar';
 const NAV_TRABAJO = [
   { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/bandeja', icon: Inbox, label: 'Bandeja', badge: 'unread' as const },
+  { to: '/whatsapp', icon: MessageSquare, label: 'WhatsApp' },
   { to: '/tasacion-express', icon: Zap, label: 'Express' },
   { to: '/tasaciones', icon: FileCheck2, label: 'Tasaciones' },
   { to: '/propiedades', icon: Building2, label: 'Propiedades' },

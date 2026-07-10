@@ -26,6 +26,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Bandeja from './pages/Bandeja';
+import InboxWhatsApp from './pages/InboxWhatsApp';
 import Propiedades from './pages/Propiedades';
 import Estudios from './pages/Estudios';
 import EstudioDetail from './pages/EstudioDetail';
@@ -64,6 +65,7 @@ export default function App() {
                 <Routes>
                   <Route path="/" element={<Dashboard />} />
                   <Route path="/bandeja" element={<Bandeja />} />
+                  <Route path="/whatsapp" element={<InboxWhatsApp />} />
                   <Route path="/propiedades" element={<Propiedades />} />
                   <Route path="/estudios" element={<Estudios />} />
                   <Route path="/estudios/:id" element={<EstudioDetail />} />

@@ -1,7 +1,9 @@
 import { useEffect, useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
-  Inbox as InboxIcon, MailOpen, CheckCheck, Reply, Forward, Bot, AlertTriangle,
+  Inbox as InboxIcon, MailOpen, CheckCheck, Reply, Bot, AlertTriangle,
   AtSign, Bell, DollarSign, ClipboardList, ChevronRight, FileCheck2,
+  UserPlus, CalendarClock, ArrowRightLeft, FileSignature, MessageSquare, ExternalLink,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { api } from '../services/api';
@@ -33,6 +35,9 @@ const KIND_ICON: Record<string, any> = {
   client_message: Reply, system_alert: AlertTriangle, user_mention: AtSign,
   self_reminder: Bell, billing: DollarSign, overdue_task: AlertTriangle,
   appraisal_assigned: FileCheck2, comparable_added: ClipboardList,
+  // Eventos reales del sistema (WO F2-04)
+  bot_lead: UserPlus, bot_visit: CalendarClock, bot_handoff: ArrowRightLeft,
+  appraisal_signed: FileSignature, study_comment: MessageSquare,
 };
 
 function fmtTime(iso: string): string {
@@ -47,6 +52,7 @@ function fmtTime(iso: string): string {
 
 export default function Bandeja() {
   const { theme } = useTheme();
+  const navigate = useNavigate();
   const [items, setItems] = useState<InboxItem[]>([]);
   const [counts, setCounts] = useState({ total: 0, unread: 0, assigned: 0 });
   const [filter, setFilter] = useState<'unread' | 'assigned' | 'all'>('unread');
@@ -201,14 +207,13 @@ export default function Bandeja() {
                 <div className="text-[11px] sm:text-xs mt-1" style={{ color: theme.textSecondary }}>{fmtTime(selected.created_at)}</div>
               </div>
               <div className="flex gap-2 flex-shrink-0">
-                <button className="hidden sm:flex px-3 py-2 rounded-lg text-sm font-medium items-center gap-1.5 transition-all active:scale-95"
-                  style={{ background: theme.card, color: theme.text, border: `1px solid ${theme.border}` }}>
-                  <Forward className="h-4 w-4" /> Reenviar
-                </button>
-                <button className="px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-bold flex items-center gap-1 sm:gap-1.5 transition-all active:scale-95"
-                  style={{ background: theme.primary, color: theme.primaryText }}>
-                  Responder <ChevronRight className="h-4 w-4" />
-                </button>
+                {selected.related_url && (
+                  <button onClick={() => navigate(selected.related_url!)}
+                    className="px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-bold flex items-center gap-1 sm:gap-1.5 transition-all active:scale-95"
+                    style={{ background: theme.primary, color: theme.primaryText }}>
+                    Abrir <ExternalLink className="h-4 w-4" />
+                  </button>
+                )}
               </div>
             </div>
             <div className="flex-1 overflow-y-auto px-4 sm:px-8 py-5 sm:py-6">
