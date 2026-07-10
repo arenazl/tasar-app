@@ -101,6 +101,21 @@ class Settings(BaseSettings):
     # no coincide => 403 (fail-closed).
     CRON_KEY: str = ""
 
+    # --- Knowledge Share Protocol (KSP v1.2, WO F5-01) ---
+    # Las DOS claves fijas de los generadores (bloque `generadores` de
+    # base-compartida/2-APPS-ENTRADAS.json). GET /api/knowledge-base y los
+    # endpoints /api/tools/* aceptan CUALQUIERA de las dos (comparacion
+    # time-safe acumulada sobre ambas, protocolo 5.1). Si NINGUNA esta
+    # configurada => 503 (fail-closed, nunca se filtra el KB sin secret).
+    KB_CLAVE_SALESBOT: str = ""
+    KB_CLAVE_MEDIASTUDIO: str = ""
+    # Workspace demo que alimenta los samples EN VIVO de `entities` y las
+    # llamadas a `/api/tools/*` cuando el consumidor no pide un workspace
+    # puntual (header X-KB-Workspace: slug). Requiere data real (scripts/
+    # seed_demo.py crea "tasar-demo"); si el slug no existe, el KB degrada
+    # esos bloques sin inventar datos (regla dura #11).
+    KB_DEMO_WORKSPACE_SLUG: str = "tasar-demo"
+
     @property
     def database_url(self) -> str:
         return (

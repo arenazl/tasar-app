@@ -16,6 +16,7 @@ from api import (
     inbox, market, reports, ai_coach, clients, wa_auth, wa_gateway,
     valuations, coaches, dmo, visits, deals, authorizations,
     whatsapp, bot_config, conversations, meta, push, cron, team,
+    knowledge_base,
 )
 
 
@@ -101,6 +102,12 @@ app.include_router(cron.router)
 # real (require_role): ver = admin/supervisor, gestionar = admin. El alta via
 # token es publica y vive en auth.py.
 app.include_router(team.router)
+# Knowledge Share Protocol (WO F5-01): GET /api/knowledge-base(+/health) para
+# SalesBot/Media Studio, protegido por X-KB-Key (KB_CLAVE_SALESBOT/
+# KB_CLAVE_MEDIASTUDIO) -- ver base-compartida/3-PROTOCOLO-COMPLETO.md.
+# Incluye /api/tools/* (tools function-calling reales del bot, publicadas en
+# el KB con endpoint.path relativo).
+app.include_router(knowledge_base.router)
 
 
 @app.get("/")
