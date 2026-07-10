@@ -7,6 +7,7 @@ import {
 import { useAuth } from '../contexts/AuthContext';
 import BrandLogo from '../components/BrandLogo';
 import { useTheme } from '../contexts/ThemeContext';
+import { BRAND } from '../config/brand';
 
 const PROFILES = [
   { email: 'admin@tasar.demo', password: 'admin123', label: 'Admin', desc: 'Acceso total', icon: Shield, initials: 'LA' },
@@ -28,7 +29,7 @@ export default function Login() {
     try {
       await login(email, password);
       navigate('/');
-      toast.success('Bienvenido a TasAR');
+      toast.success(`Bienvenido a ${BRAND.name}`);
     } catch (err: any) {
       toast.error(err.response?.data?.detail || 'Error de login');
     } finally {
@@ -66,8 +67,8 @@ export default function Login() {
         <div className="relative flex items-center gap-3">
           <BrandLogo variant="icon" className="h-10" />
           <div>
-            <div className="font-display font-black text-2xl tracking-tight" style={{ color: theme.text }}>TasAR</div>
-            <div className="text-[10px] uppercase tracking-[0.2em] font-bold" style={{ color: theme.textSecondary }}>Mapa de valor</div>
+            <div className="font-display font-black text-2xl tracking-tight" style={{ color: theme.text }}>{BRAND.name}</div>
+            <div className="text-[10px] uppercase tracking-[0.2em] font-bold" style={{ color: theme.textSecondary }}>{BRAND.tagline}</div>
           </div>
         </div>
 
@@ -82,7 +83,7 @@ export default function Login() {
             <span style={{ color: theme.primary }}>en datos.</span>
           </h1>
           <p className="text-base xl:text-lg leading-relaxed max-w-md" style={{ color: theme.textSecondary }}>
-            TasAR procesa millones de avisos, escrituras y permisos al mes
+            {BRAND.name} procesa millones de avisos, escrituras y permisos al mes
             para darte el precio real de cada zona, edificio y tipología.
             Sin opiniones. Sin "estimaciones".
           </p>
@@ -104,7 +105,7 @@ export default function Login() {
           <span className="w-1 h-1 rounded-full" style={{ background: theme.border }} />
           <span>SSL · JWT 24h</span>
           <span className="w-1 h-1 rounded-full" style={{ background: theme.border }} />
-          <span>{new Date().getFullYear()} TasAR</span>
+          <span>{new Date().getFullYear()} {BRAND.name}</span>
         </div>
       </div>
 
@@ -193,7 +194,7 @@ export default function Login() {
           </form>
 
           <p className="mt-6 text-center text-sm" style={{ color: theme.textSecondary }}>
-            ¿Sin cuenta? <Link to="/register" className="font-bold hover:underline" style={{ color: theme.primary }}>Crear workspace</Link>
+            ¿Sin cuenta? <Link to="/registro" className="font-bold hover:underline" style={{ color: theme.primary }}>Crear workspace</Link>
           </p>
         </div>
       </div>

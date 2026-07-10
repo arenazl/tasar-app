@@ -90,7 +90,7 @@ export default function MapaCalor() {
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(map);
     if (points.length > 0) {
       const heatData = points.map(p => [p.lat, p.lng, p.intensity]) as any;
-      // @ts-ignore
+      // @ts-expect-error -- leaflet.heat no trae tipos, heatLayer no existe en @types/leaflet
       L.heatLayer(heatData, { radius: 28, blur: 22, maxZoom: 14 }).addTo(map);
       points.forEach(p => {
         L.circleMarker([p.lat, p.lng], { radius: 5, color: theme.primary, fillOpacity: 0.7 })
@@ -98,7 +98,7 @@ export default function MapaCalor() {
           .addTo(map);
       });
       const grp = L.featureGroup(points.map(p => L.marker([p.lat, p.lng])));
-      try { map.fitBounds(grp.getBounds().pad(0.3)); } catch {}
+      try { map.fitBounds(grp.getBounds().pad(0.3)); } catch { /* best-effort, ignorar */ }
     }
     return () => { map.remove(); };
   }, [points, loaded, theme.primary]);
@@ -226,8 +226,11 @@ function DrillPanel({ zone, zones, points, theme, onClose }: any) {
         <div className="grid grid-cols-2 gap-3">
           <DrillStat icon={Users} label="Muestras" value={zone.sample_size?.toLocaleString() || '0'} color={theme.info} theme={theme} />
           <DrillStat icon={Activity} label="Listings activos" value={zonePoints.length.toLocaleString()} color={theme.warning} theme={theme} />
-          <DrillStat icon={BarChart3} label="Min USD/m²" value={Math.round((zone.min_price_per_m2 || zone.avg_price_per_m2 * 0.7)).toLocaleString()} color={theme.success} theme={theme} />
-          <DrillStat icon={TrendingUp} label="Max USD/m²" value={Math.round((zone.max_price_per_m2 || zone.avg_price_per_m2 * 1.3)).toLocaleString()} color={theme.danger} theme={theme} />
+          {/* Min/Max reales del subset agregado (WO F4-02) — antes eran
+              avg*0.7 / avg*1.3 inventados. Si el back no tiene el dato real
+              (columna nueva, subset viejo) no se muestra un numero fabricado. */}
+          <DrillStat icon={BarChart3} label="Min USD/m²" value={zone.min_price_per_m2 != null ? Math.round(zone.min_price_per_m2).toLocaleString() : '—'} color={theme.success} theme={theme} />
+          <DrillStat icon={TrendingUp} label="Max USD/m²" value={zone.max_price_per_m2 != null ? Math.round(zone.max_price_per_m2).toLocaleString() : '—'} color={theme.danger} theme={theme} />
         </div>
 
         {zonePoints.length > 0 && (

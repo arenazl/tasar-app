@@ -79,6 +79,37 @@ def _wrap(title: str, body_html: str) -> str:
     """
 
 
+_ROLE_LABEL = {"admin": "Administrador", "supervisor": "Supervisor", "vendedor": "Vendedor"}
+
+
+async def send_team_invitation(
+    to: str, workspace_name: str, role: str, inviter_name: str, accept_url: str,
+) -> bool:
+    """Invitacion al equipo (WO F4-05). No pasa por `_notify_enabled`: no es
+    una notificacion opt-in del workspace sino una accion explicita del admin.
+    Reusa el sender/template Brevo del resto de la app."""
+    if not to:
+        return False
+    role_label = _ROLE_LABEL.get(role, role)
+    body = f"""
+      <p>Hola,</p>
+      <p><b>{inviter_name or 'El equipo'}</b> te invito a sumarte al workspace
+      <b>{workspace_name}</b> en TasAR como <b>{role_label}</b>.</p>
+      <div style="margin: 24px 0; text-align: center;">
+        <a href="{accept_url}"
+           style="display: inline-block; background: #0f172a; color: #ffffff; text-decoration: none; padding: 12px 28px; border-radius: 10px; font-weight: 700; font-size: 15px;">
+          Aceptar invitacion
+        </a>
+      </div>
+      <p style="font-size: 13px; color: #64748b;">
+        O pegá este enlace en tu navegador:<br />
+        <span style="word-break: break-all;">{accept_url}</span>
+      </p>
+      <p style="font-size: 12px; color: #94a3b8;">Este enlace vence en 7 dias. Si no esperabas esta invitacion, ignorá este mail.</p>
+    """
+    return await send_email(to, f"Te invitaron a {workspace_name} en TasAR", _wrap("Invitacion al equipo", body))
+
+
 async def notify_appraisal_signed(db: AsyncSession, workspace_id: int, to: str, appraisal_id: int, client_name: str, value: float, currency: str) -> bool:
     if not await _notify_enabled(db, workspace_id, "notify_appraisal"):
         return False

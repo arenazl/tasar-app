@@ -1,8 +1,15 @@
 import { useEffect, useState } from 'react';
-import { Settings, Palette, Bell, Lock, Check, Type, Sparkles, Zap, Brain, Gem, X, Loader2 } from 'lucide-react';
+import {
+  Settings, Palette, Bell, Lock, Check, Type, Sparkles, Zap, Brain, Gem, X, Loader2,
+  FlaskConical, Trash2, AlertTriangle,
+} from 'lucide-react';
 import { toast } from 'sonner';
 import { useTheme } from '../contexts/ThemeContext';
+import { useAuth } from '../contexts/AuthContext';
 import { api } from '../services/api';
+import { PushTestButton } from '../components/PushOptIn';
+import PageHint from '../components/ui/PageHint';
+import { BRAND } from '../config/brand';
 
 const CLAUDE_MODELS = [
   { value: 'haiku', label: 'Haiku', desc: 'Rápido y económico', icon: Zap, color: '#16a34a' },
@@ -22,6 +29,8 @@ const AI_PROVIDERS = [
 
 export default function Configuracion() {
   const { mode, toggle, presetId, setPreset, presets, theme, fontId, setFont, fonts } = useTheme();
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
   const [aiProvider, setAiProvider] = useState<string>('claude');
   const [claudeModel, setClaudeModel] = useState<string>('haiku');
   const [geminiModel, setGeminiModel] = useState<string>('gemini-2.5-flash');
@@ -31,6 +40,11 @@ export default function Configuracion() {
   const [notifyAppraisal, setNotifyAppraisal] = useState(true);
   const [notifyComment, setNotifyComment] = useState(false);
   const [showPwdModal, setShowPwdModal] = useState(false);
+
+  // Datos de ejemplo del workspace (WO F5-03) — generar/borrar, solo admin.
+  const [demoBusy, setDemoBusy] = useState(false);
+  const [purgePreview, setPurgePreview] = useState<Record<string, number> | null>(null);
+  const [purgeBusy, setPurgeBusy] = useState(false);
 
   useEffect(() => {
     api.get('/settings/ai_provider').then(r => { if (r.data?.value) setAiProvider(r.data.value); }).catch(() => {});
@@ -67,8 +81,52 @@ export default function Configuracion() {
   const activeModel = aiProvider === 'gemini' ? geminiModel : claudeModel;
   const saveModel = aiProvider === 'gemini' ? saveGeminiModel : saveClaudeModel;
 
+  const generateDemoData = async () => {
+    setDemoBusy(true);
+    try {
+      const r = await api.post('/demo/generate', { n_properties: 12 });
+      toast.success(`Demo cargada: ${r.data.properties_created} propiedades, ${r.data.vendors_created} vendedores, ${r.data.conversations_created} conversaciones`);
+      setPurgePreview(null);
+    } catch (e: any) {
+      toast.error(e.response?.data?.detail || 'No se pudo cargar la demo');
+    } finally {
+      setDemoBusy(false);
+    }
+  };
+
+  const previewPurge = async () => {
+    setPurgeBusy(true);
+    try {
+      const r = await api.post('/demo/purge', { confirm: false });
+      const { dry_run, ...counts } = r.data;
+      void dry_run;
+      setPurgePreview(counts);
+    } catch (e: any) {
+      toast.error(e.response?.data?.detail || 'No se pudo calcular qué se borraría');
+    } finally {
+      setPurgeBusy(false);
+    }
+  };
+
+  const confirmPurge = async () => {
+    setPurgeBusy(true);
+    try {
+      const r = await api.post('/demo/purge', { confirm: true });
+      toast.success(`Demo borrada: ${r.data.properties_deleted} propiedades, ${r.data.vendors_deleted} vendedores, ${r.data.conversations_deleted} conversaciones`);
+      if (r.data.properties_kept_in_use > 0) {
+        toast.info(`${r.data.properties_kept_in_use} propiedad(es) demo se conservaron porque ya tienen una tasación/visita/operación real cargada`);
+      }
+      setPurgePreview(null);
+    } catch (e: any) {
+      toast.error(e.response?.data?.detail || 'No se pudo borrar la demo');
+    } finally {
+      setPurgeBusy(false);
+    }
+  };
+
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto animate-fade-in">
+      <PageHint pageId="configuracion" />
       <header className="mb-6">
         <h1 className="text-3xl font-bold flex items-center gap-2" style={{ color: theme.text }}>
           <Settings className="h-7 w-7" style={{ color: theme.primary }} /> Configuración
@@ -237,7 +295,7 @@ export default function Configuracion() {
                     {f.description}
                   </div>
                   <div className="text-sm leading-snug" style={{ color: theme.text, fontFamily: f.family }}>
-                    TasAR · Mapa de valor por zona
+                    {BRAND.name} · {BRAND.taglineLong}
                   </div>
                   <div className="text-xs leading-snug mt-1" style={{ color: theme.textSecondary, fontFamily: f.family }}>
                     Análisis comparativo de mercado · USD 2.890/m²
@@ -284,7 +342,70 @@ export default function Configuracion() {
             style={{ background: `${theme.primary}15`, color: theme.primary, border: `1px solid ${theme.primary}30` }}>
             Enviar email de prueba
           </button>
+
+          <div className="text-xs mt-4 mb-1" style={{ color: theme.textSecondary }}>
+            Push del navegador — te avisa aunque tengas la app cerrada. Activalo desde el banner que aparece al ingresar.
+          </div>
+          <PushTestButton />
         </div>
+
+        {/* DATOS DE EJEMPLO (WO F5-03) — solo admin */}
+        {isAdmin && (
+          <div className="p-5 rounded-xl" style={{ background: theme.card, border: `1px solid ${theme.border}` }}>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: `${theme.primary}15` }}>
+                <FlaskConical className="h-5 w-5" style={{ color: theme.primary }} />
+              </div>
+              <div className="flex-1">
+                <div className="font-semibold" style={{ color: theme.text }}>Datos de ejemplo</div>
+                <div className="text-sm" style={{ color: theme.textSecondary }}>
+                  12 propiedades + 3 vendedores + DMO + 5 conversaciones, todo marcado [DEMO]
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-2.5">
+              <button onClick={generateDemoData} disabled={demoBusy}
+                className="flex-1 px-4 py-2.5 rounded-lg text-sm font-bold flex items-center justify-center gap-1.5 active:scale-[0.98] disabled:opacity-50"
+                style={{ background: theme.primary, color: theme.primaryText }}>
+                {demoBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <FlaskConical className="h-4 w-4" />}
+                Cargar datos de ejemplo
+              </button>
+              <button onClick={previewPurge} disabled={purgeBusy}
+                className="flex-1 px-4 py-2.5 rounded-lg text-sm font-bold flex items-center justify-center gap-1.5 active:scale-[0.98] disabled:opacity-50"
+                style={{ background: `${theme.danger}12`, color: theme.danger, border: `1px solid ${theme.danger}30` }}>
+                {purgeBusy && !purgePreview ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                Borrar datos de ejemplo
+              </button>
+            </div>
+
+            {purgePreview && (
+              <div className="mt-3 p-3.5 rounded-lg space-y-2" style={{ background: `${theme.danger}08`, border: `1px solid ${theme.danger}30` }}>
+                <div className="flex items-center gap-1.5 text-xs font-bold" style={{ color: theme.danger }}>
+                  <AlertTriangle className="h-3.5 w-3.5" /> Se van a borrar (nada real se toca):
+                </div>
+                <ul className="text-xs space-y-0.5" style={{ color: theme.textSecondary }}>
+                  <li>{purgePreview.properties_to_delete} propiedades demo{purgePreview.properties_kept_in_use ? ` (${purgePreview.properties_kept_in_use} se conservan por tener datos reales asociados)` : ''}</li>
+                  <li>{purgePreview.vendors_to_delete} vendedores demo</li>
+                  <li>{purgePreview.conversations_to_delete} conversaciones demo ({purgePreview.messages_to_delete} mensajes)</li>
+                  <li>{purgePreview.dmo_assignments_to_delete} asignaciones DMO demo</li>
+                </ul>
+                <div className="flex gap-2 pt-1">
+                  <button onClick={confirmPurge} disabled={purgeBusy}
+                    className="px-3 py-1.5 rounded-md text-xs font-bold disabled:opacity-50"
+                    style={{ background: theme.danger, color: '#fff' }}>
+                    {purgeBusy ? 'Borrando…' : 'Confirmar borrado'}
+                  </button>
+                  <button onClick={() => setPurgePreview(null)}
+                    className="px-3 py-1.5 rounded-md text-xs font-bold"
+                    style={{ background: theme.backgroundSecondary, color: theme.textSecondary }}>
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* PASSWORD */}
         <Item icon={Lock} title="Cambiar contraseña" desc="Actualizá tu password">

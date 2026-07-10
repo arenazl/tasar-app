@@ -2,10 +2,238 @@ export interface User {
   id: number;
   email: string;
   full_name: string;
-  role: 'admin' | 'tasador' | 'cliente';
+  // Vocabulario de roles UNICO de la suite (WO F1-01, normalizado en fix
+  // transversal post F2-01). Legacy TasAR "tasador" -> "vendedor" (ver
+  // migracion f4a5b6c7d8e9_normalize_user_roles). "cliente" no es un rol de
+  // staff: los clientes viven en su propio modelo (models/client.py).
+  role: 'admin' | 'supervisor' | 'vendedor' | 'cliente';
   workspace_id: number;
   license_number?: string;
   avatar_url?: string;
+  daily_conversations_goal?: number;
+  is_active?: boolean;
+  // is_available alimenta el round-robin de leads (WO F4-05). El propio
+  // usuario lo edita desde su perfil (switch en el menu de la sidebar).
+  is_available?: boolean;
+  personal_phone?: string;
+  // Vendedor de ejemplo del onboarding self-service (WO F5-03).
+  is_demo?: boolean;
+}
+
+// ==================== Equipo / invitaciones (WO F4-05) ====================
+
+export type TeamRole = 'admin' | 'supervisor' | 'vendedor';
+
+export interface TeamMember {
+  id: number;
+  email: string;
+  full_name: string;
+  role: TeamRole;
+  is_active: boolean;
+  is_available: boolean;
+  license_number?: string | null;
+  personal_phone?: string | null;
+  daily_conversations_goal?: number | null;
+  last_assigned_at?: string | null;
+  created_at?: string | null;
+  // Vendedor de ejemplo del onboarding self-service (WO F5-03) — badge "[DEMO]".
+  is_demo?: boolean;
+}
+
+export type InvitationStatus = 'pendiente' | 'aceptada' | 'expirada' | 'cancelada';
+
+export interface Invitation {
+  id: number;
+  email: string;
+  role: TeamRole;
+  full_name?: string | null;
+  status: InvitationStatus;
+  invited_by: number;
+  expires_at: string;
+  accepted_at?: string | null;
+  created_at?: string | null;
+}
+
+export interface InvitationInfo {
+  email: string;
+  role: TeamRole;
+  workspace_name: string;
+  full_name?: string | null;
+  valid: boolean;
+  reason?: string | null;
+}
+
+// ==================== DMO (WO F2-01) ====================
+
+export type MetricType = 'checkbox' | 'quantity';
+
+export interface Coach {
+  id: number;
+  name: string;
+  description?: string | null;
+  photo_url?: string | null;
+  source_url?: string | null;
+  is_official: boolean;
+  templates_count?: number;
+  created_at: string;
+}
+
+export interface DmoBlock {
+  id: number;
+  template_id: number;
+  name: string;
+  description?: string | null;
+  start_time: string; // "HH:MM:SS"
+  end_time: string;
+  color: string;
+  sort_order: number;
+  is_money_block: boolean;
+  metric_type: MetricType;
+  metric_label?: string | null;
+  metric_goal: number;
+}
+
+export interface DmoTemplate {
+  id: number;
+  workspace_id?: number | null; // NULL = catalogo oficial global
+  coach_id: number;
+  coach_name?: string | null;
+  name: string;
+  description?: string | null;
+  market?: string | null;
+  is_active: boolean;
+  is_office_default: boolean;
+  is_official: boolean; // true si es del catalogo global
+  blocks: DmoBlock[];
+  assignments_count?: number;
+  created_at: string;
+}
+
+export interface VendorOut {
+  id: number;
+  full_name: string;
+  email: string;
+  role: string;
+  daily_conversations_goal: number;
+}
+
+export interface DmoAssignment {
+  id: number;
+  vendor_id: number;
+  vendor_name?: string | null;
+  template_id: number;
+  template_name?: string | null;
+  coach_name?: string | null;
+  assigned_at: string;
+}
+
+export interface DmoLog {
+  id: number;
+  vendor_id: number;
+  block_id: number;
+  date: string;
+  completed: boolean;
+  metric_value: number;
+  notes?: string | null;
+  created_at: string;
+}
+
+export interface DmoDay {
+  date: string;
+  template: DmoTemplate | null;
+  blocks: DmoBlock[];
+  logs: DmoLog[];
+  conversations_goal: number;
+  conversations_done: number;
+  completion_pct: number;
+}
+
+// ==================== CRM: visitas / deals / autorizaciones (WO F2-02) ====================
+
+export type VisitStatus = 'agendada' | 'concretada' | 'cancelada' | 'ausente';
+export type VisitResult = 'interesado' | 'no_interesado' | 'hizo_oferta' | 'indeciso' | 'sin_resultado';
+
+export interface Visit {
+  id: number;
+  workspace_id: number;
+  client_id: number;
+  property_id: number;
+  vendor_id: number;
+  scheduled_at: string; // ISO datetime
+  status: VisitStatus;
+  result?: VisitResult | null;
+  voice_notes?: string | null;
+  created_at: string;
+  // display (JOIN backend)
+  client_name?: string | null;
+  property_title?: string | null;
+  vendor_name?: string | null;
+}
+
+// Las 6 etapas legales del pipeline de ventas, EN ORDEN.
+export type DealStage = 'captado' | 'publicado' | 'visita' | 'reserva' | 'boleto' | 'escrituracion';
+
+export interface Deal {
+  id: number;
+  workspace_id: number;
+  client_id: number;
+  property_id: number;
+  vendor_id: number;
+  stage: DealStage;
+  negotiated_price?: number | null;
+  currency: string;
+  estimated_commission?: number | null;
+  probability_pct: number;
+  estimated_close_date?: string | null;
+  notes?: string | null;
+  created_at: string;
+  updated_at: string;
+  // display (JOIN backend)
+  client_name?: string | null;
+  property_title?: string | null;
+  vendor_name?: string | null;
+}
+
+export type AuthorizationStatus = 'activa' | 'vencida' | 'ejecutada' | 'cancelada';
+
+export interface Authorization {
+  id: number;
+  workspace_id: number;
+  property_id: number;
+  captador_id: number;
+  signed_date: string; // ISO date
+  expiry_date: string;
+  min_price: number;
+  currency: string;
+  commission_pct: number;
+  exclusivity: boolean;
+  pdf_url?: string | null;
+  notes?: string | null;
+  status: AuthorizationStatus;
+  created_at: string;
+  // display (JOIN backend)
+  property_title?: string | null;
+  captador_name?: string | null;
+}
+
+export interface CrmKpis {
+  scope: 'vendedor' | 'team';
+  active_clients: number;
+  visits_7d: number;
+  open_deals: number;
+  deals_by_stage: Record<DealStage, number>;
+  conversations_today: number;
+  conversations_goal: number;
+}
+
+export interface RankingRow {
+  vendor_id: number;
+  name: string;
+  conversations_30d: number;
+  visits_30d: number;
+  deals_total: number;
+  deals_closed: number;
+  conversations_goal: number;
 }
 
 export interface PropertyPhoto {
@@ -42,6 +270,9 @@ export interface Property {
   currency: string;
   description?: string;
   ai_analysis?: string;
+  // Propiedad de ejemplo del onboarding self-service (WO F5-03) — el titulo ya
+  // viene prefijado "[DEMO]", este flag habilita el badge/filtro en la UI.
+  is_demo?: boolean;
   photos: PropertyPhoto[];
   created_at: string;
   updated_at: string;
@@ -103,12 +334,16 @@ export interface Appraisal {
   id: number;
   workspace_id: number;
   property_id: number;
-  market_study_id?: number;
   created_by: number;
   purpose: string;
   status: string;
-  final_value: number;
+  final_value: number | null;
   currency: string;
+  // Análisis embebido real (services/acm_service) — usar para mostrar rango,
+  // nunca fabricar un ±% sobre final_value (regla dura 11 / WO F4-02).
+  suggested_value_min?: number | null;
+  suggested_value_max?: number | null;
+  confidence_score?: number | null;
   methodology?: string;
   observations?: string;
   legal_remarks?: string;

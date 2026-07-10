@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import {
   ArrowLeft, Plus, Calculator, Globe, MessageSquare, Users, Sparkles,
-  TrendingUp, ListChecks, X, Check, RefreshCw, Bot, Pencil,
+  TrendingUp, ListChecks, X, Check, RefreshCw, Bot, Pencil, Database,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { api } from '../services/api';
@@ -14,7 +14,7 @@ import type { MarketStudy, Comparable } from '../types';
 
 interface Suggestion {
   candidate_id: number;
-  candidate_kind: 'workspace' | 'external';
+  candidate_kind: 'workspace' | 'market' | 'external';
   include: boolean;
   similarity_reason: string;
   reject_reason?: string;
@@ -28,6 +28,7 @@ interface SuggestionsResponse {
   ai_evaluated: boolean;
   fallback_used: boolean;
   workspace_candidates: number;
+  market_candidates: number;
   external_candidates: number;
   suggestions: Suggestion[];
   message?: string;
@@ -59,7 +60,7 @@ export default function EstudioDetail() {
   const [aiLoading, setAiLoading] = useState(false);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [suggestMeta, setSuggestMeta] = useState<{
-    ai_evaluated: boolean; workspace: number; external: number; msg?: string;
+    ai_evaluated: boolean; workspace: number; market: number; external: number; msg?: string;
   } | null>(null);
   const [acceptingId, setAcceptingId] = useState<number | null>(null);
 
@@ -94,7 +95,7 @@ export default function EstudioDetail() {
       ]);
       setConsensus(c.data);
       setComments(com.data);
-    } catch {}
+    } catch { /* best-effort, ignorar */ }
   }, [id]);
 
   const fetchSuggestions = useCallback(async () => {
@@ -116,6 +117,7 @@ export default function EstudioDetail() {
       setSuggestMeta({
         ai_evaluated: data.ai_evaluated,
         workspace: data.workspace_candidates,
+        market: data.market_candidates,
         external: data.external_candidates,
         msg: data.message,
       });
@@ -204,7 +206,14 @@ export default function EstudioDetail() {
       const r = await api.post('/scraping/extract', { url: scrapeUrl }, { timeout: 300000 });
       const d = r.data.extracted || {};
       setComp({ ...emptyComp, ...d, source_url: scrapeUrl, source: 'scraped', title: d.title || `Listing ${new URL(scrapeUrl).hostname}` });
-      toast.success('Datos extraídos — revisalos antes de guardar');
+      if (r.data.degraded) {
+        // El navegador con JS no estaba disponible: se bajó el HTML sin
+        // renderizar (WO F4-02, hallazgo de honestidad — antes degradaba
+        // en silencio y el usuario creía que había extraído con JS).
+        toast.warning('El sitio no se pudo abrir con navegador (JS) — se extrajo del HTML plano. Revisá los datos con más cuidado, pueden estar incompletos.');
+      } else {
+        toast.success('Datos extraídos — revisalos antes de guardar');
+      }
       setWizardStep(1);
     } catch { toast.error('No se pudo extraer'); }
     finally { setScraping(false); }
@@ -501,7 +510,7 @@ function SuggestionsPanel({
 }: {
   loading: boolean;
   suggestions: Suggestion[];
-  meta: { ai_evaluated: boolean; workspace: number; external: number; msg?: string } | null;
+  meta: { ai_evaluated: boolean; workspace: number; market: number; external: number; msg?: string } | null;
   method: string;
   acceptingId: number | null;
   onAccept: (s: Suggestion) => void;
@@ -534,7 +543,7 @@ function SuggestionsPanel({
               {loading
                 ? 'Analizando candidatos…'
                 : meta
-                  ? `${meta.workspace} del workspace · ${meta.external} externos${meta.ai_evaluated ? ' · IA' : ' · ranking auto'}`
+                  ? `${meta.workspace} del workspace · ${meta.market} de mercado · ${meta.external} externos${meta.ai_evaluated ? ' · IA' : ' · ranking auto'}`
                   : 'Esperando análisis'}
             </div>
           </div>
@@ -624,6 +633,7 @@ function SuggestionCard({
   const scorePct = Math.round(s.similarity_score * 100);
   const scoreColor = scorePct >= 70 ? theme.success : scorePct >= 40 ? theme.warning : theme.danger;
   const isExternal = s.candidate_kind === 'external';
+  const isMarket = s.candidate_kind === 'market';
 
   return (
     <div className="p-4 rounded-xl animate-fade-in"
@@ -636,6 +646,11 @@ function SuggestionCard({
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide"
                 style={{ background: '#ede9fe', color: '#5b21b6' }}>
                 <Globe className="h-2.5 w-2.5" /> {c.source || 'externo'}
+              </span>
+            ) : isMarket ? (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide"
+                style={{ background: '#dcfce7', color: '#166534' }}>
+                <Database className="h-2.5 w-2.5" /> Mercado
               </span>
             ) : (
               <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide"

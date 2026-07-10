@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>TasAR — Reporte de cierre del rework integral de la suite</title>
+<style>
+:root{
+  --bg:#0f1419; --panel:#1a2027; --panel2:#222b34; --line:#2d3742;
+  --text:#e6edf3; --muted:#8b97a3; --accent:#4f9cf9; --accent2:#7c5cff;
+  --green:#3fb950; --amber:#d29922; --red:#f85149; --teal:#39c5bb;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  background:var(--bg);color:var(--text);line-height:1.55;padding:32px 20px;max-width:1080px;margin:0 auto;font-size:15px}
+h1{font-size:26px;font-weight:700;letter-spacing:-.3px;margin-bottom:4px}
+h2{font-size:19px;font-weight:650;margin:0 0 14px;display:flex;align-items:center;gap:10px}
+h2 .num{width:26px;height:26px;border-radius:7px;background:var(--accent);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex:none}
+h3{font-size:15px;font-weight:650;margin:18px 0 8px;color:var(--teal)}
+.sub{color:var(--muted);font-size:13px;margin-bottom:28px}
+section{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:22px 24px;margin-bottom:20px}
+.grid{display:grid;gap:14px}.g4{grid-template-columns:repeat(4,1fr)}.g3{grid-template-columns:repeat(3,1fr)}.g2{grid-template-columns:repeat(2,1fr)}
+@media(max-width:720px){.g4,.g3,.g2{grid-template-columns:1fr}}
+.card{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:16px 18px}
+.card .label{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.5px}
+.card .val{font-size:28px;font-weight:700;margin-top:6px;letter-spacing:-.5px}
+.card .hint{font-size:12px;color:var(--muted);margin-top:4px}
+.red{color:var(--red)}.green{color:var(--green)}.amber{color:var(--amber)}.accent{color:var(--accent)}.teal{color:var(--teal)}
+table{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:6px}
+th,td{padding:9px 10px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--muted);font-weight:600;font-size:11.5px;text-transform:uppercase;letter-spacing:.4px}
+tr:last-child td{border-bottom:none}
+.badge{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap}
+.badge.ok{background:rgba(63,185,80,.15);color:var(--green)}
+.badge.gate{background:rgba(124,92,255,.15);color:#b3a1ff}
+.badge.risk{background:rgba(248,81,73,.15);color:var(--red)}
+.badge.info{background:rgba(79,156,249,.15);color:var(--accent)}
+.callout{border-left:3px solid var(--amber);background:rgba(210,153,34,.07);padding:12px 16px;border-radius:0 8px 8px 0;font-size:13.5px;margin-top:14px}
+.callout.green{border-left-color:var(--green);background:rgba(63,185,80,.07)}
+.callout.red{border-left-color:var(--red);background:rgba(248,81,73,.07)}
+.callout.accent{border-left-color:var(--accent);background:rgba(79,156,249,.07)}
+code{background:var(--panel2);padding:1px 6px;border-radius:5px;font-size:12.5px;color:var(--teal)}
+ul{margin:6px 0 6px 18px}li{margin:3px 0}
+.svgi{width:17px;height:17px;vertical-align:-3px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+footer{text-align:center;color:var(--muted);font-size:12px;margin-top:30px;padding-top:18px;border-top:1px solid var(--line)}
+@media print{body{background:#fff;color:#111;max-width:none}section{break-inside:avoid;border-color:#ddd}.card{border-color:#ddd}}
+</style>
+</head>
+<body>
+
+<h1>TasAR — Rework integral de la suite inmobiliaria</h1>
+<div class="sub">Fusión TasAR + AgentFlow en un producto único · Reporte de cierre · 2026-07-10 · branch <code>rework/suite-inmobiliaria</code> · orquestado por Opus siguiendo la hoja de ruta de Fable (<code>base-compartida/tasar/</code>)</div>
+
+<section>
+  <h2><span class="num">0</span>Resumen ejecutivo</h2>
+  <div class="grid g4">
+    <div class="card"><div class="label">WOs cerrados</div><div class="val green">28 / 28</div><div class="hint">+ 1 fix transversal de roles</div></div>
+    <div class="card"><div class="label">Fases</div><div class="val">5 / 5</div><div class="hint">F1 núcleo → F5 growth</div></div>
+    <div class="card"><div class="label">Migraciones Alembic</div><div class="val accent">14</div><div class="hint">head único <code>f7a8b9c0d1e2</code></div></div>
+    <div class="card"><div class="label">Tests automatizados</div><div class="val teal">26 pytest</div><div class="hint">+ 6 runners de invariantes + smoke</div></div>
+  </div>
+  <div class="callout green">
+    <b>Estado:</b> las 5 fases del rework quedaron implementadas, verificadas en local (tsc + ESLint sin errores, pytest 26/26, smoke del núcleo PASS) y commiteadas en la branch. <b>El código no se deployó</b> — el disparo del deploy y la ejecución de migraciones en QA/prod son de Infra (regla dura 15). La app no es productiva (sin usuarios), por eso el rework se ejecutó de corrido.
+  </div>
+  <div class="callout red">
+    <b>Bloqueante para Infra (crítico):</b> la base de datos compartida (Aiven) nunca corrió <code>alembic upgrade head</code> — le faltan las tablas y columnas del rework (CRM, wa_*, express, dmo, invitations, <code>properties.captador_id</code>, campos de <code>users</code>). Hoy cualquier endpoint autenticado da 500 contra esa base. <b>Antes de deployar, Infra debe correr la cadena de migraciones completa.</b> Detalle en la sección 7.
+  </div>
+</section>
+
+<section>
+  <h2><span class="num">1</span>Alcance por fase</h2>
+  <p style="color:var(--muted);font-size:13.5px;margin-bottom:6px">Cada WO es una orden de trabajo autocontenida del plan de Fable. Modelo = quién lo implementó (ruteo estándar del protocolo de rework).</p>
+  <table>
+    <tr><th>WO</th><th>Entregable</th><th>Modelo</th><th>Estado</th></tr>
+    <tr><td><b>F1-03</b></td><td>Tasación express anclada (market-anchors → <code>anchor_service</code> + <code>express_valuations</code> + PDF + pantalla)</td><td>Opus+thinking</td><td><span class="badge ok">hecho</span></td></tr>
+    <tr><td><b>F1-04</b></td><td>Smoke ejecutable de invariantes del núcleo (ACM + anchor deterministas)</td><td>Sonnet</td><td><span class="badge ok">hecho</span></td></tr>
+    <tr><td><b>F2-01</b></td><td>DMO multi-tenant portado de AgentFlow (5 metodologías oficiales, 4 pantallas)</td><td>Opus</td><td><span class="badge ok">hecho</span></td></tr>
+    <tr><td><b>roles</b></td><td>Fix transversal: vocabulario unificado <code>admin|supervisor|vendedor</code></td><td>Sonnet</td><td><span class="badge ok">hecho</span></td></tr>
+    <tr><td><b>F2-02</b></td><td>Pipeline legal AR (visitas + calendario, kanban DnD, autorizaciones) + ranking sin N+1</td><td>Opus</td><td><span class="badge ok">hecho</span></td></tr>
+    <tr><td><b>F2-03</b></td><td>Bot WhatsApp embebido multi-tenant (motor function-calling + 7 tools scoped)</td><td>Opus+thinking</td><td><span class="badge ok">hecho</span></td></tr>
+    <tr><td><b>F2-04</b></td><td>Inbox WhatsApp humano + producer de eventos reales de Bandeja</td><td>Opus</td><td><span class="badge ok">hecho</span></td></tr>
+    <tr><td><b>F3-01</b></td><td>Audio full-duplex WA (Whisper entrante + TTS genérico saliente)</td><td>Sonnet</td><td><span class="badge ok">hecho</span> <span class="badge gate">gate: sin voice-clone</span></td></tr>
+    <tr><td><b>F3-02</b></td><td>Canal Meta Cloud API por workspace + salida única <code>wa_out</code> + pipeline entrante único</td><td>Sonnet</td><td><span class="badge ok">hecho</span></td></tr>
+    <tr><td><b>F3-03</b></td><td>Notificaciones: push PWA + cron de resumen semanal</td><td>Sonnet</td><td><span class="badge ok">hecho</span></td></tr>
+    <tr><td><b>F3-04</b></td><td>Scraping utilizable en prod (Chromium) + refresh incremental del dataset</td><td>Sonnet</td><td><span class="badge ok">hecho</span></td></tr>
+    <tr><td><b>F3-05</b></td><td>Performance y cascades (N+1, delete-orphan)</td><td>Sonnet</td><td><span class="badge ok">hecho</span></td></tr>
+    <tr><td><b>F3-06</b></td><td>Gate de calidad: ESLint 9 + react-hooks + pytest + CI Action</td><td>Sonnet</td><td><span class="badge ok">hecho</span></td></tr>
+    <tr><td><b>F4-01</b></td><td>Shell de la suite (5 módulos por rol) + <code>brand.ts</code></td><td>Opus</td><td><span class="badge ok">hecho</span> <span class="badge gate">gate marca: TasAR paraguas</span></td></tr>
+    <tr><td><b>F4-02</b></td><td>Honestidad de datos (elimina fabricación, heatmap real)</td><td>Sonnet</td><td><span class="badge ok">hecho</span></td></tr>
+    <tr><td><b>F4-03</b></td><td>Reportes reales (<code>/reports/custom</code> + PDF) + saneo de EstudioEditorial</td><td>Sonnet</td><td><span class="badge ok">hecho</span></td></tr>
+    <tr><td><b>F4-04</b></td><td>Viewport PWA + auto-update (version.json + SW network-first)</td><td>Sonnet</td><td><span class="badge ok">hecho</span></td></tr>
+    <tr><td><b>F4-05</b></td><td>Equipo + invitaciones + <code>require_role</code> en endpoints sensibles</td><td>Opus</td><td><span class="badge ok">hecho</span></td></tr>
+    <tr><td><b>F5-01</b></td><td>KSP productor <code>/api/knowledge-base</code> v1.2</td><td>Sonnet</td><td><span class="badge ok">hecho</span></td></tr>
+    <tr><td><b>F5-02</b></td><td>Landing rehecha sobre el ciclo Captar→Gestionar→Atender→Cerrar</td><td>Opus</td><td><span class="badge ok">hecho</span> <span class="badge gate">gate pricing: sin montos</span></td></tr>
+    <tr><td><b>F5-03</b></td><td>Onboarding self-service (wizard <code>/registro</code>) + generador de demo</td><td>Sonnet</td><td><span class="badge ok">hecho</span></td></tr>
+  </table>
+  <div class="callout accent">Las Fases 0 y F1-01/F1-02 ya estaban cerradas antes de esta sesión (ver <code>base-compartida/tasar/02-hoja-de-ruta.md</code>). Este reporte cubre el cierre de F1-03 en adelante hasta F5-03.</div>
+</section>
+
+<section>
+  <h2><span class="num">2</span>Los 4 gates del dueño</h2>
+  <p style="color:var(--muted);font-size:13.5px">Se resolvieron por adelantado para poder ejecutar de corrido sin frenar a mitad de camino.</p>
+  <table>
+    <tr><th>Gate</th><th>WO</th><th>Decisión de Lucas</th></tr>
+    <tr><td>Marca / naming</td><td>F4-01</td><td><b>TasAR como marca paraguas.</b> Módulos: TasAR Tasaciones / CRM / Bot. Cero fricción (dominio/SEO/repo). <code>brand.ts</code> es la fuente única del nombre — renombrar = 1 línea.</td></tr>
+    <tr><td>Pricing público</td><td>F5-02</td><td><b>Sin montos (demo-first).</b> La landing tiene CTA "Solicitar demo", no grilla de precios. Se elimina toda cifra inventada.</td></tr>
+    <tr><td>Voz WhatsApp</td><td>F3-01</td><td><b>Solo TTS genérico.</b> NO se portó el voice-clone (riesgo reputacional). El audio entra (Whisper) y sale (ElevenLabs voz neutra).</td></tr>
+    <tr><td>Textos del bot</td><td>F2-03</td><td><b>Defaults propuestos por el implementador</b> (rioplatense, en <code>seed_bot_config.py</code>). Bot <code>enabled=false</code> de fábrica; los textos quedan editables desde la config.</td></tr>
+  </table>
+  <div class="callout"><b>Textos plantilla que quedaron en el seed</b> (revisá y ajustá cuando quieras): bienvenida ("¡Hola! Gracias por escribir a {negocio}. Soy el asistente virtual…"), fuera de horario, derivación a humano, y las palabras que disparan derivación implícita. El <code>{negocio}</code> se reemplaza por el nombre del workspace.</div>
+</section>
+
+<section>
+  <h2><span class="num">3</span>Qué quedó construido, por capa</h2>
+
+  <h3>Núcleo de valuación (F1)</h3>
+  <ul>
+    <li><b>Tasación express anclada:</b> port a Python del motor de market-anchors (mediana/p25/p75 USD/m² con re-ranking por similitud; mismos pesos 0.45/0.20/0.20/0.15 y umbrales del original validado). Fallback zona→provincia→nacional que <i>informa</i> el <code>scope</code>. Endpoint <code>POST /api/valuations/express</code> con ajuste LLM anclado + fallback determinístico si la IA falla. PDF brandeado + pantalla de 10 campos.</li>
+    <li><b>Smoke ejecutable:</b> el motor ACM y el anchor son matemática pura → verificables sin DB. Romper un coeficiente lo detecta (exit ≠ 0). Es la vara antes de cada push de núcleo.</li>
+  </ul>
+
+  <h3>CRM + bot: la promesa del producto (F2)</h3>
+  <ul>
+    <li><b>DMO</b> (Daily Method of Operation) multi-tenant: coaches + templates + bloques + asignaciones + logs, con las 5 metodologías oficiales como catálogo global clonable por workspace.</li>
+    <li><b>Pipeline legal AR:</b> kanban de deals de 6 etapas con drag-and-drop, visitas con calendario, autorizaciones. Ranking del equipo pasó de N+1 (3 queries por vendedor) a 4 queries agregadas constantes.</li>
+    <li><b>Bot WhatsApp embebido:</b> motor Gemini function-calling con 7 tools nativas <i>scoped al workspace</i> (buscar/consultar propiedades, agendar visita, registrar lead, tasación express por chat, derivar a humano con round-robin, cerrar). Config por workspace (no singleton). 18 tests de aislamiento/idempotencia/round-robin.</li>
+    <li><b>Inbox humano:</b> tomar mando pausa el bot; producer único de eventos reales de Bandeja (lead, visita, derivación, firma, comentario).</li>
+  </ul>
+
+  <h3>Robustez (F3)</h3>
+  <ul>
+    <li><b>Audio full-duplex</b> con degradación a texto si el proveedor falla.</li>
+    <li><b>Canal Meta Cloud API</b> oficial por workspace con verificación HMAC fail-closed, unificado con Baileys en <b>un solo módulo de salida</b> (<code>wa_out</code>) y <b>un solo pipeline entrante</b> (<code>wa_inbound</code>) — la lección negativa de SalesBot (fan-out duplicado) se evita desde el día uno.</li>
+    <li><b>Push PWA</b> + cron de resumen semanal con guard <code>X-Cron-Key</code>.</li>
+    <li><b>Scraping</b> con Chromium en la imagen + refresh incremental del dataset.</li>
+    <li><b>Gate de calidad:</b> ESLint 9 + <code>react-hooks</code> (regla dura 16), pytest, y CI Action que corre tsc + eslint + pytest sin deployar.</li>
+  </ul>
+
+  <h3>Producto / UX (F4) y Growth (F5)</h3>
+  <ul>
+    <li><b>Shell</b> reorganizado en 5 módulos (Captar · Cartera · Equipo · Chat · Mercado) con visibilidad por rol y auto-update PWA.</li>
+    <li><b>Equipo real:</b> invitaciones por token opaco (workspace+rol salen de la fila, no del cliente) + <code>require_role</code> aplicado a endpoints sensibles (antes definido y sin uso).</li>
+    <li><b>KSP productor</b> v1.2 para que SalesBot/Media Studio consuman el knowledge base en vivo.</li>
+    <li><b>Landing</b> nueva y <b>onboarding self-service</b> con generador de datos demo etiquetados y purga FK-safe que respeta lo real.</li>
+  </ul>
+</section>
+
+<section>
+  <h2><span class="num">4</span>Honestidad de datos (regla dura 11)</h2>
+  <p style="color:var(--muted);font-size:13.5px">Todo dato sintético presentado como real fue eliminado, etiquetado <code>[DEMO]</code> o reemplazado por "sin dato".</p>
+  <table>
+    <tr><th>Fabricación eliminada</th><th>Dónde</th><th>Reemplazo</th></tr>
+    <tr><td><code>period_factor</code> que inventaba YoY/MoM/permits según la ventana</td><td>market dashboard</td><td>counts reales por <code>days_on_market</code>; "sin dato" si no hay fuente</td></tr>
+    <tr><td>Grilla de calor 16×12 decorativa por fórmula</td><td>Mercado</td><td>heatmap real alimentado por <code>market_listings</code></td></tr>
+    <tr><td>Timestamps y min/max hardcodeados (avg×0.7/1.3)</td><td>Mercado / drill-down</td><td><code>MAX(updated_at)</code> y min/max reales del subset</td></tr>
+    <tr><td>"USD 0" para tasaciones sin valor; pill/columna "Con ACM" muertas</td><td>Tasaciones</td><td>"Pendiente"; elementos muertos removidos</td></tr>
+    <tr><td>Narrativa editorial con cifras fijas + sección Rentabilidad/CapRate sin fuente</td><td>EstudioEditorial</td><td>series reales del reporte o "serie insuficiente"; sección eliminada</td></tr>
+    <tr><td>Copy "18K+ / 2,4M avisos / 142 zonas" + heatmap SVG fijo</td><td>landing</td><td>landing rehecha sin ninguna cifra no verificable</td></tr>
+    <tr><td>Degradación silenciosa de scraping (Playwright→httpx sin avisar)</td><td>scraping</td><td>flag <code>degraded: true</code> visible en la UI</td></tr>
+  </table>
+</section>
+
+<section>
+  <h2><span class="num">5</span>Seguridad y performance corregidas</h2>
+  <div class="grid g2">
+    <div class="card">
+      <div class="label">Seguridad</div>
+      <ul style="margin-top:8px">
+        <li>Fugas multi-tenant cerradas (settings IA, heatmap, IDOR en collaboration) — Fase 0, revalidadas por el smoke.</li>
+        <li>Tools del bot y KB <b>scoped por workspace</b> (2 workspaces no se cruzan).</li>
+        <li><code>require_role</code> aplicado a settings, borrados, config del bot y gestión de equipo.</li>
+        <li>Meta webhook HMAC <b>fail-closed</b> (sin secret → 403).</li>
+        <li>Invitaciones por token opaco revocable/single-use; workspace+rol nunca vienen del cliente.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <div class="label">Performance</div>
+      <ul style="margin-top:8px">
+        <li>Detalle de estudio: <b>9 → 4</b> queries (selectinload anidado).</li>
+        <li>Dashboard de mercado: <b>15 → 4</b> queries (GROUP BY).</li>
+        <li>Ranking del equipo: N+1 → <b>4 queries constantes</b>.</li>
+        <li>Inbox y conversaciones: list sin N+1 (1 query medido).</li>
+        <li>Cascade <code>delete-orphan</code> en MarketStudy (antes IntegrityError al borrar).</li>
+        <li>Cloudinary <code>upload</code> movido a <code>to_thread</code> (no bloquea el event loop).</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2><span class="num">6</span>Cobertura de tests</h2>
+  <div class="grid g3">
+    <div class="card"><div class="label">pytest (CI)</div><div class="val teal">26</div><div class="hint">auth, properties scoped, ACM, team/roles 403, demo purge</div></div>
+    <div class="card"><div class="label">Runners de invariantes</div><div class="val">6</div><div class="hint">bot 18 · meta 9 · notif 8 · perf 6 · audio 5 · demo 6</div></div>
+    <div class="card"><div class="label">Smoke del núcleo</div><div class="val green">PASS</div><div class="hint">ACM + anchor deterministas; bloques de DB en SKIP sin MySQL local</div></div>
+  </div>
+  <div class="callout">Los tests corren sobre SQLite en memoria + ASGI. Por eso pasan aunque la Aiven compartida esté desincronizada — lo que hace <b>imprescindible</b> que Infra materialice el schema real antes del deploy (sección 7).</div>
+</section>
+
+<section>
+  <h2><span class="num">7</span>Pendientes para Infra <span class="badge risk">acción requerida</span></h2>
+  <div class="callout red">
+    <b>7.1 — Migraciones (bloqueante del deploy).</b> La Aiven compartida no tiene <code>alembic_version</code> ni las tablas/columnas del rework. Secuencia:
+    <ul>
+      <li>Base con schema viejo: <code>alembic stamp 1e616292cc4e</code> (baseline) y luego <code>alembic upgrade head</code>.</li>
+      <li>Base vacía: <code>alembic upgrade head</code> directo.</li>
+      <li><b>No usar solo <code>stamp head</code></b> — saltearía todas las columnas nuevas (fue lo pactado para Fase 0, ya no aplica: hay 12 migraciones posteriores al baseline).</li>
+      <li>Head final del rework: <code>f7a8b9c0d1e2</code> (14 revisiones encadenadas, head único).</li>
+      <li>Aviso: un ALTER manual de <code>monthly_reports.source</code> se aplicó sobre la DB dev — la verdad canónica es la cadena Alembic del repo; en QA/prod correr desde baseline limpio.</li>
+    </ul>
+  </div>
+  <div class="callout">
+    <b>7.2 — Variables de entorno / secrets a setear</b> (ninguna está en código; todas por env / Secret Manager):
+    <ul>
+      <li>Bot: <code>GEMINI_API_KEY</code>; WhatsApp gateway: <code>WA_GATEWAY_URL</code>/<code>WA_GATEWAY_KEY</code>.</li>
+      <li>Audio: <code>GROQ_API_KEY</code>, <code>ELEVENLABS_API_KEY</code>, <code>ELEVENLABS_DEFAULT_VOICE_ID</code>.</li>
+      <li>Meta: <code>META_ACCESS_TOKEN</code>, <code>META_WEBHOOK_VERIFY_TOKEN</code>, <code>META_APP_SECRET</code> (globales, Tech Provider).</li>
+      <li>Push/cron: <code>VAPID_PUBLIC_KEY</code>, <code>VAPID_PRIVATE_KEY</code>, <code>VAPID_SUBJECT</code>, <code>CRON_KEY</code> + scheduler externo del resumen semanal.</li>
+      <li>KSP: <code>KB_CLAVE_SALESBOT</code>, <code>KB_CLAVE_MEDIASTUDIO</code>.</li>
+    </ul>
+  </div>
+  <div class="callout">
+    <b>7.3 — Infra / build.</b> Dependencia nueva <code>pywebpush</code> ⇒ <code>cryptography</code> subió 41→46 (verificado compatible con JWT/bcrypt): reconstruir imagen. Dockerfile ahora instala Chromium (~1.0-1.2GB estimado, confirmar con build real y dimensionar memoria de Cloud Run). CI Action <code>ci.yml</code> corre tsc+eslint+pytest en push (no deploya). El wa-gateway va con <code>--min-instances=1 --no-cpu-throttling</code> (websocket persistente).
+  </div>
+  <div class="callout">
+    <b>7.4 — Cloudinary.</b> El account tiene "Restricted media types" activo → bloquea la entrega pública de PDFs con 401. Mitigado sirviendo los PDFs por streaming desde el backend; para servirlos directo de Cloudinary, habilitar el toggle en Console → Settings → Security.
+  </div>
+</section>
+
+<section>
+  <h2><span class="num">8</span>Decisiones abiertas para el dueño</h2>
+  <ul>
+    <li><b>Íconos de la PWA:</b> falta <code>manifest.json</code> para que la suite sea instalable como app — requiere íconos 192/512 de marca (proveerlos y armo el manifest).</li>
+    <li><b>Navegación del vendedor:</b> hoy no ve Cartera ni Mercado (según el WO literal). Puede ser fuerte para un vendedor que carga propiedades — decir si se afloja.</li>
+    <li><b>Autorizaciones:</b> el vendedor crea/edita las que captó; solo el borrado quedó gateado a admin/supervisor. Confirmar si querés gatear también create/edit.</li>
+    <li><b>Dataset de mercado:</b> ~500 filas del seed son sintéticas y se mezclan con el dataset real de Coldwell (distinguibles por <code>source</code>). Decidir si se separan/etiquetan visualmente.</li>
+    <li><b>Landing:</b> usa Tailwind CDN (sin build) → punto flojo de Lighthouse; verificar el buzón <code>hola@tasar.app</code> del CTA.</li>
+    <li><b>Página Ranking</b> figura en el módulo Equipo pero no existe como ruta — falta crearla si se quiere.</li>
+    <li><b>Dataset CB <code>--apply</code>:</b> sigue en dry-run (5013 de 9240 filas importables). Correrlo cuando quieras poblar <code>market_listings</code> (hace backup previo).</li>
+  </ul>
+</section>
+
+<footer>
+  TasAR · Rework integral de la suite inmobiliaria · Reporte de cierre generado el 2026-07-10 (UTC-3) ·
+  Detalle técnico de cada hallazgo en <code>base-compartida/tasar/HALLAZGOS-IMPLEMENTACION.md</code> · Tablero en <code>02-hoja-de-ruta.md</code>
+</footer>
+
+</body>
+</html>

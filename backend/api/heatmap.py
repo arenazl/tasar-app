@@ -9,8 +9,9 @@ from core.database import get_db
 from core.security import get_current_user
 from models.user import User
 from models.property import Property
-from models.market_study import Comparable
+from models.market_study import Comparable, MarketStudy
 from models.price_history import PriceHistoryPoint
+from models.market_listing import MarketListing
 
 
 router = APIRouter(prefix="/api/heatmap", tags=["heatmap"])
@@ -57,10 +58,16 @@ async def points(
                 label=p.title, price_per_m2=round(ppm2, 2),
             ))
 
-    # 2) Comparables registrados con coords
-    cstmt = select(Comparable).where(
-        Comparable.latitude.is_not(None),
-        Comparable.longitude.is_not(None),
+    # 2) Comparables registrados con coords — SOLO de estudios del workspace del user
+    #    (comparables no tiene workspace_id propio: se filtra por su market_study).
+    cstmt = (
+        select(Comparable)
+        .join(MarketStudy, Comparable.market_study_id == MarketStudy.id)
+        .where(
+            MarketStudy.workspace_id == user.workspace_id,
+            Comparable.latitude.is_not(None),
+            Comparable.longitude.is_not(None),
+        )
     )
     comps = (await db.execute(cstmt)).scalars().all()
     for c in comps:
@@ -89,6 +96,27 @@ async def points(
             label=f"{pt.neighborhood or pt.city}", price_per_m2=pt.price_per_m2,
         ))
 
+    # 4) Market listings — base macro real (ETL F0-06 + seed), global (sin
+    #    workspace_id: WO F4-02, el mapa de Mercado necesita el universo
+    #    completo de comparables con coords, no solo lo del workspace).
+    mstmt = select(MarketListing).where(
+        MarketListing.status == "active",
+        MarketListing.latitude.is_not(None),
+        MarketListing.longitude.is_not(None),
+    )
+    if property_type:
+        mstmt = mstmt.where(MarketListing.property_type == property_type)
+    if city:
+        mstmt = mstmt.where(MarketListing.city == city)
+    mkts = (await db.execute(mstmt)).scalars().all()
+    for m in mkts:
+        if m.price_per_m2:
+            out.append(HeatPoint(
+                lat=m.latitude, lng=m.longitude,
+                intensity=min(1.0, m.price_per_m2 / 5000),
+                label=m.title, price_per_m2=m.price_per_m2,
+            ))
+
     return out
 
 
@@ -97,6 +125,12 @@ class ZoneStat(BaseModel):
     neighborhood: Optional[str] = None
     avg_price_per_m2: float
     sample_size: int
+    # Reales (MIN/MAX del propio subset agregado) — WO F4-02: el drill-down
+    # del mapa mostraba avg*0.7 / avg*1.3 inventados. Ahora, si no hay
+    # suficiente muestra para un min/max real, quedan en None y el front
+    # no los muestra (regla dura 11: nunca un numero fabricado).
+    min_price_per_m2: Optional[float] = None
+    max_price_per_m2: Optional[float] = None
 
 
 @router.get("/zones", response_model=List[ZoneStat])
@@ -111,6 +145,8 @@ async def zone_stats(
         PriceHistoryPoint.neighborhood,
         func.avg(PriceHistoryPoint.price_per_m2),
         func.count(PriceHistoryPoint.id),
+        func.min(PriceHistoryPoint.price_per_m2),
+        func.max(PriceHistoryPoint.price_per_m2),
     ).where(PriceHistoryPoint.workspace_id == user.workspace_id)
     if property_type:
         stmt = stmt.where(PriceHistoryPoint.property_type == property_type)
@@ -121,4 +157,6 @@ async def zone_stats(
         city=r[0], neighborhood=r[1],
         avg_price_per_m2=round(r[2] or 0, 2),
         sample_size=r[3],
+        min_price_per_m2=round(r[4], 2) if r[4] is not None else None,
+        max_price_per_m2=round(r[5], 2) if r[5] is not None else None,
     ) for r in rows]

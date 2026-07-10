@@ -1,6 +1,6 @@
 """Endpoints para el módulo Mercado (dashboard macro) y Comparables (live search)."""
 import json
-import math
+from datetime import datetime
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, and_, or_
@@ -12,9 +12,21 @@ from core.security import get_current_user
 from models.user import User
 from models.market_listing import MarketListing
 from models.monthly_report import MonthlyReport
+from services.acm_service import haversine_m
 
 
 router = APIRouter(prefix="/api/market", tags=["market"])
+
+# period acepta '7d', '30d', '90d', '12m', '5a' -> ventana real en dias.
+# Ya NO escala numeros del reporte (era period_factor, fabricaba YoY/MoM/permisos
+# segun la ventana elegida — regla dura 11 / WO F4-02). Solo filtra listings reales
+# por su columna real days_on_market.
+PERIOD_DAYS = {"7d": 7, "30d": 30, "90d": 90, "12m": 365, "5a": 1825}
+
+MONTHS_ES = [
+    "", "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+    "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre",
+]
 
 
 class ZoneStat(BaseModel):
@@ -31,8 +43,11 @@ class MarketDashboard(BaseModel):
     mom_change_pct: Optional[float]
     active_listings: int
     avg_days_on_market: int
-    new_permits: int
+    new_permits: Optional[int] = None
     top_zones: List[ZoneStat]
+    # Reales, reemplazan hardcodes del frontend ("Mayo 2026 · hace 24 horas"):
+    report_period_label: Optional[str] = None  # ej "Mayo 2026", derivado de monthly_report; None si no hay reporte
+    listings_updated_at: Optional[datetime] = None  # MAX(market_listings.updated_at) real
 
 
 @router.get("/dashboard", response_model=MarketDashboard)
@@ -41,11 +56,13 @@ async def market_dashboard(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
-    # period acepta '7d', '30d', '90d', '12m', '5a'. Escala los cambios YoY/MoM
-    # para que el filtro produzca variaciones visibles segun la ventana elegida.
-    period_factor = {"7d": 0.15, "30d": 0.45, "90d": 1.0, "12m": 1.8, "5a": 3.2}.get(period, 1.0)
-    """Resumen macro del mercado: usa el último monthly_report si existe,
-    + suma de listings activos en tiempo real."""
+    """Resumen macro del mercado: usa el último monthly_report si existe
+    (índice, YoY, MoM, permisos — foto real mensual, NO varía con `period`
+    porque no hay fuente por-ventana para esos campos) + listings en tiempo
+    real filtrados por `period` sobre la columna real `days_on_market`
+    (oferta activa y tiempo medio de venta SÍ reaccionan al selector, con
+    datos reales — ver WO F4-02)."""
+    period_days = PERIOD_DAYS.get(period, 90)
 
     latest_report = (await db.execute(
         select(MonthlyReport).where(MonthlyReport.region == "CABA")
@@ -53,41 +70,64 @@ async def market_dashboard(
         .limit(1)
     )).scalar_one_or_none()
 
-    active_listings = (await db.execute(
-        select(func.count()).select_from(MarketListing).where(MarketListing.status == "active")
-    )).scalar() or 0
+    # Oferta activa dentro de la ventana de período elegida — cuenta real,
+    # nada escalado. Ambos KPIs reaccionan al selector con datos reales.
+    period_stats = (await db.execute(
+        select(func.count(), func.avg(MarketListing.days_on_market))
+        .select_from(MarketListing)
+        .where(MarketListing.status == "active", MarketListing.days_on_market <= period_days)
+    )).one()
+    period_listings_count = period_stats[0] or 0
+    period_avg_days = int(period_stats[1]) if period_stats[1] is not None else 0
+
+    listings_updated_at = (await db.execute(
+        select(func.max(MarketListing.updated_at)).where(MarketListing.status == "active")
+    )).scalar()
 
     if latest_report:
         try:
             top_raw = json.loads(latest_report.top_zones or "[]")
         except json.JSONDecodeError:
             top_raw = []
+
+        # Counts por zona en 1 sola query GROUP BY (WO F3-05, hallazgo N+1:
+        # antes era 1 count() por zona, hasta 12 queries).
+        zone_names = [z.get("zone") for z in top_raw[:12] if z.get("zone")]
+        counts_by_zone: dict = {}
+        if zone_names:
+            rows = (await db.execute(
+                select(MarketListing.neighborhood, func.count())
+                .where(MarketListing.neighborhood.in_(zone_names), MarketListing.status == "active")
+                .group_by(MarketListing.neighborhood)
+            )).all()
+            counts_by_zone = {row[0]: row[1] for row in rows}
+
         top_zones = []
         for z in top_raw[:12]:
-            cnt = (await db.execute(
-                select(func.count()).select_from(MarketListing)
-                .where(MarketListing.neighborhood == z.get("zone"), MarketListing.status == "active")
-            )).scalar() or 0
             top_zones.append(ZoneStat(
                 zone=z.get("zone", ""),
                 usd_m2=float(z.get("usd_m2", 0)),
                 change_pct=z.get("change_pct"),
-                listings_count=cnt,
+                listings_count=counts_by_zone.get(z.get("zone"), 0),
             ))
-        yoy = latest_report.yoy_change_pct
-        mom = latest_report.mom_change_pct
+        report_period_label = f"{MONTHS_ES[latest_report.period_month]} {latest_report.period_year}" \
+            if 1 <= latest_report.period_month <= 12 else None
         return MarketDashboard(
             tasar_index=latest_report.tasar_index or 0,
             median_price_per_m2=latest_report.median_price_per_m2 or 0,
-            yoy_change_pct=round(yoy * period_factor, 1) if yoy is not None else None,
-            mom_change_pct=round(mom * period_factor, 1) if mom is not None else None,
-            active_listings=active_listings,
-            avg_days_on_market=latest_report.avg_days_on_market or 0,
-            new_permits=int((latest_report.new_permits or 0) * period_factor),
+            # Sin escalar: el reporte mensual es una unica foto real, no hay
+            # fuente por-ventana para YoY/MoM/permisos (antes: period_factor).
+            yoy_change_pct=latest_report.yoy_change_pct,
+            mom_change_pct=latest_report.mom_change_pct,
+            active_listings=period_listings_count,
+            avg_days_on_market=period_avg_days,
+            new_permits=latest_report.new_permits,
             top_zones=top_zones,
+            report_period_label=report_period_label,
+            listings_updated_at=listings_updated_at,
         )
 
-    # Fallback: calculamos desde listings
+    # Fallback: calculamos todo desde listings en vivo (sin monthly_report)
     median_ppm2 = (await db.execute(
         select(func.avg(MarketListing.price_per_m2)).where(MarketListing.status == "active")
     )).scalar() or 0
@@ -95,10 +135,12 @@ async def market_dashboard(
         tasar_index=float(median_ppm2),
         median_price_per_m2=float(median_ppm2),
         yoy_change_pct=None, mom_change_pct=None,
-        active_listings=active_listings,
-        avg_days_on_market=90,
-        new_permits=0,
+        active_listings=period_listings_count,
+        avg_days_on_market=period_avg_days,
+        new_permits=None,
         top_zones=[],
+        report_period_label=None,
+        listings_updated_at=listings_updated_at,
     )
 
 
@@ -131,7 +173,47 @@ class ComparablesSearchResponse(BaseModel):
     min_ppm2: Optional[float]
     max_ppm2: Optional[float]
     median_ppm2: Optional[float]
+    order_by: str = "ppm2"  # "match" si se ordenó por cercanía+similitud, "ppm2" si por USD/m²
     results: List[ComparableResult]
+
+
+class ZoneCentroid(BaseModel):
+    lat: Optional[float]
+    lng: Optional[float]
+    count: int
+
+
+@router.get("/zone-centroid", response_model=ZoneCentroid)
+async def zone_centroid(
+    neighborhood: Optional[str] = None,
+    city: Optional[str] = None,
+    property_type: Optional[str] = None,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Centro geográfico REAL de una zona: promedio de lat/lng de los listings
+    activos con coords en ese barrio/ciudad. NO inventa coords — si la zona no
+    tiene listings geocodificados devuelve null y el front cae a orden por USD/m².
+    """
+    stmt = select(
+        func.avg(MarketListing.latitude),
+        func.avg(MarketListing.longitude),
+        func.count(),
+    ).where(
+        MarketListing.status == "active",
+        MarketListing.latitude.isnot(None),
+        MarketListing.longitude.isnot(None),
+    )
+    if neighborhood:
+        stmt = stmt.where(MarketListing.neighborhood == neighborhood)
+    if city:
+        stmt = stmt.where(MarketListing.city == city)
+    if property_type:
+        stmt = stmt.where(MarketListing.property_type == property_type)
+    lat, lng, count = (await db.execute(stmt)).one()
+    if not count or lat is None or lng is None:
+        return ZoneCentroid(lat=None, lng=None, count=0)
+    return ZoneCentroid(lat=round(float(lat), 6), lng=round(float(lng), 6), count=int(count))
 
 
 @router.get("/comparables", response_model=ComparablesSearchResponse)
@@ -183,7 +265,7 @@ async def search_comparables(
         distance_m = None
         match_score = None
         if target_lat is not None and target_lng is not None and r.latitude and r.longitude:
-            distance_m = int(_haversine_m(target_lat, target_lng, r.latitude, r.longitude))
+            distance_m = int(haversine_m(target_lat, target_lng, r.latitude, r.longitude))
             if radius_m and distance_m > radius_m:
                 continue
             match_score = _match_score(distance_m, r, rooms, min_m2, max_m2)
@@ -192,9 +274,12 @@ async def search_comparables(
         item.match_score = match_score
         results.append(item)
 
-    # Sort por match_score si hay, sino por price_per_m2
-    if results and results[0].match_score is not None:
+    # Sort por match_score si hay coords (cercanía+similitud), sino por price_per_m2.
+    # order_by refleja honestamente por qué criterio quedó ordenada la lista.
+    order_by = "ppm2"
+    if results and any(r.match_score is not None for r in results):
         results.sort(key=lambda x: x.match_score or 0, reverse=True)
+        order_by = "match"
     else:
         results.sort(key=lambda x: x.price_per_m2 or 0, reverse=True)
 
@@ -204,19 +289,9 @@ async def search_comparables(
         min_ppm2=min(ppm2_list) if ppm2_list else None,
         max_ppm2=max(ppm2_list) if ppm2_list else None,
         median_ppm2=sorted(ppm2_list)[len(ppm2_list) // 2] if ppm2_list else None,
+        order_by=order_by,
         results=results[:limit],
     )
-
-
-def _haversine_m(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
-    R = 6_371_000
-    p1 = math.radians(lat1)
-    p2 = math.radians(lat2)
-    dp = math.radians(lat2 - lat1)
-    dl = math.radians(lon2 - lon1)
-    a = math.sin(dp / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(dl / 2) ** 2
-    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
-    return R * c
 
 
 def _match_score(distance_m: int, listing: MarketListing, target_rooms, target_min_m2, target_max_m2) -> float:

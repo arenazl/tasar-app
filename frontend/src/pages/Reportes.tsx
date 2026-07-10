@@ -2,12 +2,13 @@ import { useEffect, useMemo, useState } from 'react';
 import { Download, Plus, Share2, X, Check, BookOpen, FileText, List, ArrowUpDown, Calendar } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { api } from '../services/api';
+import { api, API_BASE } from '../services/api';
 import { useTheme } from '../contexts/ThemeContext';
 import { downloadCSV } from '../utils/csv';
 import { ABMPage } from '../components/ui/ABMPage';
 import { ModernSelect } from '../components/ui/ModernSelect';
 import PageHint from '../components/ui/PageHint';
+import { BRAND } from '../config/brand';
 
 const SORT_OPTIONS = [
   { value: 'recent', label: 'Más recientes' },
@@ -40,6 +41,7 @@ interface Report {
   period_month: number;
   region: string;
   kind: string;
+  source: string; // 'seed' (demo, formula sintetica) | 'custom' (agregacion real sobre market_listings)
   tasar_index?: number;
   median_price_per_m2?: number;
   yoy_change_pct?: number;
@@ -170,7 +172,21 @@ export default function Reportes() {
         </div>
       </ABMPage>
 
-      {showCustom && <CustomReportModal theme={theme} onClose={() => setShowCustom(false)} />}
+      {showCustom && (
+        <CustomReportModal
+          theme={theme}
+          onClose={() => setShowCustom(false)}
+          onCreated={(r: Report) => {
+            setReports(prev => {
+              const idx = prev.findIndex(p => p.id === r.id);
+              if (idx === -1) return [r, ...prev];
+              const next = [...prev];
+              next[idx] = r;
+              return next;
+            });
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -181,20 +197,33 @@ function ReportCard({ report, isNew, theme }: { report: Report; isNew: boolean; 
 
   const read = () => navigate(`/reportes/${report.id}`);
 
-  const openPdf = (e: React.MouseEvent) => {
+  const openPdf = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (report.pdf_url) {
-      window.open(report.pdf_url, '_blank');
-    } else {
-      toast.info(`Generando PDF de ${report.code}...`);
-      setTimeout(() => toast.success('PDF listo (demo)'), 1200);
+    // Vía backend (streaming autenticado) en vez de report.pdf_url directo:
+    // el pdf_url de Cloudinary queda persistido igual, pero la entrega
+    // publica de PDFs esta bloqueada por un toggle de seguridad de la
+    // cuenta de Cloudinary (Settings > Security > "Allow delivery of PDF
+    // and ZIP files") que hay que habilitar a mano -- ver hallazgo WO F4-03.
+    // Este endpoint no depende de ese toggle: nunca queda un boton muerto.
+    const token = localStorage.getItem('tasar_token');
+    try {
+      const res = await fetch(`${API_BASE}/reports/${report.id}/pdf`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error('pdf fetch failed');
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank');
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+    } catch {
+      toast.error('No se pudo abrir el PDF');
     }
   };
 
   const share = async (e: React.MouseEvent) => {
     e.stopPropagation();
     const url = `${window.location.origin}/reportes/${report.id}`;
-    const text = `${report.code} · ${MONTHS[report.period_month]} ${report.period_year} — TasAR`;
+    const text = `${report.code} · ${MONTHS[report.period_month]} ${report.period_year} — ${BRAND.name}`;
     if (navigator.share) {
       try {
         await navigator.share({ title: text, url });
@@ -218,10 +247,19 @@ function ReportCard({ report, isNew, theme }: { report: Report; isNew: boolean; 
           <div className="text-xs uppercase tracking-wider font-bold opacity-70">
             {report.code} · {report.kind}
           </div>
-          {isNew && (
-            <span className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider"
-              style={{ background: '#22c55e', color: '#000' }}>nuevo</span>
-          )}
+          <div className="flex items-center gap-1.5">
+            {report.source === 'seed' && (
+              <span className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider"
+                style={{ background: 'rgba(255,255,255,0.18)', color: '#fff' }}
+                title="Datos de referencia (seed), no es una agregación en vivo sobre el mercado">
+                [DEMO]
+              </span>
+            )}
+            {isNew && (
+              <span className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider"
+                style={{ background: '#22c55e', color: '#000' }}>nuevo</span>
+            )}
+          </div>
         </div>
         <div className="font-display text-3xl font-black tracking-tight mb-3">
           {MONTHS[report.period_month]} {report.period_year}
@@ -280,7 +318,8 @@ function ReportCard({ report, isNew, theme }: { report: Report; isNew: boolean; 
 }
 
 
-function CustomReportModal({ theme, onClose }: any) {
+function CustomReportModal({ theme, onClose, onCreated }: any) {
+  const navigate = useNavigate();
   const [region, setRegion] = useState('CABA');
   const [kind, setKind] = useState('Residencial');
   const [year, setYear] = useState(new Date().getFullYear());
@@ -290,16 +329,18 @@ function CustomReportModal({ theme, onClose }: any) {
   const generate = async () => {
     setLoading(true);
     try {
-      await api.post('/reports/custom', { region, kind, period_year: year, period_month: month });
-      toast.success(`Reporte ${region} ${MONTHS[month]} ${year} en cola`);
-      onClose();
-    } catch (e: any) {
-      if (e.response?.status === 404) {
-        toast.info('Endpoint /reports/custom pendiente — request guardada localmente');
-        onClose();
+      const res = await api.post('/reports/custom', { region, kind, period_year: year, period_month: month });
+      const { sample_size, insufficient_data } = res.data;
+      if (insufficient_data) {
+        toast.warning(`Sin avisos activos para ${region} · ${kind} — el reporte quedó sin datos numéricos`);
       } else {
-        toast.error(e.response?.data?.detail || 'Error generando reporte');
+        toast.success(`Reporte ${region} ${MONTHS[month]} ${year} generado (${sample_size} avisos analizados)`);
       }
+      onCreated?.(res.data);
+      onClose();
+      navigate(`/reportes/${res.data.id}`);
+    } catch (e: any) {
+      toast.error(e.response?.data?.detail || 'Error generando el reporte');
     } finally {
       setLoading(false);
     }

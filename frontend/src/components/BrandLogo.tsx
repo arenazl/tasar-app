@@ -1,4 +1,5 @@
 import { useTheme } from '../contexts/ThemeContext';
+import { BRAND } from '../config/brand';
 
 type Variant = 'topbar' | 'standard' | 'icon';
 
@@ -82,10 +83,10 @@ export default function BrandLogo({ variant = 'topbar', className = '', force }:
       <div className={`inline-flex flex-col items-center gap-2 ${className}`}>
         <div className="h-16">{Icon}</div>
         <div className="text-3xl font-black tracking-tight" style={{ color: wordmarkColor }}>
-          TasAR
+          {BRAND.name}
         </div>
         <div className="text-[10px] tracking-[0.2em] uppercase font-medium" style={{ color: taglineColor }}>
-          Mapa de valor · Por zona
+          {BRAND.taglineLong}
         </div>
       </div>
     );
@@ -96,7 +97,7 @@ export default function BrandLogo({ variant = 'topbar', className = '', force }:
     <div className={`inline-flex items-center gap-2.5 ${className}`}>
       <div className="h-full">{Icon}</div>
       <div className="font-black text-xl tracking-tight leading-none" style={{ color: wordmarkColor }}>
-        TasAR
+        {BRAND.name}
       </div>
     </div>
   );

@@ -7,6 +7,7 @@ import {
 import { toast } from 'sonner';
 import { api, API_BASE } from '../services/api';
 import { useTheme } from '../contexts/ThemeContext';
+import { BRAND } from '../config/brand';
 import type { Appraisal, Property } from '../types';
 
 interface Comp {
@@ -103,7 +104,7 @@ export default function TasacionDetail() {
   }
 
   const trCode = `TR-${String(a.id).padStart(4, '0')}`;
-  const valuePerM2 = prop?.total_area_m2 ? Math.round(a.final_value / prop.total_area_m2) : null;
+  const valuePerM2 = prop?.total_area_m2 && a.final_value != null ? Math.round(a.final_value / prop.total_area_m2) : null;
   const isSigned = a.status === 'signed' || a.status === 'delivered';
 
   return (
@@ -195,8 +196,15 @@ export default function TasacionDetail() {
       {/* Stat row + main grid */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
         <div className="tasar-panel tasar-stagger-1">
-          <Stat k="Estimación TasAR" v={a.final_value ? `${a.currency} ${Number(a.final_value).toLocaleString()}` : '—'}
-            d={a.final_value ? `Rango ${a.currency} ${Math.round(a.final_value * 0.94).toLocaleString()} – ${Math.round(a.final_value * 1.06).toLocaleString()} · ±6%` : 'Sin valor final aún'}
+          <Stat k={`Estimación ${BRAND.name}`} v={a.final_value != null ? `${a.currency} ${Number(a.final_value).toLocaleString()}` : '—'}
+            d={
+              /* Rango real del motor ACM (suggested_value_min/max), NUNCA un
+                 +/-% fabricado sobre el valor final (WO F4-02). Si el back
+                 no calculó rango para esta tasación, no se muestra ninguno. */
+              a.suggested_value_min != null && a.suggested_value_max != null
+                ? `Rango ${a.currency} ${Math.round(a.suggested_value_min).toLocaleString()} – ${Math.round(a.suggested_value_max).toLocaleString()}${a.confidence_score != null ? ` · ${Math.round(a.confidence_score * 100)}% confianza` : ''}`
+                : a.final_value != null ? 'Sin rango calculado' : 'Sin valor final aún'
+            }
             theme={theme} />
         </div>
         <div className="tasar-panel tasar-stagger-2">

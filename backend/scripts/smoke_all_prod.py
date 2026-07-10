@@ -6,7 +6,7 @@ import httpx
 import json
 import sys
 
-BASE = "https://tasar-api-acd0705c1af9.herokuapp.com/api"
+BASE = "https://tasar-api-ka3yn5r7dq-rj.a.run.app/api"
 TIMEOUT = 60
 
 results = []

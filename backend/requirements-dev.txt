@@ -1,0 +1,5 @@
+# Dependencias solo de desarrollo/test (WO F3-06). NO se instalan en prod.
+-r requirements.txt
+aiosqlite==0.22.1
+pytest==8.4.2
+pytest-asyncio==0.24.0

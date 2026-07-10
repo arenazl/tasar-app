@@ -13,7 +13,7 @@ import asyncio
 import json
 import logging
 import time
-from typing import AsyncIterator, Optional
+from typing import Any, AsyncIterator, Dict, List, Optional
 
 import httpx
 
@@ -53,23 +53,34 @@ SCHEMA EXACTO (todas las keys obligatorias, flat, sin wrappers):
 }"""
 
 
-# Cache del modelo activo (mismo patrón que claude_service)
-_MODEL_CACHE: tuple[str, float] | None = None
+# Cache del modelo activo (mismo patrón que claude_service): KEYED por workspace_id
+# para no cruzar settings entre tenants (app_settings tiene unique (workspace_id, key)).
+_MODEL_CACHE: dict[int, tuple[str, float]] = {}  # workspace_id -> (model, expires_at)
 _MODEL_CACHE_TTL = 15
 _DEFAULT_MODEL = "gemini-2.5-flash"
 _VALID_MODELS = ("gemini-2.5-flash", "gemini-2.5-pro", "gemini-1.5-flash", "gemini-1.5-pro")
 
 
-def invalidate_model_cache() -> None:
-    global _MODEL_CACHE
-    _MODEL_CACHE = None
+def invalidate_model_cache(workspace_id: int | None = None) -> None:
+    """Con workspace_id: invalida solo ese tenant. Sin argumento: limpia todo."""
+    if workspace_id is None:
+        _MODEL_CACHE.clear()
+    else:
+        _MODEL_CACHE.pop(workspace_id, None)
 
 
-async def _get_active_model() -> str:
-    global _MODEL_CACHE
+async def _get_active_model(workspace_id: int | None = None) -> str:
+    """Lee `gemini_model` de app_settings PARA EL WORKSPACE dado, con cache.
+
+    Sin workspace_id NO se lee ningún setting (evitamos servir el de otro tenant):
+    se devuelve el default.
+    """
+    if workspace_id is None:
+        return _DEFAULT_MODEL
     now = time.time()
-    if _MODEL_CACHE and _MODEL_CACHE[1] > now:
-        return _MODEL_CACHE[0]
+    cached = _MODEL_CACHE.get(workspace_id)
+    if cached and cached[1] > now:
+        return cached[0]
     model = _DEFAULT_MODEL
     try:
         from sqlalchemy import select
@@ -77,13 +88,16 @@ async def _get_active_model() -> str:
         from models.app_setting import AppSetting
         async with AsyncSessionLocal() as db:
             row = (await db.execute(
-                select(AppSetting).where(AppSetting.key == "gemini_model")
+                select(AppSetting).where(
+                    AppSetting.workspace_id == workspace_id,
+                    AppSetting.key == "gemini_model",
+                )
             )).scalar_one_or_none()
             if row and row.value in _VALID_MODELS:
                 model = row.value
     except Exception:
         model = _DEFAULT_MODEL
-    _MODEL_CACHE = (model, now + _MODEL_CACHE_TTL)
+    _MODEL_CACHE[workspace_id] = (model, now + _MODEL_CACHE_TTL)
     return model
 
 
@@ -125,11 +139,11 @@ async def _call_gemini(prompt: str, system: str, model: str) -> str:
         return out.strip()
 
 
-async def chat_complete(prompt: str, system: str = SYSTEM_TASADOR) -> str:
+async def chat_complete(prompt: str, system: str = SYSTEM_TASADOR, workspace_id: int | None = None) -> str:
     if not _gemini_available():
         return "[Gemini no disponible — falta GEMINI_API_KEY]"
     try:
-        model = await _get_active_model()
+        model = await _get_active_model(workspace_id)
         result = await _call_gemini(prompt, system, model)
         return result or "[Gemini no devolvió respuesta]"
     except Exception as e:
@@ -139,13 +153,14 @@ async def chat_complete(prompt: str, system: str = SYSTEM_TASADOR) -> str:
 
 async def chat_stream(
     prompt: str, system: str = SYSTEM_TASADOR, session_id: Optional[str] = None,
+    workspace_id: int | None = None,
 ) -> AsyncIterator[str]:
     """Pseudo-streaming: una llamada, chunks al frontend."""
     if not _gemini_available():
         yield "[Gemini no disponible]"
         return
     try:
-        model = await _get_active_model()
+        model = await _get_active_model(workspace_id)
         full = await _call_gemini(prompt, system, model)
         if not full:
             yield "[Gemini no devolvió respuesta]"
@@ -158,7 +173,63 @@ async def chat_stream(
         yield f"[Gemini error: {type(e).__name__}]"
 
 
-async def analyze_property(property_data: dict) -> dict:
+async def generate_with_tools(
+    contents: List[Dict[str, Any]],
+    tools: List[Dict[str, Any]],
+    system_instruction: Optional[str] = None,
+    workspace_id: int | None = None,
+    max_tokens: int = 1500,
+) -> Optional[Dict[str, Any]]:
+    """Gemini con function calling habilitado (motor del bot WhatsApp, WO F2-03).
+
+    Portado de AgentFlow/backend/services/gemini.generate_with_tools, adaptado a la
+    suite: el modelo se resuelve POR WORKSPACE (misma cache keyed que el resto del
+    service). Este es el UNICO punto de integracion de function-calling con Gemini
+    en la suite.
+
+    Args:
+      contents: mensajes en formato Gemini, ej [{"role":"user","parts":[{"text":...}]}].
+      tools: function_declarations, ej [{"name":..., "description":..., "parameters":{...}}].
+      system_instruction: prompt de sistema separado (no se concatena con el user).
+
+    Devuelve el primer `part` de la respuesta:
+      {"text": "..."}                              si Gemini responde con texto.
+      {"functionCall": {"name": "...", "args": {}}}  si decide llamar una tool.
+      None                                          si la API no esta disponible o falla.
+    """
+    if not _gemini_available():
+        return None
+    model = await _get_active_model(workspace_id)
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+    payload: Dict[str, Any] = {
+        "contents": contents,
+        "tools": [{"function_declarations": tools}] if tools else [],
+        "generationConfig": {"temperature": 0.4, "maxOutputTokens": max_tokens},
+        "toolConfig": {"functionCallingConfig": {"mode": "AUTO"}},
+    }
+    if not tools:
+        payload.pop("tools")
+        payload.pop("toolConfig")
+    if system_instruction:
+        payload["systemInstruction"] = {"parts": [{"text": system_instruction}]}
+    try:
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            r = await client.post(url, params={"key": settings.GEMINI_API_KEY}, json=payload)
+            if r.status_code != 200:
+                log.warning("gemini tools %s -> %d %s", model, r.status_code, r.text[:300])
+                return None
+            data = r.json()
+            candidates = data.get("candidates", [])
+            if not candidates:
+                return None
+            parts = candidates[0].get("content", {}).get("parts", [])
+            return parts[0] if parts else None
+    except Exception as e:
+        log.warning("gemini generate_with_tools failed: %s", type(e).__name__)
+        return None
+
+
+async def analyze_property(property_data: dict, workspace_id: int | None = None) -> dict:
     prompt = f"""Propiedad a analizar:
 ```json
 {json.dumps(property_data, ensure_ascii=False, indent=2)}
@@ -176,7 +247,7 @@ Devolvé EXCLUSIVAMENTE un bloque ```json ... ``` con EXACTAMENTE este schema fl
   "ai_confidence": 0.85
 }}
 ```"""
-    raw = await chat_complete(prompt, system=SYSTEM_ANALYZER)
+    raw = await chat_complete(prompt, system=SYSTEM_ANALYZER, workspace_id=workspace_id)
     return _extract_json(raw)
 
 

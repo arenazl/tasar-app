@@ -11,6 +11,17 @@ from models.market_listing import MarketListing
 from models.monthly_report import MonthlyReport
 from models.inbox import InboxMessage
 from models.client import Client
+from models.wa_session import WaSession
+from models.visit import Visit
+from models.deal import Deal
+from models.authorization import Authorization
+from models.express_valuation import ExpressValuation
+from models.dmo import Coach, DmoTemplate, DmoBlock, DmoAssignment, DmoLog
+from models.conversation import WaConversation
+from models.message import WaMessage
+from models.bot_config import WorkspaceBotConfig, BotFaq
+from models.push_subscription import PushSubscription
+from models.invitation import Invitation
 
 __all__ = [
     "User", "Workspace",
@@ -25,4 +36,15 @@ __all__ = [
     "MonthlyReport",
     "InboxMessage",
     "Client",
+    "WaSession",
+    "Visit",
+    "Deal",
+    "Authorization",
+    "ExpressValuation",
+    "Coach", "DmoTemplate", "DmoBlock", "DmoAssignment", "DmoLog",
+    "WaConversation",
+    "WaMessage",
+    "WorkspaceBotConfig", "BotFaq",
+    "PushSubscription",
+    "Invitation",
 ]

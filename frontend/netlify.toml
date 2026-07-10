@@ -12,3 +12,30 @@
   from = "/*"
   to = "/index.html"
   status = 200
+
+# Auto-update de la PWA sin reinstalar (WO F4-04) — base-compartida/6-GUIA-PWA.md.
+# Assets con hash: cacheables al máximo. HTML/SW/version.json: nunca cacheados.
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/"
+  [headers.values]
+    Cache-Control = "no-store, max-age=0"
+
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    Cache-Control = "no-store, max-age=0"
+
+[[headers]]
+  for = "/version.json"
+  [headers.values]
+    Cache-Control = "no-store, max-age=0"
+
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "no-store, max-age=0"

@@ -8,7 +8,20 @@ Método de homogeneización clásica:
 - Confianza = f(cantidad de comparables, dispersión, similitud promedio).
 """
 from typing import List, Tuple
+import math
 import statistics
+
+
+def haversine_m(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    """Distancia en metros entre dos coords (lat/lng en grados)."""
+    R = 6_371_000
+    p1 = math.radians(lat1)
+    p2 = math.radians(lat2)
+    dp = math.radians(lat2 - lat1)
+    dl = math.radians(lon2 - lon1)
+    a = math.sin(dp / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(dl / 2) ** 2
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+    return R * c
 
 
 def compute_comparable_adjustment(

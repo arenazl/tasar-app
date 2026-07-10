@@ -29,6 +29,14 @@ class UserOut(BaseModel):
     workspace_id: int
     license_number: Optional[str] = None
     avatar_url: Optional[str] = None
+    is_active: bool = True
+    # is_available alimenta el round-robin de leads (WO F4-05). Se expone en
+    # /me para que el front pueda mostrar/editar el switch de disponibilidad.
+    is_available: bool = False
+    personal_phone: Optional[str] = None
+    daily_conversations_goal: Optional[int] = None
+    # Vendedor de ejemplo del onboarding self-service (WO F5-03).
+    is_demo: bool = False
 
     class Config:
         from_attributes = True

@@ -4,7 +4,7 @@ gunicorn==21.2.0
 sqlalchemy==2.0.23
 aiomysql==0.2.0
 pymysql==1.1.0
-cryptography==41.0.7
+cryptography==46.0.7
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
 bcrypt==4.0.1
@@ -18,3 +18,4 @@ httpx==0.25.2
 cloudinary==1.41.0
 reportlab==4.0.7
 playwright==1.40.0
+pywebpush==1.14.0

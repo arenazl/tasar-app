@@ -63,27 +63,40 @@ NO uses nested objects. NO agregues keys que no estén en el schema."""
 
 _CLAUDE_BIN: Optional[str] = None
 
-# Cache del modelo activo leído de app_settings. TTL corto: el endpoint settings
-# llama invalidate_model_cache() para forzar reload.
+# Cache del modelo activo leído de app_settings, KEYED por workspace_id para no
+# cruzar settings entre tenants (app_settings tiene unique (workspace_id, key)).
+# TTL corto: el endpoint settings llama invalidate_model_cache(workspace_id) para
+# forzar reload al hacer PATCH.
 import time as _time
-_MODEL_CACHE: tuple[str, float] | None = None  # (model, expires_at)
+_MODEL_CACHE: dict[int, tuple[str, float]] = {}  # workspace_id -> (model, expires_at)
 _MODEL_CACHE_TTL = 15
 _VALID_MODELS = ("haiku", "sonnet", "opus")
 _DEFAULT_MODEL = "haiku"
 
 
-def invalidate_model_cache() -> None:
-    """Forzar recarga del modelo activo en la próxima llamada."""
-    global _MODEL_CACHE
-    _MODEL_CACHE = None
+def invalidate_model_cache(workspace_id: int | None = None) -> None:
+    """Forzar recarga del modelo activo en la próxima llamada.
+
+    Con workspace_id: invalida solo ese tenant. Sin argumento: limpia todo el cache.
+    """
+    if workspace_id is None:
+        _MODEL_CACHE.clear()
+    else:
+        _MODEL_CACHE.pop(workspace_id, None)
 
 
 async def _get_active_model(workspace_id: int | None = None) -> str:
-    """Lee `claude_model` de app_settings con cache. Default: haiku."""
-    global _MODEL_CACHE
+    """Lee `claude_model` de app_settings PARA EL WORKSPACE dado, con cache.
+
+    Sin workspace_id NO se lee ningún setting (evitamos servir el de otro tenant):
+    se devuelve el default. Default: haiku.
+    """
+    if workspace_id is None:
+        return _DEFAULT_MODEL
     now = _time.time()
-    if _MODEL_CACHE and _MODEL_CACHE[1] > now:
-        return _MODEL_CACHE[0]
+    cached = _MODEL_CACHE.get(workspace_id)
+    if cached and cached[1] > now:
+        return cached[0]
     model = _DEFAULT_MODEL
     try:
         from sqlalchemy import select
@@ -91,15 +104,16 @@ async def _get_active_model(workspace_id: int | None = None) -> str:
         from models.app_setting import AppSetting
 
         async with AsyncSessionLocal() as db:
-            stmt = select(AppSetting).where(AppSetting.key == "claude_model")
-            if workspace_id is not None:
-                stmt = stmt.where(AppSetting.workspace_id == workspace_id)
+            stmt = select(AppSetting).where(
+                AppSetting.workspace_id == workspace_id,
+                AppSetting.key == "claude_model",
+            )
             row = (await db.execute(stmt)).scalar_one_or_none()
             if row and row.value in _VALID_MODELS:
                 model = row.value
     except Exception:
         model = _DEFAULT_MODEL
-    _MODEL_CACHE = (model, now + _MODEL_CACHE_TTL)
+    _MODEL_CACHE[workspace_id] = (model, now + _MODEL_CACHE_TTL)
     return model
 
 
@@ -186,11 +200,11 @@ def _run_claude_sync(prompt: str, system: str, model: str, timeout: int = 180) -
     return final_text.strip()
 
 
-async def chat_complete(prompt: str, system: str = SYSTEM_TASADOR) -> str:
+async def chat_complete(prompt: str, system: str = SYSTEM_TASADOR, workspace_id: int | None = None) -> str:
     if not _claude_available():
         return "[Claude headless no disponible — instalá el CLI `claude` para activar el Tasador AI.]"
     try:
-        model = await _get_active_model()
+        model = await _get_active_model(workspace_id)
         result = await asyncio.to_thread(
             _run_claude_sync, prompt, system, model, 180
         )
@@ -204,13 +218,14 @@ async def chat_stream(
     prompt: str,
     system: str = SYSTEM_TASADOR,
     session_id: Optional[str] = None,
+    workspace_id: int | None = None,
 ) -> AsyncIterator[str]:
     """Pseudo-streaming: ejecuta sync y entrega chunks de ~80 chars al frontend."""
     if not _claude_available():
         yield "[Claude headless no disponible en este entorno.]"
         return
     try:
-        model = await _get_active_model()
+        model = await _get_active_model(workspace_id)
         full = await asyncio.to_thread(
             _run_claude_sync, prompt, system, model, 180
         )
@@ -225,7 +240,7 @@ async def chat_stream(
         yield f"[Tasador AI error: {type(e).__name__}]"
 
 
-async def analyze_property(property_data: dict) -> dict:
+async def analyze_property(property_data: dict, workspace_id: int | None = None) -> dict:
     """Análisis estructurado de una propiedad. Devuelve dict parseado del JSON.
 
     Repetimos el schema en el USER prompt porque los system prompts a veces los ignora
@@ -251,7 +266,7 @@ Devolvé EXCLUSIVAMENTE un bloque ```json ... ``` con EXACTAMENTE este schema fl
 ```
 
 Las 7 keys son obligatorias. No agregues keys extra. No uses objetos anidados."""
-    raw = await chat_complete(prompt, system=SYSTEM_ANALYZER)
+    raw = await chat_complete(prompt, system=SYSTEM_ANALYZER, workspace_id=workspace_id)
     return _extract_json(raw)
 
 

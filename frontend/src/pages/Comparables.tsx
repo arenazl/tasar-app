@@ -34,12 +34,13 @@ const PILL_OPTIONS = {
 export default function Comparables() {
   const { theme } = useTheme();
   const [zone, setZone] = useState('Recoleta');
-  const [radius, setRadius] = useState('800');
+  const [radius, setRadius] = useState('2000');
   const [type, setType] = useState('departamento');
   const [rooms, setRooms] = useState('3');
   const [condition, setCondition] = useState('bueno');
   const [days, setDays] = useState('90');
   const [results, setResults] = useState<ComparableResult[]>([]);
+  const [orderBy, setOrderBy] = useState<'match' | 'ppm2'>('ppm2');
   const [stats, setStats] = useState<{ total: number; min: number | null; max: number | null; median: number | null }>(
     { total: 0, min: null, max: null, median: null }
   );
@@ -48,14 +49,31 @@ export default function Comparables() {
   const search = async () => {
     setLoading(true);
     try {
+      // Centro REAL del barrio: promedio de coords de los listings del modelo
+      // (nada inventado). Si la zona no tiene listings geocodificados, cae a null
+      // y el backend ordena por USD/m².
+      let lat: number | null = null;
+      let lng: number | null = null;
+      try {
+        const c = await api.get('/market/zone-centroid', { params: { neighborhood: zone, property_type: type } });
+        lat = c.data.lat; lng = c.data.lng;
+      } catch { /* best-effort, ignorar */ }
+
       const params: any = {
         neighborhood: zone, property_type: type, rooms: Number(rooms),
         condition, last_days: Number(days), limit: 50,
       };
+      if (lat != null && lng != null) {
+        params.target_lat = lat;
+        params.target_lng = lng;
+        params.radius_m = Number(radius);  // el pill de radio pasa el valor real
+      }
+
       const r = await api.get('/market/comparables', { params });
       setResults(r.data.results);
+      setOrderBy(r.data.order_by === 'match' ? 'match' : 'ppm2');
       setStats({ total: r.data.total, min: r.data.min_ppm2, max: r.data.max_ppm2, median: r.data.median_ppm2 });
-    } catch {}
+    } catch { /* best-effort, ignorar */ }
     finally { setLoading(false); }
   };
 
@@ -151,7 +169,7 @@ export default function Comparables() {
           <h3 className="font-bold text-sm sticky top-0 py-2 -mt-2"
             style={{ color: theme.text, background: theme.background }}>
             Resultados <span className="text-xs font-normal" style={{ color: theme.textSecondary }}>
-              ordenado por match
+              {orderBy === 'match' ? 'ordenado por match' : 'ordenado por USD/m²'}
             </span>
           </h3>
           {loading && <div className="text-center text-xs py-4" style={{ color: theme.textSecondary }}>Cargando…</div>}

@@ -28,39 +28,52 @@ _DEFAULT_PROVIDER = "claude" if _CLAUDE_AVAILABLE else "gemini"
 if not _CLAUDE_AVAILABLE:
     log.warning("Claude CLI not found in PATH - defaulting to Gemini provider")
 
-_PROVIDER_CACHE: tuple[str, float] | None = None
+# Cache del provider activo KEYED por workspace_id: el switch de un tenant no puede
+# afectar a otro (app_settings tiene unique (workspace_id, key)).
+_PROVIDER_CACHE: dict[int, tuple[str, float]] = {}  # workspace_id -> (provider, expires_at)
 _PROVIDER_TTL = 15
 
 
-def invalidate_provider_cache() -> None:
-    global _PROVIDER_CACHE
-    _PROVIDER_CACHE = None
+def invalidate_provider_cache(workspace_id: int | None = None) -> None:
+    """Con workspace_id: invalida solo ese tenant. Sin argumento: limpia todo."""
+    if workspace_id is None:
+        _PROVIDER_CACHE.clear()
+    else:
+        _PROVIDER_CACHE.pop(workspace_id, None)
 
 
-async def _get_provider() -> str:
-    global _PROVIDER_CACHE
-    now = time.time()
-    if _PROVIDER_CACHE and _PROVIDER_CACHE[1] > now:
-        return _PROVIDER_CACHE[0]
-    provider = _DEFAULT_PROVIDER
-    try:
-        from sqlalchemy import select
-        from core.database import AsyncSessionLocal
-        from models.app_setting import AppSetting
-        async with AsyncSessionLocal() as db:
-            row = (await db.execute(
-                select(AppSetting).where(AppSetting.key == "ai_provider")
-            )).scalar_one_or_none()
-            if row and row.value in _VALID_PROVIDERS:
-                provider = row.value
-    except Exception:
+async def _get_provider(workspace_id: int | None = None) -> str:
+    # Sin workspace NO leemos el setting de otro tenant: usamos el default.
+    if workspace_id is None:
         provider = _DEFAULT_PROVIDER
+    else:
+        now = time.time()
+        cached = _PROVIDER_CACHE.get(workspace_id)
+        if cached and cached[1] > now:
+            provider = cached[0]
+        else:
+            provider = _DEFAULT_PROVIDER
+            try:
+                from sqlalchemy import select
+                from core.database import AsyncSessionLocal
+                from models.app_setting import AppSetting
+                async with AsyncSessionLocal() as db:
+                    row = (await db.execute(
+                        select(AppSetting).where(
+                            AppSetting.workspace_id == workspace_id,
+                            AppSetting.key == "ai_provider",
+                        )
+                    )).scalar_one_or_none()
+                    if row and row.value in _VALID_PROVIDERS:
+                        provider = row.value
+            except Exception:
+                provider = _DEFAULT_PROVIDER
+            _PROVIDER_CACHE[workspace_id] = (provider, now + _PROVIDER_TTL)
     # Safety net: si el setting dice 'claude' pero el CLI no está disponible,
     # forzamos Gemini para que la app no falle silenciosamente.
     if provider == "claude" and not _CLAUDE_AVAILABLE:
         log.warning("Setting says 'claude' but CLI not available - using Gemini")
         provider = "gemini"
-    _PROVIDER_CACHE = (provider, now + _PROVIDER_TTL)
     return provider
 
 
@@ -75,23 +88,23 @@ SYSTEM_TASADOR = _claude.SYSTEM_TASADOR
 SYSTEM_ANALYZER = _claude.SYSTEM_ANALYZER
 
 
-async def chat_complete(prompt: str, system: str = SYSTEM_TASADOR) -> str:
-    provider = await _get_provider()
+async def chat_complete(prompt: str, system: str = SYSTEM_TASADOR, workspace_id: int | None = None) -> str:
+    provider = await _get_provider(workspace_id)
     mod = _module_for(provider)
     log.info("AI chat_complete via %s", provider)
-    return await mod.chat_complete(prompt, system)
+    return await mod.chat_complete(prompt, system, workspace_id=workspace_id)
 
 
-async def chat_stream(prompt: str, system: str = SYSTEM_TASADOR, session_id=None) -> AsyncIterator[str]:
-    provider = await _get_provider()
+async def chat_stream(prompt: str, system: str = SYSTEM_TASADOR, session_id=None, workspace_id: int | None = None) -> AsyncIterator[str]:
+    provider = await _get_provider(workspace_id)
     mod = _module_for(provider)
     log.info("AI chat_stream via %s", provider)
-    async for chunk in mod.chat_stream(prompt, system, session_id):
+    async for chunk in mod.chat_stream(prompt, system, session_id, workspace_id=workspace_id):
         yield chunk
 
 
-async def analyze_property(property_data: dict) -> dict:
-    provider = await _get_provider()
+async def analyze_property(property_data: dict, workspace_id: int | None = None) -> dict:
+    provider = await _get_provider(workspace_id)
     mod = _module_for(provider)
     log.info("AI analyze_property via %s", provider)
-    return await mod.analyze_property(property_data)
+    return await mod.analyze_property(property_data, workspace_id=workspace_id)

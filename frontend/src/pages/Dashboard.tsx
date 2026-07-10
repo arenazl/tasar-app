@@ -63,7 +63,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <PageHint pageId="propiedades" />
+      <PageHint pageId="dashboard" />
 
       {/* KPIs */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
