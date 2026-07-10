@@ -20,6 +20,9 @@ class Settings(BaseSettings):
     APP_VERSION: str = "0.1.0"
     APP_DEBUG: bool = True
     ENVIRONMENT: str = "development"
+    # Solo dev/test: si es True, el lifespan crea el schema con create_all.
+    # En prod queda OFF y el schema lo gobierna Alembic (WO F0-03).
+    AUTO_CREATE_SCHEMA: bool = False
     PORT: int = 8600
     FRONTEND_URL: str = "http://localhost:5600"
     CORS_ORIGINS: str = '["http://localhost:5600"]'

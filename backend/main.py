@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
@@ -5,6 +7,8 @@ from contextlib import asynccontextmanager
 from core.config import settings
 from core.database import engine, Base
 import models  # noqa: F401 — registra todos los modelos en Base.metadata
+
+log = logging.getLogger("tasar.main")
 
 from api import (
     auth, properties, market_studies, appraisals,
@@ -15,8 +19,14 @@ from api import (
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+    # El schema en prod lo gobierna Alembic (WO F0-03). create_all queda solo
+    # para dev/test detras del flag AUTO_CREATE_SCHEMA (default off).
+    if settings.AUTO_CREATE_SCHEMA:
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+        log.warning("AUTO_CREATE_SCHEMA=on -> create_all ejecutado (modo dev/test, NO usar en prod)")
+    else:
+        log.info("AUTO_CREATE_SCHEMA=off -> schema gobernado por Alembic (create_all salteado)")
     yield
 
 
