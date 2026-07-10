@@ -194,7 +194,9 @@ def normalize_address_key(address: str | None, total_area_m2: float, price: floa
 # Mapeo de una fila + sanidad (devuelve (row_dict, None) o (None, causa))
 # ============================================================================
 
-def map_row(prop: dict, detail: dict | None) -> tuple[dict | None, str | None]:
+def map_row(
+    prop: dict, detail: dict | None, source_tag: str = SOURCE_TAG
+) -> tuple[dict | None, str | None]:
     if detail is None:
         return None, "sin_detalle_join"
 
@@ -237,7 +239,7 @@ def map_row(prop: dict, detail: dict | None) -> tuple[dict | None, str | None]:
     external_id = (prop.get("reference") or "").strip() or prop["id"]
 
     row = dict(
-        source=SOURCE_TAG,
+        source=source_tag,
         source_url=prop.get("detailUrl") or None,
         external_id=external_id,
         title=title_clean[:200],
@@ -299,7 +301,9 @@ class EtlResult:
         self.dup_examples: list[tuple[str, dict, dict]] = []  # (key, kept, dropped)
 
 
-def run_etl(properties_path: Path, details_path: Path) -> EtlResult:
+def run_etl(
+    properties_path: Path, details_path: Path, source_tag: str = SOURCE_TAG
+) -> EtlResult:
     result = EtlResult()
     properties = load_properties(properties_path)
     details = load_details(details_path)
@@ -308,7 +312,7 @@ def run_etl(properties_path: Path, details_path: Path) -> EtlResult:
     mapped: list[dict] = []
     for prop in properties:
         detail = details.get(prop.get("id"))
-        row, reason = map_row(prop, detail)
+        row, reason = map_row(prop, detail, source_tag=source_tag)
         if row is None:
             result.exclusion_reasons[reason] += 1
             continue
@@ -330,6 +334,31 @@ def run_etl(properties_path: Path, details_path: Path) -> EtlResult:
 
     result.rows = deduped
     return result
+
+
+# ============================================================================
+# Dedup incremental (fila nueva vs. lo que ya existe en market_listings).
+# Funcion PURA (sin DB) para que sea testeable standalone -- ver
+# refresh_cb_dataset.py::selftest, que la ejercita 2 veces sobre el mismo
+# batch para probar que un refresh corrido 2 veces no duplica.
+# ============================================================================
+
+def filter_new_rows(rows: list[dict], existing_keys: set[str]) -> tuple[list[dict], int]:
+    """Devuelve (filas_a_insertar, cantidad_descartada_por_ya_existir).
+
+    Misma dedup key que la intra-import (direccion normalizada + m2 + precio).
+    `existing_keys` es el set precalculado de esa key para lo que ya esta en
+    la tabla (seed + imports previos).
+    """
+    to_insert: list[dict] = []
+    skipped = 0
+    for row in rows:
+        key = normalize_address_key(row["address"], row["total_area_m2"], row["price"])
+        if key in existing_keys:
+            skipped += 1
+            continue
+        to_insert.append(row)
+    return to_insert, skipped
 
 
 # ============================================================================
@@ -443,14 +472,21 @@ async def _backup_existing(session) -> Path:
     return backup_path
 
 
-async def apply_import(properties_path: Path, details_path: Path) -> None:
+async def apply_import(
+    properties_path: Path, details_path: Path, source_tag: str = SOURCE_TAG
+) -> None:
     """Import real. Requiere backend/.env con credenciales validas de la Aiven
-    compartida. NO se corre desde este WO -- lo dispara el dueno/Infra."""
+    compartida. NO se corre desde este WO -- lo dispara el dueno/Infra.
+
+    `source_tag` permite reusar este mismo import para un refresh incremental
+    (WO F3-04): cada corrida de refresh_cb_dataset.py pasa un tag con la
+    fecha del scrape (ej. "cb-argentina-2026-07-10") para dejar provenance
+    de cuando entro cada fila, sin pisar el tag del import original."""
     from sqlalchemy import select, update
     from core.database import AsyncSessionLocal
     from models.market_listing import MarketListing
 
-    result = run_etl(properties_path, details_path)
+    result = run_etl(properties_path, details_path, source_tag=source_tag)
     print(f"[apply] ETL en memoria: {len(result.rows)} filas importables "
           f"(de {result.total_raw} en el JSON origen).")
 
@@ -481,14 +517,7 @@ async def apply_import(properties_path: Path, details_path: Path) -> None:
             normalize_address_key(addr, m2 or 0.0, price or 0.0)
             for addr, m2, price in existing
         }
-        to_insert = []
-        skipped_existing = 0
-        for row in result.rows:
-            key = normalize_address_key(row["address"], row["total_area_m2"], row["price"])
-            if key in existing_keys:
-                skipped_existing += 1
-                continue
-            to_insert.append(row)
+        to_insert, skipped_existing = filter_new_rows(result.rows, existing_keys)
         print(f"[apply] Descartadas por dedup contra existentes: {skipped_existing}")
         print(f"[apply] A insertar: {len(to_insert)}")
 
@@ -500,7 +529,7 @@ async def apply_import(properties_path: Path, details_path: Path) -> None:
         if to_insert:
             await session.execute(insert(MarketListing), to_insert)
         await session.commit()
-        print(f"[apply] OK. {len(to_insert)} filas insertadas con source='{SOURCE_TAG}'.")
+        print(f"[apply] OK. {len(to_insert)} filas insertadas con source='{source_tag}'.")
 
 
 # ============================================================================

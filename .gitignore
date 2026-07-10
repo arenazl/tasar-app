@@ -39,3 +39,7 @@ input/
 
 # Docs del rework (fuente unica: d:\Code\base-compartida\tasar\)
 /tasar/
+
+# Snapshots/backups generados por scripts de import/refresh (WO F0-06/F3-04) -- no versionar
+backend/scripts/_backups/
+backend/scripts/_cb_refresh/

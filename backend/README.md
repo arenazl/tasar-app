@@ -89,3 +89,86 @@ TASAR_SMOKE_ALLOW_REMOTE_DB=1 python scripts/smoke_core.py   # solo con DB local
 
 El bloque de endpoints críticos asume el usuario demo `admin@tasar.demo` /
 `admin123` (`scripts/seed_demo.py`).
+
+## Scraping on-demand con JS (Playwright + chromium) — WO F3-04
+
+`api/scraping.py::_fetch_html` intenta Playwright primero y si falla
+(excepción de cualquier tipo, incluido "no está el binario") cae a `httpx`
+sin JS. Antes de este WO, la imagen Docker **no** instalaba el browser de
+Playwright, así que en Cloud Run el fallback a `httpx` era el camino real
+para TODAS las URLs (insuficiente para ZonaProp/MercadoLibre, que renderizan
+con JS). El `Dockerfile` ahora corre `playwright install --with-deps chromium`
+después del `pip install`, para que el `chromium.launch()` real funcione en
+Cloud Run.
+
+**Decisión de peso de imagen:** se instala **solo Chromium** (no Firefox ni
+WebKit) sobre `python:3.11-slim`. Estimación (no medida con un build real en
+este WO — no se pudo buildear la imagen acá, ver limitación abajo):
+
+| Capa                                              | Estimado    |
+|----------------------------------------------------|------------|
+| `python:3.11-slim` + `build-essential`/openssl/ffi | ~250-300 MB |
+| Deps de `requirements.txt` (fastapi, sqlalchemy, cryptography, reportlab, cloudinary, el driver Node embebido de `playwright`, etc.) | ~150-250 MB |
+| Binario de Chromium (`playwright install chromium`) | ~300-320 MB |
+| Libs de SO de `--with-deps` (libnss3, libatk, libcups2, libgbm1, fonts-liberation, etc.) | ~250-350 MB |
+| **Total estimado**                                  | **~1.0-1.2 GB** |
+
+Queda por debajo del umbral de 2 GB que el WO marcó como límite razonable
+para Cloud Run — por eso se optó por instalar el browser directo en vez de
+dejar el scraping JS detrás de un flag con mensaje degradado. **Verificar
+con un build real** (`docker build` + `docker images`) antes de dar esto por
+cerrado; si el tamaño real sorprende para arriba, la alternativa (flag +
+`"fuente no soportada en este plan"` en la UI) queda documentada acá como
+plan B.
+
+**Nota operativa para Infra:** con Chromium instalado, cada worker de
+gunicorn que atienda una request de scraping levanta un proceso browser
+(pico de RSS estimado ~300-500 MB por instancia). El `Dockerfile` corre
+`-w 2` workers — dimensionar la memoria del servicio de Cloud Run
+consecuentemente (no se cambió acá porque es un parámetro de infra, no de
+este WO).
+
+## Refresh del dataset Coldwell Banker Argentina — WO F3-04
+
+El dataset importado en F0-06 es un snapshot fijo. `scripts/refresh_cb_dataset.py`
+scrapea de nuevo el catálogo público de CB (mismo sitio, mismos campos que el
+snapshot original) y reimporta de forma **incremental**, reusando el ETL de
+F0-06 (`scripts/import_cb_dataset.py`) tal cual: mismo mapeo, misma sanidad,
+mismo dedup por dirección+m²+precio. Cada corrida usa un `source` con la
+fecha (`cb-argentina-YYYY-MM-DD`) para dejar provenance de cuándo entró cada
+fila.
+
+Es un **port a Python** de los scrapers `.mjs` del repo donante
+(`beykercoldwell/scripts/scrape-cb-argentina.mjs` +
+`scripts/scrape-details.mjs`), no una invocación de Node: el sitio de CB es
+HTML server-rendered (ambos originales usan `fetch()` + regex, sin
+Playwright), así que portear evita meter un runtime Node en la imagen del
+backend solo para esto.
+
+El refresh es **manual** por ahora — lo corre el dueño/Infra:
+
+```bash
+cd backend
+
+# 1) Scrapear listado + fichas de detalle a JSON local (resumable, no toca DB):
+python scripts/refresh_cb_dataset.py --stage all
+
+# 2) Ver el reporte del ETL (dry-run, no toca DB) sobre lo recién scrapeado:
+python scripts/refresh_cb_dataset.py --stage none
+
+# 3) Importar de verdad (backup de market_listings + insert incremental,
+#    pide confirmación explícita "CONFIRMO"):
+python scripts/refresh_cb_dataset.py --stage none --apply
+```
+
+El dedup incremental (que correr el refresh 2 veces no duplique filas) tiene
+un self-test 100% offline (sin red, sin DB):
+
+```bash
+python scripts/refresh_cb_dataset.py --dedup-selftest
+```
+
+**Cron futuro (no implementado en este WO):** el refresh queda anotado como
+candidato a Cloud Scheduler → endpoint protegido (mismo patrón que
+`/api/cron/weekly-summary` de F3-03, con `X-Cron-Key`) una vez que el dueño
+decida la cadencia. Por ahora no hay automatización — correrlo a mano.
