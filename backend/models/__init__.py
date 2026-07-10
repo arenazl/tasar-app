@@ -12,6 +12,9 @@ from models.monthly_report import MonthlyReport
 from models.inbox import InboxMessage
 from models.client import Client
 from models.wa_session import WaSession
+from models.visit import Visit
+from models.deal import Deal
+from models.authorization import Authorization
 
 __all__ = [
     "User", "Workspace",
@@ -27,4 +30,7 @@ __all__ = [
     "InboxMessage",
     "Client",
     "WaSession",
+    "Visit",
+    "Deal",
+    "Authorization",
 ]

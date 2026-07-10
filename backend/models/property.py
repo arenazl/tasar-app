@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Text, func
+from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, ForeignKey, Text, func
 from core.database import Base
 
 
@@ -8,6 +8,9 @@ class Property(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     workspace_id = Column(Integer, ForeignKey("workspaces.id"), nullable=False, index=True)
     created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
+    # AgentFlow.propiedades.captador_id -> captador_id (agente que captó la propiedad).
+    # Nullable: en TasAR una propiedad puede existir sin captador (flujo de tasación).
+    captador_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
 
     # Identificación
     title = Column(String(200), nullable=False)
@@ -37,6 +40,8 @@ class Property(Base):
     # Económico
     asking_price = Column(Float, nullable=True)
     currency = Column(String(5), default="USD")
+    # AgentFlow.propiedades.exclusividad -> exclusivity (autorización en exclusiva)
+    exclusivity = Column(Boolean, default=False)
 
     # Descripción + metadata IA
     description = Column(Text, nullable=True)
