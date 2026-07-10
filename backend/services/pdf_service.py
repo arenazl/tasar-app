@@ -119,6 +119,111 @@ def generate_appraisal_pdf(
     return pdf_bytes
 
 
+def generate_monthly_report_pdf(report: dict, brand: dict) -> bytes:
+    """Informe de reporte mensual (WO F4-03).
+
+    `report` = dict con los campos reales de un `monthly_report` (code,
+    region, kind, period_year, period_month, source, tasar_index,
+    median_price_per_m2, yoy_change_pct, mom_change_pct, active_listings,
+    avg_days_on_market, new_permits, sample_size, top_zones: list[dict]).
+    NO se inventan datos: todo KPI ausente (None) se muestra "-". `brand`
+    = {name, subtitle} del workspace/producto.
+    """
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(
+        buffer, pagesize=A4,
+        leftMargin=2 * cm, rightMargin=2 * cm,
+        topMargin=1.8 * cm, bottomMargin=1.8 * cm,
+    )
+    styles = getSampleStyleSheet()
+    brand_style = ParagraphStyle(
+        "brand", parent=styles["Heading1"], fontSize=16,
+        textColor=colors.HexColor("#0f172a"), spaceAfter=2,
+    )
+    title = ParagraphStyle(
+        "title", parent=styles["Heading1"], fontSize=20,
+        textColor=colors.HexColor("#1e293b"), spaceAfter=8,
+    )
+    h2 = ParagraphStyle("h2", parent=styles["Heading2"], fontSize=13,
+                         textColor=colors.HexColor("#1e293b"), spaceBefore=14)
+    normal = styles["BodyText"]
+    small = ParagraphStyle("small", parent=styles["BodyText"], fontSize=8,
+                            textColor=colors.HexColor("#64748b"))
+
+    MONTHS_ES = ["", "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+                 "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"]
+
+    def _n(v, suffix="") -> str:
+        return "-" if v is None else f"{v}{suffix}"
+
+    month_label = MONTHS_ES[report["period_month"]] if 1 <= report.get("period_month", 0) <= 12 else "-"
+
+    story = []
+    story.append(Paragraph(brand.get("name", "TasAR"), brand_style))
+    story.append(Paragraph(brand.get("subtitle", "Inteligencia de mercado inmobiliario"), small))
+    story.append(Spacer(1, 0.3 * cm))
+    story.append(Paragraph(f"REPORTE {report.get('kind', 'mensual').upper()}", title))
+    story.append(Paragraph(
+        f"Edicion {report.get('code', '-')} &nbsp;|&nbsp; {month_label} {report.get('period_year', '-')} "
+        f"&nbsp;|&nbsp; Region: {report.get('region', '-')}", normal))
+    story.append(Spacer(1, 0.3 * cm))
+
+    story.append(Paragraph("1. Indicadores", h2))
+    data = [
+        ["Indice TasAR", _n(report.get("tasar_index"))],
+        ["Mediana USD/m2", _n(report.get("median_price_per_m2"))],
+        ["Variacion interanual (YoY)", _n(report.get("yoy_change_pct"), "%")],
+        ["Variacion mensual (MoM)", _n(report.get("mom_change_pct"), "%")],
+        ["Oferta activa", _n(report.get("active_listings"))],
+        ["Dias promedio en mercado", _n(report.get("avg_days_on_market"))],
+        ["Permisos de obra nueva", _n(report.get("new_permits"))],
+        ["Avisos usados en el calculo", _n(report.get("sample_size"))],
+    ]
+    t = Table(data, colWidths=[7 * cm, 9 * cm])
+    t.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (0, -1), colors.HexColor("#f1f5f9")),
+        ("GRID", (0, 0), (-1, -1), 0.25, colors.HexColor("#cbd5e1")),
+        ("FONTSIZE", (0, 0), (-1, -1), 9),
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+    ]))
+    story.append(t)
+
+    top_zones = report.get("top_zones") or []
+    if top_zones:
+        story.append(Paragraph("2. Top zonas", h2))
+        rows = [["#", "Zona", "USD/m2", "Avisos"]]
+        for i, z in enumerate(top_zones[:12], 1):
+            rows.append([
+                i, z.get("zone", "-"),
+                f"{z.get('usd_m2', '-')}",
+                f"{z.get('listings_count', '-')}",
+            ])
+        zt = Table(rows, repeatRows=1, colWidths=[1 * cm, 7 * cm, 4 * cm, 4 * cm])
+        zt.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#3b82f6")),
+            ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+            ("GRID", (0, 0), (-1, -1), 0.25, colors.HexColor("#cbd5e1")),
+            ("FONTSIZE", (0, 0), (-1, -1), 8),
+        ]))
+        story.append(zt)
+
+    story.append(Spacer(1, 0.6 * cm))
+    if report.get("source") == "custom":
+        story.append(Paragraph(
+            "Reporte generado agregando avisos activos reales de TasAR Market "
+            "(market_listings) para la region, tipo y periodo solicitados.", small))
+    else:
+        story.append(Paragraph(
+            "[DEMO] Reporte de referencia generado con datos de ejemplo (seed), no es una "
+            "agregacion en vivo. Para un analisis en tiempo real, usa el buscador de "
+            "Comparables o generá un reporte custom.", small))
+
+    doc.build(story)
+    pdf_bytes = buffer.getvalue()
+    buffer.close()
+    return pdf_bytes
+
+
 def generate_express_valuation_pdf(
     valuation: dict,
     anchor: dict | None,

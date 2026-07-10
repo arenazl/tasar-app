@@ -14,6 +14,12 @@ class MonthlyReport(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     code = Column(String(20), unique=True, nullable=False)  # ej "#047"
 
+    # seed = data demo del seed_v2 (formula sintetica, NO agregacion real de
+    # market_listings) | custom = generado por POST /reports/custom agregando
+    # market_listings reales (WO F4-03, regla dura 11: el frontend debe
+    # mostrar [DEMO] cuando source == 'seed').
+    source = Column(String(20), default="seed", nullable=False, index=True)
+
     period_year = Column(Integer, nullable=False)
     period_month = Column(Integer, nullable=False)  # 1-12
     region = Column(String(80), default="CABA", index=True)

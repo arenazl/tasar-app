@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Share2, Download, BookmarkPlus, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Share2, Download, BookmarkPlus } from 'lucide-react';
 import { toast } from 'sonner';
-import { api } from '../services/api';
+import { api, API_BASE } from '../services/api';
 import { useTheme } from '../contexts/ThemeContext';
 import { BRAND } from '../config/brand';
 
@@ -13,6 +13,7 @@ interface ReportData {
   period_month: number;
   region: string;
   kind: string;
+  source: string; // 'seed' (demo) | 'custom' (agregación real sobre market_listings)
   tasar_index: number | null;
   median_price_per_m2: number | null;
   yoy_change_pct: number | null;
@@ -26,6 +27,13 @@ interface ReportData {
   top_zones: { zone: string; usd_m2: number; change_pct?: number }[];
 }
 
+interface ReportHistoryPoint {
+  period_year: number;
+  period_month: number;
+  median_price_per_m2: number | null;
+  new_permits: number | null;
+}
+
 const MONTHS = ['', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 
 export default function EstudioEditorial() {
@@ -34,12 +42,56 @@ export default function EstudioEditorial() {
   const [r, setR] = useState<ReportData | null>(null);
   const [loading, setLoading] = useState(true);
   const [scrollPct, setScrollPct] = useState(0);
+  const [history, setHistory] = useState<ReportHistoryPoint[]>([]);
+  const [pdfLoading, setPdfLoading] = useState(false);
 
   useEffect(() => {
     if (!id) return;
     setLoading(true);
     api.get<ReportData>(`/reports/${id}`).then(res => setR(res.data)).finally(() => setLoading(false));
   }, [id]);
+
+  // Serie histórica REAL para el gráfico de índice y de permisos: otras
+  // ediciones del mismo reporte (region), no un array hardcodeado (regla
+  // dura 11 / hallazgo F4-02: sparkline y bar chart traían valores fijos).
+  useEffect(() => {
+    if (!r?.region) return;
+    api.get<ReportHistoryPoint[]>('/reports', { params: { region: r.region } })
+      .then(res => {
+        const sorted = [...res.data].sort((a, b) => (a.period_year * 12 + a.period_month) - (b.period_year * 12 + b.period_month));
+        setHistory(sorted);
+      })
+      .catch(() => setHistory([]));
+  }, [r?.region]);
+
+  const priceHistory = useMemo(
+    () => history.filter(h => h.median_price_per_m2 != null),
+    [history]
+  );
+  const priceSeries = useMemo(() => priceHistory.map(h => h.median_price_per_m2 as number), [priceHistory]);
+  const permitsHistory = useMemo(
+    () => history.filter(h => h.new_permits != null),
+    [history]
+  );
+  const permitsSeries = useMemo(() => permitsHistory.map(h => h.new_permits as number), [permitsHistory]);
+
+  const openPdf = async () => {
+    if (!r) return;
+    setPdfLoading(true);
+    const token = localStorage.getItem('tasar_token');
+    try {
+      const res = await fetch(`${API_BASE}/reports/${r.id}/pdf`, { headers: { Authorization: `Bearer ${token}` } });
+      if (!res.ok) throw new Error('pdf fetch failed');
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank');
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+    } catch {
+      toast.error('No se pudo abrir el PDF');
+    } finally {
+      setPdfLoading(false);
+    }
+  };
 
   useEffect(() => {
     const onScroll = () => {
@@ -73,9 +125,25 @@ export default function EstudioEditorial() {
     );
   }
 
-  const yoyDirection = (r.yoy_change_pct || 0) >= 0;
-  const totalPages = r.pages_count || 38;
+  const yoyDirection = (r.yoy_change_pct ?? 0) >= 0;
+  const totalPages = r.pages_count || 2;
   const currentPage = Math.max(1, Math.round((scrollPct / 100) * totalPages));
+  // Top zonas reales del reporte (r.top_zones), NO texto fijo (regla dura 11).
+  const topZones = [...(r.top_zones || [])].sort((a, b) => b.usd_m2 - a.usd_m2).slice(0, 3);
+  // Delta real de precio calculado sobre la serie historica de ediciones
+  // de la misma region (>= 2 puntos reales) -- reemplaza el pull quote
+  // hardcodeado ("USD 437 en 17 meses").
+  const priceDelta = priceSeries.length >= 2 ? Math.round(priceSeries[priceSeries.length - 1] - priceSeries[0]) : null;
+  const priceDeltaMonths = priceSeries.length >= 2 ? priceSeries.length - 1 : null;
+
+  const fmtPct = (v: number | null | undefined) => v == null ? null : `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`;
+  const fmtUsd = (v: number | null | undefined) => v == null ? null : `USD ${Math.round(v).toLocaleString()}`;
+  const monthLabel = MONTHS[r.period_month]?.toLowerCase() || '-';
+  const momLabel = fmtPct(r.mom_change_pct);
+  const yoyLabel = fmtPct(r.yoy_change_pct);
+  const changeClause = momLabel && yoyLabel
+    ? `${momLabel} mensual y ${yoyLabel} interanual`
+    : momLabel ? `${momLabel} mensual` : yoyLabel ? `${yoyLabel} interanual` : null;
 
   return (
     <div className="animate-fade-in">
@@ -112,10 +180,10 @@ export default function EstudioEditorial() {
             style={{ background: theme.backgroundSecondary, color: theme.text, border: `1px solid ${theme.border}` }}>
             <Share2 className="h-3 w-3" /> <span className="hidden sm:inline">Compartir</span>
           </button>
-          <button onClick={() => r.pdf_url ? window.open(r.pdf_url, '_blank') : toast.info('PDF en preparación')}
-            className="px-2.5 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all active:scale-95"
+          <button onClick={openPdf} disabled={pdfLoading}
+            className="px-2.5 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all active:scale-95 disabled:opacity-50"
             style={{ background: theme.backgroundSecondary, color: theme.text, border: `1px solid ${theme.border}` }}>
-            <Download className="h-3 w-3" /> <span className="hidden sm:inline">PDF</span>
+            <Download className="h-3 w-3" /> <span className="hidden sm:inline">{pdfLoading ? 'Abriendo...' : 'PDF'}</span>
           </button>
           <button onClick={() => toast.success('Te avisaremos cuando salga la próxima edición')}
             className="px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all active:scale-95"
@@ -130,23 +198,41 @@ export default function EstudioEditorial() {
 
         {/* Cover */}
         <header className="est-fade mb-12">
-          <div className="text-[11px] font-bold uppercase tracking-[0.2em] mb-6" style={{ color: theme.textSecondary }}>
-            Edición {r.code} · {MONTHS[r.period_month]} {r.period_year} · {r.region}
+          <div className="text-[11px] font-bold uppercase tracking-[0.2em] mb-6 flex items-center gap-2" style={{ color: theme.textSecondary }}>
+            <span>Edición {r.code} · {MONTHS[r.period_month]} {r.period_year} · {r.region}</span>
+            {r.source === 'seed' && (
+              <span className="px-1.5 py-0.5 rounded text-[10px] font-bold"
+                style={{ background: theme.backgroundSecondary, color: theme.textSecondary }}
+                title="Datos de referencia (seed), no es una agregación en vivo sobre el mercado">
+                [DEMO]
+              </span>
+            )}
           </div>
           <h1 className="font-display font-black tracking-tight leading-[1.02] text-[42px] sm:text-[56px] mb-6"
             style={{ color: theme.text }}>
-            El interanual cierra en{' '}
-            <span style={{ color: theme.primary }}>
-              {yoyDirection ? '+' : ''}{r.yoy_change_pct?.toFixed(1) || '0,0'}%
-            </span>
-            {r.median_price_per_m2 && (
-              <> y el m² supera USD {Math.round(r.median_price_per_m2 / 100) * 100} por primera vez desde 2019.</>
+            {r.yoy_change_pct != null ? (
+              <>El interanual cierra en{' '}
+                <span style={{ color: theme.primary }}>{yoyDirection ? '+' : ''}{r.yoy_change_pct.toFixed(1)}%</span>
+              </>
+            ) : (
+              <>Índice de mercado · {r.region}</>
+            )}
+            {r.median_price_per_m2 != null && (
+              <> {r.yoy_change_pct != null ? 'y el' : 'El'} m² se ubica en USD {Math.round(r.median_price_per_m2).toLocaleString()}.</>
             )}
           </h1>
           <p className="text-lg leading-relaxed" style={{ color: theme.textSecondary }}>
-            La recuperación del mercado inmobiliario porteño se afianza en {MONTHS[r.period_month]?.toLowerCase()}.
-            El stock activo cae por tercer mes consecutivo, los permisos de obra suben 12% interanual y Palermo,
-            Recoleta y Núñez lideran la suba de precios.
+            {topZones.length > 0 ? (
+              <>Zonas con mayor USD/m² en {r.region} este período: {topZones.map((z, i) => (
+                <span key={z.zone}>
+                  {i > 0 && (i === topZones.length - 1 ? ' y ' : ', ')}
+                  <strong style={{ color: theme.text }}>{z.zone}</strong>
+                  {z.change_pct != null && ` (${z.change_pct >= 0 ? '+' : ''}${z.change_pct.toFixed(1)}%)`}
+                </span>
+              ))}.</>
+            ) : (
+              <>Sin datos de zonas para este período todavía.</>
+            )}
           </p>
           <div className="mt-6 flex items-center gap-3 pt-6" style={{ borderTop: `1px solid ${theme.border}` }}>
             <div className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm"
@@ -155,7 +241,7 @@ export default function EstudioEditorial() {
               <div className="font-bold" style={{ color: theme.text }}>Equipo {BRAND.name}</div>
               <div className="text-xs" style={{ color: theme.textSecondary }}>
                 Publicado {r.published_at ? new Date(r.published_at).toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' }) : '—'}
-                {' · '}{totalPages} páginas · lectura 18 min
+                {' · '}{totalPages} páginas
               </div>
             </div>
           </div>
@@ -163,104 +249,112 @@ export default function EstudioEditorial() {
 
         {/* TL;DR */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-14">
-          <TldrCard n="01" h={`El índice toca USD ${Math.round(r.median_price_per_m2 || 2847)}/m²`}
-            b={`Primer mes por encima de USD ${Math.round((r.median_price_per_m2 || 2847) / 100) * 100} desde octubre 2019. La aceleración se sostiene desde noviembre.`}
+          <TldrCard n="01"
+            h={r.median_price_per_m2 != null ? `El índice se ubica en ${fmtUsd(r.median_price_per_m2)}/m²` : 'Índice sin dato'}
+            b={momLabel ? `Variación mensual: ${momLabel}.` : 'Sin dato de variación mensual para este período.'}
             theme={theme} className="est-fade est-d1" />
-          <TldrCard n="02" h={`Stock activo cae ${r.mom_change_pct ? r.mom_change_pct.toFixed(1) : '-3,4'}%`}
-            b={`${(r.active_listings || 62480).toLocaleString()} unidades en venta en ${r.region}, el menor nivel desde febrero 2023. Tres meses consecutivos en baja.`}
+          <TldrCard n="02"
+            h={r.active_listings != null ? `${r.active_listings.toLocaleString()} avisos activos` : 'Oferta activa sin dato'}
+            b={r.avg_days_on_market != null ? `Promedio de ${r.avg_days_on_market} días en mercado en ${r.region}.` : 'Sin dato de días promedio en mercado.'}
             theme={theme} className="est-fade est-d2" />
-          <TldrCard n="03" h={`Permisos +${Math.round(((r.new_permits || 1213) / 1080 - 1) * 100)}% interanual`}
-            b={`${(r.new_permits || 1213).toLocaleString()} permisos aprobados este mes. La obra nueva muestra el mejor ${MONTHS[r.period_month]?.toLowerCase()} en 7 años.`}
+          <TldrCard n="03"
+            h={r.new_permits != null ? `${r.new_permits.toLocaleString()} permisos de obra` : 'Permisos sin dato'}
+            b={r.new_permits != null ? 'Permisos de obra nueva aprobados en el período.' : 'Sin dato de permisos de obra para este período.'}
             theme={theme} className="est-fade est-d3" />
         </div>
 
         {/* §01 Índice */}
-        <Section num="01" title="Índice" h2={`El índice supera USD ${Math.round((r.median_price_per_m2 || 2847) / 100) * 100}/m² por primera vez desde 2019.`} theme={theme}>
+        <Section num="01" title="Índice" h2={r.median_price_per_m2 != null ? `El índice cierra en ${fmtUsd(r.median_price_per_m2)}/m² en ${r.region}.` : `Índice ${r.region} sin dato para este período.`} theme={theme}>
           <p>
-            El <strong style={{ color: theme.text }}>Índice {BRAND.name} {r.region}</strong> cerró {MONTHS[r.period_month]?.toLowerCase()} en{' '}
-            <strong style={{ color: theme.text }}>USD {Math.round(r.median_price_per_m2 || 2847).toLocaleString()}/m²</strong>,
-            un +{(r.mom_change_pct || 1.2).toFixed(1)}% mensual y +{(r.yoy_change_pct || 14.2).toFixed(1)}% interanual.
-            Es el mejor {MONTHS[r.period_month]?.toLowerCase()} desde 2019 y el séptimo mes consecutivo de suba.
+            El <strong style={{ color: theme.text }}>Índice {BRAND.name} {r.region}</strong> cerró {monthLabel} en{' '}
+            <strong style={{ color: theme.text }}>{fmtUsd(r.median_price_per_m2) || 'sin dato disponible'}</strong>
+            {changeClause && <>, {changeClause}</>}.
           </p>
-          <p>
-            La dinámica responde a tres factores que vamos a desarmar en este informe:
-            <strong style={{ color: theme.text }}> caída del stock activo</strong>,
-            <strong style={{ color: theme.text }}> recuperación del crédito hipotecario</strong>
-            y un cambio de mix — las ventas se están concentrando en barrios de mayor valor por metro.
-          </p>
-          <Figure caption={`Fig. 1 — Índice ${BRAND.name} ${r.region}, USD/m² mediano ponderado. Fuente: ${BRAND.name} Index v3.2.`} theme={theme}>
-            <Sparkline theme={theme} data={[2380, 2410, 2425, 2440, 2460, 2480, 2510, 2530, 2560, 2590, 2620, 2680, 2720, 2780, 2820, 2890, Math.round(r.median_price_per_m2 || 3028)]} />
-            <div className="flex justify-between mt-2 text-[11px] font-mono" style={{ color: theme.textSecondary }}>
-              <span>Ene 25 · 2.380</span>
-              <span style={{ color: theme.text, fontWeight: 700 }}>{MONTHS[r.period_month]?.slice(0, 3)} {String(r.period_year).slice(2)} · {Math.round(r.median_price_per_m2 || 3028)}</span>
-            </div>
-          </Figure>
+          {priceSeries.length >= 2 ? (
+            <Figure caption={`Fig. 1 — Índice ${BRAND.name} ${r.region}, USD/m² mediano por edición publicada. ${priceSeries.length} ediciones con dato.`} theme={theme}>
+              <Sparkline theme={theme} data={priceSeries} />
+              <div className="flex justify-between mt-2 text-[11px] font-mono" style={{ color: theme.textSecondary }}>
+                <span>{MONTHS[priceHistory[0].period_month]?.slice(0, 3)} {String(priceHistory[0].period_year).slice(2)} · {Math.round(priceSeries[0]).toLocaleString()}</span>
+                <span style={{ color: theme.text, fontWeight: 700 }}>
+                  {MONTHS[priceHistory[priceHistory.length - 1].period_month]?.slice(0, 3)} {String(priceHistory[priceHistory.length - 1].period_year).slice(2)} · {Math.round(priceSeries[priceSeries.length - 1]).toLocaleString()}
+                </span>
+              </div>
+            </Figure>
+          ) : (
+            <p className="text-sm italic" style={{ color: theme.textSecondary }}>
+              Serie histórica insuficiente para graficar la evolución del índice ({priceSeries.length} edición con dato).
+            </p>
+          )}
         </Section>
 
-        {/* Pull quote */}
-        <PullQuote theme={theme} className="est-fade est-d4">
-          "El m² porteño sumó USD 437 en 17 meses. Es la recuperación más firme desde el ciclo de 2017."
-        </PullQuote>
+        {/* Pull quote — solo si hay >= 2 ediciones reales para calcular el delta */}
+        {priceDelta != null && (
+          <PullQuote theme={theme} className="est-fade est-d4">
+            "El m² de {r.region} {priceDelta >= 0 ? 'sumó' : 'perdió'} {fmtUsd(Math.abs(priceDelta))} en {priceDeltaMonths} {priceDeltaMonths === 1 ? 'edición' : 'ediciones'} publicadas."
+          </PullQuote>
+        )}
 
         {/* §02 Zonas */}
-        <Section num="02" title="Zonas" h2="Recuperación liderada por Palermo, Recoleta y Núñez." theme={theme}>
-          <p>
-            La suba no es homogénea. <strong style={{ color: theme.text }}>Palermo</strong> (+3,8% mensual),
-            <strong style={{ color: theme.text }}> Núñez</strong> (+4,2%) y
-            <strong style={{ color: theme.text }}> Caballito</strong> (+2,4%) concentran la mayor expansión.
-            En el otro extremo, zonas del sur — Flores, Mataderos, Boedo — siguen en terreno levemente negativo.
-          </p>
-          <Figure caption={`Fig. 2 — USD/m² mediano por zona, top ${r.top_zones?.length || 11} en ${r.region}.`} theme={theme}>
-            <BarChart data={r.top_zones || []} theme={theme} />
-          </Figure>
+        <Section num="02" title="Zonas"
+          h2={topZones.length > 0 ? `${topZones[0].zone} lidera el USD/m² en ${r.region}.` : `Sin datos de zonas para ${r.region}.`}
+          theme={theme}>
+          {topZones.length > 0 ? (
+            <p>
+              Las zonas con mayor USD/m² del período son {topZones.map((z, i) => (
+                <span key={z.zone}>
+                  {i > 0 && (i === topZones.length - 1 ? ' y ' : ', ')}
+                  <strong style={{ color: theme.text }}>{z.zone}</strong>
+                  {' '}({Math.round(z.usd_m2).toLocaleString()} USD/m²{z.change_pct != null ? `, ${fmtPct(z.change_pct)}` : ''})
+                </span>
+              ))}.
+            </p>
+          ) : (
+            <p>Todavía no hay avisos activos con zona asignada para este período.</p>
+          )}
+          {(r.top_zones?.length || 0) > 0 && (
+            <Figure caption={`Fig. 2 — USD/m² mediano por zona, top ${r.top_zones.length} en ${r.region}.`} theme={theme}>
+              <BarChart data={r.top_zones} theme={theme} />
+            </Figure>
+          )}
         </Section>
 
         {/* §03 Oferta */}
-        <Section num="03" title="Oferta" h2="El stock activo cae por tercer mes consecutivo." theme={theme}>
+        <Section num="03" title="Oferta"
+          h2={r.active_listings != null ? `${r.active_listings.toLocaleString()} avisos activos en ${r.region}.` : `Oferta activa sin dato en ${r.region}.`}
+          theme={theme}>
           <p>
-            Las unidades activas en venta en {r.region} cerraron {MONTHS[r.period_month]?.toLowerCase()} en
-            <strong style={{ color: theme.text }}> {(r.active_listings || 62480).toLocaleString()}</strong>,
-            una baja del {r.mom_change_pct ? Math.abs(r.mom_change_pct).toFixed(1) : '3,4'}% respecto al mes anterior y la menor cifra desde febrero 2023.
+            Las unidades activas en venta en {r.region} cerraron {monthLabel} en{' '}
+            <strong style={{ color: theme.text }}>{r.active_listings != null ? r.active_listings.toLocaleString() : 'sin dato'}</strong>
+            {momLabel && <>, {momLabel} respecto al período anterior</>}.
           </p>
           <p>
-            El tiempo medio de venta también se acorta: <strong style={{ color: theme.text }}>{r.avg_days_on_market || 94} días</strong>
-            promedio, 8 días menos que en el Q1. La conjunción de menos oferta y ventas más rápidas
-            es el patrón clásico de cambio de ciclo.
+            Tiempo medio de venta:{' '}
+            <strong style={{ color: theme.text }}>{r.avg_days_on_market != null ? `${r.avg_days_on_market} días` : 'sin dato'}</strong> promedio.
           </p>
         </Section>
 
         {/* §04 Obra nueva */}
-        <Section num="04" title="Obra nueva" h2={`Permisos aprobados: ${(r.new_permits || 1213).toLocaleString()} en el mes.`} theme={theme}>
+        <Section num="04" title="Obra nueva"
+          h2={r.new_permits != null ? `${r.new_permits.toLocaleString()} permisos aprobados en el período.` : 'Sin dato de permisos para este período.'}
+          theme={theme}>
           <p>
-            La obra nueva muestra el mejor {MONTHS[r.period_month]?.toLowerCase()} en 7 años con
-            <strong style={{ color: theme.text }}> {(r.new_permits || 1213).toLocaleString()} permisos aprobados</strong>.
-            El crecimiento es del +{Math.round(((r.new_permits || 1213) / 1080 - 1) * 100)}% interanual.
+            {r.new_permits != null
+              ? <>Se aprobaron <strong style={{ color: theme.text }}>{r.new_permits.toLocaleString()} permisos</strong> de obra nueva en {r.region} durante el período.</>
+              : 'No hay dato de permisos de obra nueva para este período.'}
           </p>
-          <Figure caption="Fig. 3 — Permisos de obra aprobados, últimos 13 meses." theme={theme}>
-            <PermitsBarChart theme={theme} highlightLast />
-          </Figure>
+          {permitsSeries.length >= 2 ? (
+            <Figure caption={`Fig. 3 — Permisos de obra aprobados, ${permitsSeries.length} ediciones con dato.`} theme={theme}>
+              <PermitsBarChart theme={theme} history={permitsHistory} highlightLast />
+            </Figure>
+          ) : (
+            <p className="text-sm italic" style={{ color: theme.textSecondary }}>
+              Serie histórica insuficiente para graficar permisos ({permitsSeries.length} edición con dato).
+            </p>
+          )}
         </Section>
 
-        {/* §05 Rentabilidad */}
-        <Section num="05" title="Rentabilidad" h2="Cap rate promedio: 5,2% anual." theme={theme}>
-          <p>
-            La rentabilidad bruta del alquiler en {r.region} se ubica en 5,2% anual promedio,
-            con diferencias marcadas según zona y tipología. Las zonas premium muestran cap rates
-            más bajos por el mayor precio por m², mientras las del sur compensan con rendimientos del 6%+.
-          </p>
-          <CapRateTable theme={theme} />
-          <p className="mt-6">
-            La diferencia entre dpto y PH se sostiene en ~70 bps a favor del PH, reflejando
-            el descuento estructural del segmento.
-          </p>
-        </Section>
-
-        {/* §06 Lo que viene */}
-        <Section num="06" title="Lo que viene" h2="Proyecciones para los próximos 6 meses." theme={theme}>
-          <p>
-            Si la pendiente actual se mantiene, el índice cruzaría los <strong style={{ color: theme.text }}>USD 3.000/m²</strong> antes
-            de fin de año. Los factores a monitorear:
-          </p>
+        {/* §05 Lo que viene */}
+        <Section num="05" title="Lo que viene" h2="Factores a monitorear en los próximos meses." theme={theme}>
           <ul className="space-y-2 mt-3 mb-4 pl-5">
             <li style={{ color: theme.textSecondary }}>
               <strong style={{ color: theme.text }}>Crédito hipotecario UVA</strong> — los stocks de oferta podrían
@@ -386,14 +480,7 @@ function Sparkline({ theme, data }: { theme: any; data: number[] }) {
 }
 
 function BarChart({ data, theme }: { data: any[]; theme: any }) {
-  const items = data.length ? data : [
-    { zone: 'Palermo', usd_m2: 3420 }, { zone: 'Recoleta', usd_m2: 3180 },
-    { zone: 'Belgrano', usd_m2: 2890 }, { zone: 'Núñez', usd_m2: 2760 },
-    { zone: 'Colegiales', usd_m2: 2430 }, { zone: 'Caballito', usd_m2: 2140 },
-    { zone: 'Villa Crespo', usd_m2: 2020 }, { zone: 'Almagro', usd_m2: 1880 },
-    { zone: 'San Telmo', usd_m2: 1640 }, { zone: 'Boedo', usd_m2: 1520 },
-    { zone: 'Flores', usd_m2: 1480 },
-  ];
+  const items = data;
   const max = Math.max(...items.map(i => i.usd_m2));
   return (
     <div className="space-y-2">
@@ -416,13 +503,15 @@ function BarChart({ data, theme }: { data: any[]; theme: any }) {
   );
 }
 
-function PermitsBarChart({ theme, highlightLast }: any) {
-  const data = useMemo(() => [
-    { k: 'May 25', v: 1080 }, { k: 'Jun', v: 1124 }, { k: 'Jul', v: 1015 }, { k: 'Ago', v: 980 },
-    { k: 'Sep', v: 1056 }, { k: 'Oct', v: 1102 }, { k: 'Nov', v: 1138 }, { k: 'Dic', v: 1086 },
-    { k: 'Ene 26', v: 1145 }, { k: 'Feb', v: 1174 }, { k: 'Mar', v: 1192 }, { k: 'Abr', v: 1208 },
-    { k: 'May', v: 1213 },
-  ], []);
+interface PermitsHistoryPoint {
+  period_year: number;
+  period_month: number;
+  new_permits: number | null;
+}
+
+function PermitsBarChart({ theme, history, highlightLast }: { theme: any; history: PermitsHistoryPoint[]; highlightLast?: boolean }) {
+  const MONTHS_SHORT = ['', 'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+  const data = history.map(h => ({ k: `${MONTHS_SHORT[h.period_month]} ${String(h.period_year).slice(2)}`, v: h.new_permits as number }));
   const max = Math.max(...data.map(d => d.v));
   return (
     <div className="flex items-end justify-between gap-1.5 h-44">
@@ -441,43 +530,6 @@ function PermitsBarChart({ theme, highlightLast }: any) {
           </div>
         );
       })}
-    </div>
-  );
-}
-
-function CapRateTable({ theme }: any) {
-  const rows = [
-    { zone: 'Palermo', dpto: '4,2%', ph: '4,9%', casa: '4,7%', heat: [0.85, 1.0, 0.95] },
-    { zone: 'Recoleta', dpto: '4,8%', ph: '5,2%', casa: '5,1%', heat: [1.0, 0.75, 0.8] },
-    { zone: 'Belgrano', dpto: '5,4%', ph: '5,8%', casa: '5,6%', heat: [0.6, 0.4, 0.5] },
-    { zone: 'Núñez', dpto: '5,1%', ph: '5,5%', casa: '5,3%', heat: [0.8, 0.55, 0.65] },
-    { zone: 'Caballito', dpto: '5,8%', ph: '6,1%', casa: '5,9%', heat: [0.35, 0.2, 0.25] },
-    { zone: 'San Telmo', dpto: '6,4%', ph: '6,8%', casa: '6,2%', heat: [0.1, 0.05, 0.15] },
-  ];
-  return (
-    <div className="rounded-xl overflow-hidden my-6" style={{ background: theme.card, border: `1px solid ${theme.border}` }}>
-      <div className="grid grid-cols-12 px-4 py-2.5 text-[10px] uppercase tracking-wider font-bold"
-        style={{ background: theme.backgroundSecondary, color: theme.textSecondary, borderBottom: `1px solid ${theme.border}` }}>
-        <div className="col-span-3">Zona</div>
-        <div className="col-span-2 text-center">Dpto</div>
-        <div className="col-span-2 text-center">PH</div>
-        <div className="col-span-2 text-center">Casa</div>
-        <div className="col-span-3 text-right">Relativo</div>
-      </div>
-      {rows.map((r, i) => (
-        <div key={i} className="grid grid-cols-12 items-center px-4 py-2.5 text-sm"
-          style={{ borderBottom: i < rows.length - 1 ? `1px solid ${theme.border}` : 'none' }}>
-          <div className="col-span-3 font-semibold" style={{ color: theme.text }}>{r.zone}</div>
-          <div className="col-span-2 text-center font-mono tabular-nums" style={{ color: theme.text }}>{r.dpto}</div>
-          <div className="col-span-2 text-center font-mono tabular-nums" style={{ color: theme.text }}>{r.ph}</div>
-          <div className="col-span-2 text-center font-mono tabular-nums" style={{ color: theme.text }}>{r.casa}</div>
-          <div className="col-span-3 flex gap-1 justify-end">
-            {r.heat.map((v, j) => (
-              <div key={j} className="w-5 h-5 rounded" style={{ background: theme.primary, opacity: v }} />
-            ))}
-          </div>
-        </div>
-      ))}
     </div>
   );
 }
