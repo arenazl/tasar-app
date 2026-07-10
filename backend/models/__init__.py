@@ -11,6 +11,7 @@ from models.market_listing import MarketListing
 from models.monthly_report import MonthlyReport
 from models.inbox import InboxMessage
 from models.client import Client
+from models.wa_session import WaSession
 
 __all__ = [
     "User", "Workspace",
@@ -25,4 +26,5 @@ __all__ = [
     "MonthlyReport",
     "InboxMessage",
     "Client",
+    "WaSession",
 ]

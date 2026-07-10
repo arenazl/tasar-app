@@ -44,6 +44,12 @@ class Settings(BaseSettings):
     CLAUDE_CMD: str = "claude"
     CLAUDE_MODEL: str = "claude-sonnet-4-6"
 
+    # --- wa-gateway (WhatsApp / Baileys, WO F0-05) ---
+    # URL base del wa-gateway (suite -> gateway, para el proxy de gestion).
+    WA_GATEWAY_URL: str = ""
+    # Secreto compartido gateway<->suite (X-API-Key). Vacio => wa-auth responde 503.
+    WA_GATEWAY_KEY: str = ""
+
     @property
     def database_url(self) -> str:
         return (
