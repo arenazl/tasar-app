@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   MessageSquare, Send, Search, Phone, ArrowLeft, RefreshCw, CheckCheck,
-  Bot, UserCheck, Hand, Circle, Mic, Square,
+  Bot, UserCheck, Hand, Circle, Mic, Square, UserPlus,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { api } from '../services/api';
@@ -82,6 +82,7 @@ const POLL_MS = 30_000;
 export default function InboxWhatsApp() {
   const { user } = useAuth();
   const { theme } = useTheme();
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const [convs, setConvs] = useState<ConvRow[]>([]);
@@ -291,6 +292,30 @@ export default function InboxWhatsApp() {
     } catch { toast.error('No se pudo cambiar el estado'); }
   };
 
+  // Eslabón 5 del ciclo: crear un cliente del CRM a partir de este chat y
+  // vincularlo a la conversación (nombre + teléfono ya conocidos). Solo aparece
+  // si la conversación TODAVÍA no está vinculada a un cliente.
+  const createClientFromChat = async () => {
+    if (!detail || busy) return;
+    setBusy(true);
+    try {
+      const phone = phoneFromJid(detail.phone_jid);
+      const name = (detail.contact_name || '').trim() || phone;
+      const r = await api.post<{ id: number }>('/clients', {
+        name, type: 'particular', phone, notes: 'Creado desde WhatsApp',
+      });
+      await api.patch(`/conversations/${detail.id}`, { client_id: r.data.id });
+      toast.success('Cliente creado y vinculado al chat');
+      await loadDetail(detail.id);
+      load();
+      navigate(`/clientes/${r.data.id}`);
+    } catch (e: any) {
+      toast.error(e.response?.data?.detail || 'No se pudo crear el cliente');
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const showListOnMobile = selectedId === null;
 
   return (
@@ -415,7 +440,12 @@ export default function InboxWhatsApp() {
                   <div className="flex items-center gap-2 text-xs truncate" style={{ color: theme.textSecondary }}>
                     <Phone className="h-3 w-3 flex-shrink-0" />
                     <span className="truncate">{phoneFromJid(detail.phone_jid)}</span>
-                    {detail.client_id && <span className="hidden sm:inline">· Cliente #{detail.client_id}</span>}
+                    {detail.client_id && (
+                      <button onClick={() => navigate(`/clientes/${detail.client_id}`)}
+                        className="hidden sm:inline font-semibold hover:underline" style={{ color: theme.primary }}>
+                        · Ver ficha del cliente
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -461,6 +491,21 @@ export default function InboxWhatsApp() {
                 <><Bot className="h-3 w-3" style={{ color: theme.primary }} /> El bot está atendiendo esta conversación</>
               )}
             </div>
+
+            {/* Eslabón 5: chat sin cliente vinculado -> crear cliente desde el chat. */}
+            {!detail.client_id && (
+              <div className="flex-shrink-0 px-4 py-2 flex items-center justify-between gap-3 flex-wrap"
+                style={{ background: `${theme.primary}0d`, borderBottom: `1px solid ${theme.border}` }}>
+                <span className="text-xs" style={{ color: theme.text }}>
+                  Esta conversación no está vinculada a un cliente del CRM.
+                </span>
+                <button onClick={createClientFromChat} disabled={busy}
+                  className="text-xs px-2.5 py-1.5 rounded-lg inline-flex items-center gap-1.5 font-bold active:scale-95 disabled:opacity-50 flex-shrink-0"
+                  style={{ background: theme.primary, color: theme.primaryText }}>
+                  <UserPlus className="h-3.5 w-3.5" /> Crear cliente desde el chat
+                </button>
+              </div>
+            )}
 
             {/* Mensajes */}
             <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-3">

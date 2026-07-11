@@ -1,13 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
-  CalendarDays, Plus, X, Save, ChevronLeft, ChevronRight, Clock, MapPin, User as UserIcon,
+  CalendarDays, Plus, X, Save, ChevronLeft, ChevronRight, Clock, MapPin, User as UserIcon, Briefcase,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { api } from '../services/api';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { isManager as roleIsManager } from '../lib/roles';
-import type { Visit, VisitStatus, Property } from '../types';
+import { NextStepCard } from '../components/ui/NextStepCard';
+import type { Visit, VisitStatus, Property, Deal } from '../types';
 
 const STATUS_META: Record<VisitStatus, { label: string; color: string }> = {
   agendada: { label: 'Agendada', color: '#3b82f6' },
@@ -43,19 +45,54 @@ function hhmm(iso: string): string {
 export default function Visitas() {
   const { theme } = useTheme();
   const { user } = useAuth();
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const isManager = roleIsManager(user?.role);
 
   const [view, setView] = useState<'month' | 'week'>('month');
   const [anchor, setAnchor] = useState(() => new Date());
   const [visits, setVisits] = useState<Visit[]>([]);
+  const [deals, setDeals] = useState<Deal[]>([]);
   const [loading, setLoading] = useState(true);
-  const [editing, setEditing] = useState<{ date?: string } | null>(null);
+  // editing puede pre-cargar cliente/propiedad (deep-link ?cliente=/?propiedad=).
+  const [editing, setEditing] = useState<{ date?: string; clientId?: number; propertyId?: number } | null>(null);
 
   const load = () => {
     setLoading(true);
     api.get<Visit[]>('/visits').then(r => setVisits(r.data)).finally(() => setLoading(false));
+    // Los deals se usan para saber qué visita concretada YA tiene operación (eslabón 3).
+    api.get<Deal[]>('/deals').then(r => setDeals(r.data)).catch(() => {});
   };
   useEffect(load, []);
+
+  // Pre-carga por query param (WO F6-03): las acciones rápidas de la ficha de
+  // cliente y los CTAs encadenados llegan con ?cliente=/?propiedad= y abren el
+  // alta de visita con esa entidad ya seleccionada.
+  useEffect(() => {
+    const cliente = searchParams.get('cliente');
+    const propiedad = searchParams.get('propiedad');
+    if (cliente || propiedad) {
+      setEditing({
+        date: ymd(new Date()),
+        clientId: cliente ? Number(cliente) : undefined,
+        propertyId: propiedad ? Number(propiedad) : undefined,
+      });
+      searchParams.delete('cliente');
+      searchParams.delete('propiedad');
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
+
+  // Eslabón 3 del ciclo: la visita concretada MÁS RECIENTE cuya (cliente,
+  // propiedad) todavía no tiene una operación abierta → ofrecer "Abrir deal".
+  // Aparece SOLO cuando aplica (no si ya hay deal para ese par).
+  const visitToDeal = useMemo(() => {
+    const dealPairs = new Set(deals.map(d => `${d.client_id}:${d.property_id}`));
+    const candidates = visits
+      .filter(v => v.status === 'concretada' && !dealPairs.has(`${v.client_id}:${v.property_id}`))
+      .sort((a, b) => b.scheduled_at.localeCompare(a.scheduled_at));
+    return candidates[0] || null;
+  }, [visits, deals]);
 
   // Agrupar por día (YYYY-MM-DD en hora local).
   const byDay = useMemo(() => {
@@ -110,6 +147,20 @@ export default function Visitas() {
           <Plus className="h-4 w-4" /> <span className="hidden sm:inline">Agendar visita</span>
         </button>
       </header>
+
+      {visitToDeal && (
+        <div className="mb-4">
+          <NextStepCard
+            icon={<Briefcase className="h-5 w-5" />}
+            message={`${visitToDeal.client_name || 'El cliente'} concretó una visita a ${visitToDeal.property_title || 'la propiedad'} y todavía no hay una operación abierta.`}
+            actions={[{
+              label: 'Abrir operación',
+              icon: <Briefcase className="h-4 w-4" />,
+              onClick: () => navigate(`/pipeline?cliente=${visitToDeal.client_id}&propiedad=${visitToDeal.property_id}`),
+            }]}
+          />
+        </div>
+      )}
 
       {/* Toolbar del calendario */}
       <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
@@ -223,22 +274,24 @@ export default function Visitas() {
       )}
 
       {editing && (
-        <VisitModal defaultDate={editing.date} theme={theme} isManager={isManager}
+        <VisitModal defaultDate={editing.date} defaultClientId={editing.clientId} defaultPropertyId={editing.propertyId}
+          theme={theme} isManager={isManager}
           onClose={() => setEditing(null)} onSaved={() => { setEditing(null); load(); }} />
       )}
     </div>
   );
 }
 
-function VisitModal({ defaultDate, theme, isManager, onClose, onSaved }: {
-  defaultDate?: string; theme: any; isManager: boolean; onClose: () => void; onSaved: () => void;
+function VisitModal({ defaultDate, defaultClientId, defaultPropertyId, theme, isManager, onClose, onSaved }: {
+  defaultDate?: string; defaultClientId?: number; defaultPropertyId?: number;
+  theme: any; isManager: boolean; onClose: () => void; onSaved: () => void;
 }) {
   const [clients, setClients] = useState<ClientLite[]>([]);
   const [properties, setProperties] = useState<Property[]>([]);
   const [vendors, setVendors] = useState<VendorLite[]>([]);
   const [saving, setSaving] = useState(false);
-  const [clientId, setClientId] = useState<number | ''>('');
-  const [propertyId, setPropertyId] = useState<number | ''>('');
+  const [clientId, setClientId] = useState<number | ''>(defaultClientId ?? '');
+  const [propertyId, setPropertyId] = useState<number | ''>(defaultPropertyId ?? '');
   const [vendorId, setVendorId] = useState<number | ''>('');
   const [date, setDate] = useState(defaultDate || ymd(new Date()));
   const [time, setTime] = useState('10:00');

@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Plus, MapPin, Bed, Bath, Maximize2, Sparkles, Building2, Home as HomeIcon,
-  FileText, DollarSign, ArrowUpDown, List, CircleDot, Star, Award, CheckCircle2,
-  Inbox, Tag, Trees, Store, Briefcase, Castle,
+  FileText, DollarSign, ArrowUpDown, List, CircleDot, Star, CheckCircle2,
+  Inbox, Trees, Store, Briefcase, Castle, CalendarDays, Zap,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { api } from '../services/api';
@@ -10,6 +11,7 @@ import { ABMPage, ABMCard, ABMCardActions, ABMTable, ABMTableAction } from '../c
 import { WizardModal, type WizardStep } from '../components/ui/WizardModal';
 import { ModernSelect } from '../components/ui/ModernSelect';
 import PageHint from '../components/ui/PageHint';
+import { NextStepCard } from '../components/ui/NextStepCard';
 import { ConfirmModal } from '../components/ui/ConfirmModal';
 import { useTheme } from '../contexts/ThemeContext';
 import type { Property } from '../types';
@@ -131,12 +133,17 @@ function StatusPill({
 
 export default function Propiedades() {
   const { theme } = useTheme();
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [items, setItems] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
   const [wizardOpen, setWizardOpen] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   const [editing, setEditing] = useState<Property | null>(null);
   const [form, setForm] = useState<any>(emptyForm);
+  // Eslabón 2 del ciclo: tras dar de alta/editar una propiedad, ofrecer los
+  // siguientes pasos (agendar visita / tasar). Se descarta con la X.
+  const [justSaved, setJustSaved] = useState<{ id: number; title: string } | null>(null);
 
   // Filtros: search + 4 combos + 1 pill set
   const [search, setSearch] = useState('');
@@ -158,6 +165,23 @@ export default function Propiedades() {
     finally { setLoading(false); }
   };
   useEffect(() => { load(); }, []);
+
+  // Pre-carga por query param (WO F6-03): "Cargar la propiedad" desde el
+  // resultado de la tasación express llega con ?nueva=1&campo=valor y abre el
+  // wizard de alta con los datos ya cargados.
+  useEffect(() => {
+    if (searchParams.get('nueva') !== '1') return;
+    const prefill: any = { ...emptyForm };
+    const keys = ['title', 'property_type', 'operation', 'province', 'city', 'neighborhood',
+      'total_area_m2', 'rooms', 'bedrooms', 'age_years', 'condition'];
+    keys.forEach(k => { const v = searchParams.get(k); if (v) prefill[k] = v; });
+    setEditing(null);
+    setForm(prefill);
+    setCurrentStep(0);
+    setWizardOpen(true);
+    ['nueva', ...keys].forEach(k => searchParams.delete(k));
+    setSearchParams(searchParams, { replace: true });
+  }, [searchParams, setSearchParams]);
 
   // Opciones dinámicas de provincia / ciudad
   const provinceOptions = useMemo(() => {
@@ -231,10 +255,13 @@ export default function Propiedades() {
   const save = async () => {
     setSaving(true);
     try {
-      if (editing) await api.put(`/properties/${editing.id}`, buildPayload());
-      else await api.post('/properties', buildPayload());
+      const r = editing
+        ? await api.put<Property>(`/properties/${editing.id}`, buildPayload())
+        : await api.post<Property>('/properties', buildPayload());
       toast.success(editing ? 'Propiedad actualizada' : 'Propiedad creada');
       setWizardOpen(false);
+      const saved = r.data;
+      if (saved?.id) setJustSaved({ id: saved.id, title: (saved.title || '').replace(/^\[DEMO\]\s*/, '') });
       load();
     } catch (e: any) { toast.error(e.response?.data?.detail || 'Error al guardar'); }
     finally { setSaving(false); }
@@ -502,6 +529,29 @@ export default function Propiedades() {
   return (
     <div className="p-6 lg:p-8 max-w-screen-2xl mx-auto animate-fade-in">
       <PageHint pageId="propiedades" />
+      {justSaved && (
+        <div className="mb-4">
+          <NextStepCard
+            tone="success"
+            icon={<Building2 className="h-5 w-5" />}
+            message={`"${justSaved.title || 'La propiedad'}" quedó cargada. ¿Cuál es el siguiente paso?`}
+            onDismiss={() => setJustSaved(null)}
+            actions={[
+              {
+                label: 'Agendar visita',
+                icon: <CalendarDays className="h-4 w-4" />,
+                onClick: () => navigate(`/visitas?propiedad=${justSaved.id}`),
+              },
+              {
+                label: 'Tasación express',
+                icon: <Zap className="h-4 w-4" />,
+                variant: 'secondary',
+                onClick: () => navigate(`/tasacion-express?propiedad=${justSaved.id}`),
+              },
+            ]}
+          />
+        </div>
+      )}
       <ABMPage
         title="Propiedades"
         icon={<Building2 className="h-5 w-5" />}

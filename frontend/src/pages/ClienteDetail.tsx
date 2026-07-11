@@ -138,7 +138,14 @@ export default function ClienteDetail() {
 
   const runNextStep = (ns: NextStep) => {
     if (ns.action_type === 'navigate' || ns.action_type === 'chat') {
-      if (ns.target) navigate(ns.target);
+      if (!ns.target) return;
+      // Las rutas de alta (visitas/pipeline) reciben ?cliente= para pre-cargar el
+      // cliente actual en el formulario (WO F6-03). El chat ya trae ?conv=.
+      let target = ns.target;
+      if (data && (target === '/visitas' || target === '/pipeline')) {
+        target = `${target}?cliente=${data.id}`;
+      }
+      navigate(target);
     } else if (ns.action_type === 'wa') {
       if (waHref) window.open(waHref, '_blank', 'noopener');
       else toast.info('Este cliente no tiene teléfono cargado');
@@ -274,9 +281,9 @@ export default function ClienteDetail() {
 
       {/* Acciones rapidas */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-        <QuickAction icon={<CalendarDays className="h-4 w-4" />} label="Agendar visita" onClick={() => navigate('/visitas')} theme={theme} />
-        <QuickAction icon={<Briefcase className="h-4 w-4" />} label="Abrir operación" onClick={() => navigate('/pipeline')} theme={theme} />
-        <QuickAction icon={<Zap className="h-4 w-4" />} label="Tasación express" onClick={() => navigate('/tasacion-express')} theme={theme} />
+        <QuickAction icon={<CalendarDays className="h-4 w-4" />} label="Agendar visita" onClick={() => navigate(`/visitas?cliente=${data.id}`)} theme={theme} />
+        <QuickAction icon={<Briefcase className="h-4 w-4" />} label="Abrir operación" onClick={() => navigate(`/pipeline?cliente=${data.id}`)} theme={theme} />
+        <QuickAction icon={<Zap className="h-4 w-4" />} label="Tasación express" onClick={() => navigate(`/tasacion-express?cliente=${data.id}`)} theme={theme} />
         <QuickAction
           icon={<MessageSquare className="h-4 w-4" />}
           label="Abrir chat"

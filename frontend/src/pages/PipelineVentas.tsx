@@ -1,14 +1,16 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Workflow, Plus, X, Save, ChevronLeft, ChevronRight, GripVertical,
-  Building2, User as UserIcon, Trash2,
+  Building2, User as UserIcon, Trash2, FileSignature,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { api } from '../services/api';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { isManager as roleIsManager } from '../lib/roles';
-import type { Deal, DealStage, Property } from '../types';
+import { NextStepCard } from '../components/ui/NextStepCard';
+import type { Deal, DealStage, Property, Authorization } from '../types';
 
 // Las 6 etapas legales, EN ORDEN (mismo contrato que backend api/deals.LEGAL_STAGES).
 const STAGES: { key: DealStage; label: string; color: string }[] = [
@@ -34,9 +36,12 @@ function fmtMoney(v?: number | null, currency = 'USD'): string {
 export default function PipelineVentas() {
   const { theme } = useTheme();
   const { user } = useAuth();
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const isManager = roleIsManager(user?.role);
 
   const [deals, setDeals] = useState<Deal[]>([]);
+  const [authorizations, setAuthorizations] = useState<Authorization[]>([]);
   const [loading, setLoading] = useState(true);
   const [dragId, setDragId] = useState<number | null>(null);
   const [dragOverStage, setDragOverStage] = useState<DealStage | null>(null);
@@ -45,8 +50,38 @@ export default function PipelineVentas() {
   const load = () => {
     setLoading(true);
     api.get<Deal[]>('/deals').then(r => setDeals(r.data)).finally(() => setLoading(false));
+    // Autorizaciones: para saber qué deal en reserva ya tiene autorización (eslabón 4).
+    api.get<Authorization[]>('/authorizations').then(r => setAuthorizations(r.data)).catch(() => {});
   };
   useEffect(load, []);
+
+  // Pre-carga por query param (WO F6-03): ?cliente=/?propiedad= abren el alta de
+  // operación con esas entidades ya seleccionadas (ficha de cliente, visita→deal).
+  useEffect(() => {
+    const cliente = searchParams.get('cliente');
+    const propiedad = searchParams.get('propiedad');
+    if (cliente || propiedad) {
+      setEditing({
+        stage: 'captado', currency: 'USD', probability_pct: 10,
+        client_id: cliente ? Number(cliente) : undefined,
+        property_id: propiedad ? Number(propiedad) : undefined,
+      });
+      searchParams.delete('cliente');
+      searchParams.delete('propiedad');
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
+
+  // Eslabón 4 del ciclo: el deal MÁS RECIENTE en etapa "reserva" cuya propiedad
+  // NO tiene una autorización activa → ofrecer "Registrar autorización".
+  const dealToAuthorize = useMemo(() => {
+    const propsWithActiveAuth = new Set(
+      authorizations.filter(a => a.status === 'activa').map(a => a.property_id),
+    );
+    return deals
+      .filter(d => d.stage === 'reserva' && !propsWithActiveAuth.has(d.property_id))
+      .sort((a, b) => (b.updated_at || '').localeCompare(a.updated_at || ''))[0] || null;
+  }, [deals, authorizations]);
 
   const byStage = useMemo(() => {
     const m: Record<DealStage, Deal[]> = {
@@ -108,6 +143,21 @@ export default function PipelineVentas() {
           <Plus className="h-4 w-4" /> <span className="hidden sm:inline">Nuevo deal</span>
         </button>
       </header>
+
+      {dealToAuthorize && (
+        <div className="mb-4">
+          <NextStepCard
+            tone="warning"
+            icon={<FileSignature className="h-5 w-5" />}
+            message={`La operación de ${dealToAuthorize.property_title || 'la propiedad'} llegó a reserva y la propiedad todavía no tiene una autorización de venta activa.`}
+            actions={[{
+              label: 'Registrar autorización',
+              icon: <FileSignature className="h-4 w-4" />,
+              onClick: () => navigate(`/autorizaciones?propiedad=${dealToAuthorize.property_id}`),
+            }]}
+          />
+        </div>
+      )}
 
       <div className="flex gap-3 overflow-x-auto pb-2 lg:grid lg:grid-cols-6 lg:overflow-visible -mx-4 sm:-mx-6 lg:mx-0 px-4 sm:px-6 lg:px-0 snap-x snap-mandatory lg:snap-none">
         {STAGES.map(stage => {

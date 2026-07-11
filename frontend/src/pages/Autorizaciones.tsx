@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   FileSignature, X, Save, Trash2, Edit3, Plus, Building2, Calendar, ShieldCheck, DollarSign,
 } from 'lucide-react';
@@ -35,6 +36,7 @@ export default function Autorizaciones() {
   const { user } = useAuth();
   const isManager = roleIsManager(user?.role);
 
+  const [searchParams, setSearchParams] = useSearchParams();
   const [items, setItems] = useState<Authorization[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -46,6 +48,22 @@ export default function Autorizaciones() {
     api.get<Authorization[]>('/authorizations').then(r => setItems(r.data)).finally(() => setLoading(false));
   };
   useEffect(load, []);
+
+  // Pre-carga por query param (WO F6-03): el CTA "Registrar autorización" del
+  // pipeline (deal en reserva) llega con ?propiedad= y abre el alta con esa
+  // propiedad ya seleccionada.
+  useEffect(() => {
+    const propiedad = searchParams.get('propiedad');
+    if (propiedad) {
+      setEditing({
+        status: 'activa', currency: 'USD', commission_pct: 4, exclusivity: false,
+        signed_date: today(), expiry_date: plusMonths(6),
+        property_id: Number(propiedad),
+      });
+      searchParams.delete('propiedad');
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   const filtered = useMemo(() => {
     const s = search.toLowerCase().trim();

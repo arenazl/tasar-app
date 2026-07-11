@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, Share2, Download, Send, MapPin, FileSignature, ShieldCheck,
-  TrendingUp, Sparkles, Clock, User as UserIcon, Building2, Phone, Mail,
+  Sparkles, Clock, User as UserIcon, Phone, Mail, MessageCircle,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { api, API_BASE } from '../services/api';
@@ -85,6 +85,19 @@ export default function TasacionDetail() {
     }
     try { await navigator.clipboard.writeText(url); toast.success('Link copiado'); }
     catch { toast.error('No se pudo compartir'); }
+  };
+
+  // Eslabón 6 del ciclo: tasación firmada -> compartir el resumen por WhatsApp al
+  // cliente (wa.me con el teléfono si lo tenemos, y el link a la tasación).
+  const shareWhatsApp = () => {
+    if (!a) return;
+    const code = `TR-${String(a.id).padStart(4, '0')}`;
+    const value = a.final_value != null ? `${a.currency} ${Number(a.final_value).toLocaleString()}` : 'a confirmar';
+    const title = prop?.title?.replace(/^\[DEMO\]\s*/, '') || prop?.address || 'la propiedad';
+    const text = `Tasación ${code} — ${title}. Valor estimado: ${value}. Podés verla acá: ${window.location.href}`;
+    const digits = String((a as any).client_phone || '').replace(/\D/g, '');
+    const base = digits ? `https://wa.me/${digits}` : 'https://wa.me/';
+    window.open(`${base}?text=${encodeURIComponent(text)}`, '_blank', 'noopener');
   };
 
   if (loading || !a) {
@@ -182,12 +195,19 @@ export default function TasacionDetail() {
                 <FileSignature className="h-3.5 w-3.5" /> Firmar
               </button>
             ) : (
-              <button
-                onClick={() => toast.success(`Enviado a ${(a as any).client_email || 'cliente'}`)}
-                className="px-3 py-2 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all active:scale-95"
-                style={{ background: theme.primary, color: theme.primaryText }}>
-                <Send className="h-3.5 w-3.5" /> Enviar a cliente
-              </button>
+              <>
+                <button onClick={shareWhatsApp}
+                  className="px-3 py-2 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all active:scale-95"
+                  style={{ background: '#25D366', color: '#fff' }}>
+                  <MessageCircle className="h-3.5 w-3.5" /> Compartir por WhatsApp
+                </button>
+                <button
+                  onClick={() => toast.success(`Enviado a ${(a as any).client_email || 'cliente'}`)}
+                  className="px-3 py-2 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all active:scale-95"
+                  style={{ background: theme.primary, color: theme.primaryText }}>
+                  <Send className="h-3.5 w-3.5" /> Enviar a cliente
+                </button>
+              </>
             )}
           </div>
         </div>

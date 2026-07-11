@@ -1,14 +1,16 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Zap, Download, Share2, ArrowRight, Loader2, RotateCcw, MapPin,
-  TrendingUp, TrendingDown, Sparkles, Info,
+  TrendingUp, TrendingDown, Sparkles, Info, UserPlus, Building2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { api, API_BASE } from '../services/api';
 import { ModernSelect } from '../components/ui/ModernSelect';
 import PageHint from '../components/ui/PageHint';
+import { NextStepCard } from '../components/ui/NextStepCard';
 import { useTheme } from '../contexts/ThemeContext';
+import type { Property } from '../types';
 
 const TYPE_OPTIONS = [
   { value: 'departamento', label: 'Departamento' },
@@ -65,14 +67,50 @@ const CONFIDENCE_COLOR: Record<string, string> = {
 export default function TasacionExpress() {
   const { theme } = useTheme();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [form, setForm] = useState<Record<string, string>>({
     property_type: 'departamento', province: '', city: '', neighborhood: '',
     total_area_m2: '', rooms: '', bedrooms: '', age_years: '', condition: 'bueno', features: '',
   });
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<ValuationResult | null>(null);
+  // Contexto de encadenado (WO F6-03): ?cliente= viene de la ficha de cliente;
+  // ?propiedad= viene del alta de propiedad ("tasar esta propiedad") y pre-llena
+  // el formulario con los datos reales de esa propiedad.
+  const [clientId, setClientId] = useState<number | null>(null);
+  const [savingLead, setSavingLead] = useState(false);
 
   const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }));
+
+  // Pre-carga por query param.
+  useEffect(() => {
+    const cliente = searchParams.get('cliente');
+    const propiedad = searchParams.get('propiedad');
+    if (cliente) setClientId(Number(cliente));
+    if (propiedad) {
+      api.get<Property>(`/properties/${propiedad}`).then(r => {
+        const p = r.data;
+        setForm(f => ({
+          ...f,
+          property_type: p.property_type || f.property_type,
+          province: p.province || '',
+          city: p.city || '',
+          neighborhood: p.neighborhood || '',
+          total_area_m2: p.total_area_m2 != null ? String(p.total_area_m2) : '',
+          rooms: p.rooms != null ? String(p.rooms) : '',
+          bedrooms: p.bedrooms != null ? String(p.bedrooms) : '',
+          age_years: p.age_years != null ? String(p.age_years) : '',
+          condition: p.condition || f.condition,
+        }));
+        toast.info('Datos de la propiedad cargados — tasá con un clic');
+      }).catch(() => {});
+    }
+    if (cliente || propiedad) {
+      searchParams.delete('cliente');
+      searchParams.delete('propiedad');
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   const submit = async () => {
     if (!form.total_area_m2 || Number(form.total_area_m2) <= 0) {
@@ -125,15 +163,61 @@ export default function TasacionExpress() {
       .catch(() => toast.error('No se pudo descargar el PDF'));
   };
 
-  const share = () => {
-    if (!result) return;
+  const valuationSummary = (): string => {
+    if (!result) return '';
     const t = result.output.totalPriceUSD;
     const loc = [form.neighborhood, form.city].filter(Boolean).join(', ') || 'la zona';
     const typical = t.typical != null ? `USD ${t.typical.toLocaleString()}` : 'a confirmar';
     const range = (t.low != null && t.high != null)
       ? ` (rango USD ${t.low.toLocaleString()} - ${t.high.toLocaleString()})` : '';
-    const text = `Tasación express: ${form.property_type} en ${loc}, ${form.total_area_m2} m2. Valor estimado ${typical}${range}.`;
-    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+    return `Tasación express: ${form.property_type} en ${loc}, ${form.total_area_m2} m2. Valor estimado ${typical}${range}.`;
+  };
+
+  const share = () => {
+    if (!result) return;
+    window.open(`https://wa.me/?text=${encodeURIComponent(valuationSummary())}`, '_blank');
+  };
+
+  // Eslabón 1a del ciclo: guardar el resultado como cliente interesado. Si el
+  // express se abrió desde una ficha (?cliente=), vamos directo a esa ficha; si
+  // no, creamos un lead con nombre PROVISIONAL (nunca datos inventados de una
+  // persona real: sin teléfono/DNI ficticios) + la valuación en las notas, y
+  // abrimos su ficha para completarlo.
+  const saveAsLead = async () => {
+    if (clientId) {
+      navigate(`/clientes/${clientId}`);
+      return;
+    }
+    setSavingLead(true);
+    try {
+      const loc = [form.neighborhood, form.city].filter(Boolean).join(', ') || 'zona sin especificar';
+      const provisionalName = `Interesado · ${form.property_type} en ${loc}`;
+      const r = await api.post<{ id: number }>('/clients', {
+        name: provisionalName,
+        type: 'particular',
+        notes: valuationSummary(),
+      });
+      toast.success('Lead creado — completá sus datos de contacto');
+      navigate(`/clientes/${r.data.id}`);
+    } catch (e: any) {
+      toast.error(e.response?.data?.detail || 'No se pudo crear el cliente');
+    } finally {
+      setSavingLead(false);
+    }
+  };
+
+  // Eslabón 1b: cargar la propiedad con los datos del formulario ya pre-cargados.
+  const loadProperty = () => {
+    const params = new URLSearchParams({ nueva: '1' });
+    const loc = [form.neighborhood, form.city].filter(Boolean).join(', ');
+    if (loc) params.set('title', `${form.property_type} en ${loc}`);
+    const map: Record<string, string> = {
+      property_type: form.property_type, province: form.province, city: form.city,
+      neighborhood: form.neighborhood, total_area_m2: form.total_area_m2, rooms: form.rooms,
+      bedrooms: form.bedrooms, age_years: form.age_years, condition: form.condition,
+    };
+    Object.entries(map).forEach(([k, v]) => { if (v) params.set(k, v); });
+    navigate(`/propiedades?${params.toString()}`);
   };
 
   const out = result?.output;
@@ -321,6 +405,28 @@ export default function TasacionExpress() {
                   <RotateCcw className="h-4 w-4" /> Otra
                 </button>
               </div>
+
+              {/* Eslabón 1 del ciclo: el resultado desemboca en lead + propiedad. */}
+              <NextStepCard
+                className="mt-2"
+                message={clientId
+                  ? 'Volvé a la ficha del cliente para seguir con la operación.'
+                  : 'Convertí esta tasación en un lead y cargá la propiedad al catálogo.'}
+                actions={[
+                  {
+                    label: clientId ? 'Ver ficha del cliente' : 'Guardar como cliente interesado',
+                    icon: <UserPlus className="h-4 w-4" />,
+                    onClick: saveAsLead,
+                    disabled: savingLead,
+                  },
+                  {
+                    label: 'Cargar la propiedad',
+                    icon: <Building2 className="h-4 w-4" />,
+                    variant: 'secondary',
+                    onClick: loadProperty,
+                  },
+                ]}
+              />
             </div>
           )}
         </div>
