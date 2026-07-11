@@ -1,4 +1,9 @@
-FROM python:3.11-slim
+# PIN a bookworm (Debian 12) a proposito: `python:3.11-slim` ya resuelve a
+# trixie (Debian 13), donde `playwright install --with-deps` (paso de abajo)
+# ROMPE el build -> los paquetes de fuentes `ttf-unifont`/`ttf-ubuntu-font-family`
+# que pide playwright fueron renombrados en trixie (fonts-unifont) y apt corta
+# con "no installation candidate". bookworm los tiene. NO volver a `-slim` pelado.
+FROM python:3.11-slim-bookworm
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
