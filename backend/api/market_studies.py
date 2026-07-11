@@ -167,10 +167,14 @@ async def add_comparable(
         data["price_per_m2"] = round(data["price"] / area, 2)
 
     c = Comparable(source_type="manual", **data)
-    for adj in body.adjustments:
-        c.adjustments.append(Adjustment(**adj.model_dump()))
-    # append via relationship (cascade save-update): entra a la sesion solo,
-    # sin db.add(c) explicito, y mantiene ms.comparables consistente en memoria.
+    # Inicializar la collection SIEMPRE en memoria (aunque body.adjustments sea
+    # []): si se deja sin tocar, `c.adjustments` queda 'unloaded' y _recalc_in_place
+    # la itera disparando un lazy-load fuera del greenlet async -> MissingGreenlet.
+    # Asignar la lista la marca como cargada. (El for/append solo la inicializaba
+    # cuando venian adjustments; el caso "comparable pelado" reventaba.)
+    c.adjustments = [Adjustment(**adj.model_dump()) for adj in body.adjustments]
+    # entra a la sesion via relationship (cascade save-update), sin db.add(c)
+    # explicito, y mantiene ms.comparables consistente en memoria.
     ms.comparables.append(c)
     await db.flush()
 
@@ -382,12 +386,12 @@ async def accept_suggestion(
         external_listing_id=external_listing_id,
         **comp_data,
     )
-    for adj in body.adjustments:
-        c.adjustments.append(Adjustment(
-            factor=adj.factor,
-            coefficient=adj.coefficient,
-            description=adj.description,
-        ))
+    # Mismo fix que add_comparable: inicializar la collection en memoria aunque
+    # sea [] para evitar el lazy-load en _recalc_in_place (MissingGreenlet async).
+    c.adjustments = [
+        Adjustment(factor=adj.factor, coefficient=adj.coefficient, description=adj.description)
+        for adj in body.adjustments
+    ]
     ms.comparables.append(c)
     await db.flush()
 
