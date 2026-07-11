@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, KeyboardEvent, useMemo } from 'react';
-import { Search } from 'lucide-react';
+import { Search, Table2, Columns3, Link2 } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
 
 interface SchemaColumn {
@@ -299,7 +299,7 @@ export function AutocompleteInput({
                 color: theme.primary,
               }}
             >
-              {word.includes('.') ? '📋' : '📊'} {word}
+              {word.includes('.') ? <Columns3 className="h-3 w-3" /> : <Table2 className="h-3 w-3" />} {word}
             </span>
           ))}
         </div>
@@ -321,9 +321,11 @@ export function AutocompleteInput({
             style={{ backgroundColor: theme.backgroundSecondary, color: theme.textSecondary, borderColor: theme.border }}
           >
             {suggestions[0]?.type === 'table' ? (
-              '📊 Tablas'
+              <span className="inline-flex items-center gap-1"><Table2 className="h-3 w-3" /> Tablas</span>
             ) : (
-              <>📋 Columnas de <span style={{ color: theme.primary }}>{suggestions[0]?.table}</span></>
+              <span className="inline-flex items-center gap-1">
+                <Columns3 className="h-3 w-3" /> Columnas de <span style={{ color: theme.primary }}>{suggestions[0]?.table}</span>
+              </span>
             )}
             <span className="float-right opacity-70">↑↓ navegar · Enter seleccionar</span>
           </div>
@@ -343,7 +345,7 @@ export function AutocompleteInput({
               >
                 {suggestion.type === 'table' ? (
                   <>
-                    <span className="text-xs opacity-60">📊</span>
+                    <Table2 className="h-3.5 w-3.5 opacity-60 flex-shrink-0" />
                     <span className="font-medium">{suggestion.value}</span>
                     <span className="text-xs opacity-50 ml-auto">
                       {schema[suggestion.value]?.length || 0} campos
@@ -351,7 +353,9 @@ export function AutocompleteInput({
                   </>
                 ) : (
                   <>
-                    <span className="text-xs opacity-60">{suggestion.fk ? '🔗' : '📋'}</span>
+                    {suggestion.fk
+                      ? <Link2 className="h-3.5 w-3.5 opacity-60 flex-shrink-0" />
+                      : <Columns3 className="h-3.5 w-3.5 opacity-60 flex-shrink-0" />}
                     <span className="font-medium">{suggestion.value}</span>
                     <span className="text-xs opacity-50 ml-auto">
                       {suggestion.columnType}

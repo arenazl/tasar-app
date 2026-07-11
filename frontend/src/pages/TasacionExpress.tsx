@@ -234,7 +234,7 @@ export default function TasacionExpress() {
           <Zap className="h-6 w-6 text-white" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold" style={{ color: theme.text }}>Tasación express</h1>
+          <h1 className="text-2xl font-display font-black tracking-tight" style={{ color: theme.text }}>Tasación express</h1>
           <p className="text-sm" style={{ color: theme.textSecondary }}>
             Valor instantáneo anclado a comparables reales del mercado
           </p>

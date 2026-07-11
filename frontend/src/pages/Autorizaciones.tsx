@@ -9,6 +9,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { isManager as roleIsManager } from '../lib/roles';
 import { ABMPage, ABMCard } from '../components/ui/ABMPage';
+import { ConfirmModal } from '../components/ui/ConfirmModal';
 import type { Authorization, AuthorizationStatus, Property } from '../types';
 
 const STATUS_OPTIONS: { value: AuthorizationStatus; label: string; color: string }[] = [
@@ -42,6 +43,7 @@ export default function Autorizaciones() {
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [editing, setEditing] = useState<Partial<Authorization> | null>(null);
+  const [toDelete, setToDelete] = useState<Authorization | null>(null);
 
   const load = () => {
     setLoading(true);
@@ -96,7 +98,6 @@ export default function Autorizaciones() {
   };
 
   const remove = async (id: number) => {
-    if (!confirm('¿Eliminar esta autorización?')) return;
     try {
       await api.delete(`/authorizations/${id}`);
       toast.success('Autorización eliminada');
@@ -148,7 +149,7 @@ export default function Autorizaciones() {
                 </div>
                 <div className="flex gap-1">
                   <button onClick={() => setEditing(a)} className="p-1.5 rounded-lg active:scale-95" style={{ background: `${theme.primary}15`, color: theme.primary }} aria-label="Editar"><Edit3 className="h-3.5 w-3.5" /></button>
-                  <button onClick={() => remove(a.id)} className="p-1.5 rounded-lg active:scale-95" style={{ background: `${theme.danger}15`, color: theme.danger }} aria-label="Eliminar"><Trash2 className="h-3.5 w-3.5" /></button>
+                  <button onClick={() => setToDelete(a)} className="p-1.5 rounded-lg active:scale-95" style={{ background: `${theme.danger}15`, color: theme.danger }} aria-label="Eliminar"><Trash2 className="h-3.5 w-3.5" /></button>
                 </div>
               </div>
               <div className="text-xs mb-1 flex items-center gap-2" style={{ color: theme.textSecondary }}>
@@ -170,6 +171,17 @@ export default function Autorizaciones() {
       {editing && (
         <AuthModal auth={editing} theme={theme} isManager={isManager} onClose={() => setEditing(null)} onSave={save} />
       )}
+
+      <ConfirmModal
+        isOpen={!!toDelete}
+        onClose={() => setToDelete(null)}
+        onConfirm={() => { const id = toDelete!.id; setToDelete(null); remove(id); }}
+        title="Eliminar autorización"
+        message={`¿Eliminar la autorización de "${toDelete?.property_title || `Propiedad #${toDelete?.property_id}`}"? Esta acción se puede revertir volviendo a cargarla.`}
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        variant="danger"
+      />
     </div>
   );
 }

@@ -6,6 +6,7 @@ import { api } from '../services/api';
 import { useTheme } from '../contexts/ThemeContext';
 import { ABMPage, ABMCard } from '../components/ui/ABMPage';
 import { ModernSelect } from '../components/ui/ModernSelect';
+import { ConfirmModal } from '../components/ui/ConfirmModal';
 import PageHint from '../components/ui/PageHint';
 
 const SORT_OPTIONS = [
@@ -47,6 +48,7 @@ export default function Clientes() {
   const [filterType, setFilterType] = useState<string>('all');
   const [sortBy, setSortBy] = useState<string>('name');
   const [editing, setEditing] = useState<Partial<Cliente> | null>(null);
+  const [toDelete, setToDelete] = useState<Cliente | null>(null);
 
   const load = () => {
     setLoading(true);
@@ -101,7 +103,6 @@ export default function Clientes() {
   };
 
   const remove = async (id: number) => {
-    if (!confirm('¿Eliminar este cliente?')) return;
     try {
       await api.delete(`/clients/${id}`);
       toast.success('Cliente eliminado');
@@ -161,7 +162,7 @@ export default function Clientes() {
                     style={{ background: `${theme.primary}15`, color: theme.primary }} aria-label="Editar">
                     <Edit3 className="h-3.5 w-3.5" />
                   </button>
-                  <button onClick={(e) => { e.stopPropagation(); remove(c.id); }}
+                  <button onClick={(e) => { e.stopPropagation(); setToDelete(c); }}
                     className="p-1.5 rounded-lg transition-all active:scale-95"
                     style={{ background: `${theme.danger}15`, color: theme.danger }} aria-label="Eliminar">
                     <Trash2 className="h-3.5 w-3.5" />
@@ -204,6 +205,17 @@ export default function Clientes() {
       {editing && (
         <ClientModal client={editing} theme={theme} onClose={() => setEditing(null)} onSave={save} />
       )}
+
+      <ConfirmModal
+        isOpen={!!toDelete}
+        onClose={() => setToDelete(null)}
+        onConfirm={() => { const id = toDelete!.id; setToDelete(null); remove(id); }}
+        title="Eliminar cliente"
+        message={`¿Eliminar a "${toDelete?.name}"? Esta acción se puede revertir volviendo a cargarlo.`}
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        variant="danger"
+      />
     </div>
   );
 }

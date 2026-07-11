@@ -10,6 +10,8 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { isManager as roleIsManager } from '../lib/roles';
 import { NextStepCard } from '../components/ui/NextStepCard';
+import { ConfirmModal } from '../components/ui/ConfirmModal';
+import PageHint from '../components/ui/PageHint';
 import type { Deal, DealStage, Property, Authorization } from '../types';
 
 // Las 6 etapas legales, EN ORDEN (mismo contrato que backend api/deals.LEGAL_STAGES).
@@ -46,6 +48,7 @@ export default function PipelineVentas() {
   const [dragId, setDragId] = useState<number | null>(null);
   const [dragOverStage, setDragOverStage] = useState<DealStage | null>(null);
   const [editing, setEditing] = useState<Partial<Deal> | null>(null);
+  const [toDelete, setToDelete] = useState<Deal | null>(null);
 
   const load = () => {
     setLoading(true);
@@ -114,7 +117,6 @@ export default function PipelineVentas() {
   };
 
   const remove = async (id: number) => {
-    if (!confirm('¿Eliminar este deal?')) return;
     try {
       await api.delete(`/deals/${id}`);
       toast.success('Deal eliminado');
@@ -126,6 +128,7 @@ export default function PipelineVentas() {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-screen-2xl mx-auto animate-fade-in">
+      <PageHint pageId="pipeline" />
       <header className="mb-5 sm:mb-6 flex items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl sm:text-3xl font-display font-black tracking-tight flex items-center gap-2" style={{ color: theme.text }}>
@@ -238,7 +241,7 @@ export default function PipelineVentas() {
                             <ChevronRight className="h-4 w-4" />
                           </button>
                         </div>
-                        <button aria-label="Eliminar" onClick={() => remove(deal.id)}
+                        <button aria-label="Eliminar" onClick={() => setToDelete(deal)}
                           className="p-1 rounded transition-all active:scale-90 opacity-0 group-hover:opacity-100"
                           style={{ color: theme.danger }}>
                           <Trash2 className="h-3.5 w-3.5" />
@@ -257,6 +260,17 @@ export default function PipelineVentas() {
         <DealModal deal={editing} theme={theme} isManager={isManager} onClose={() => setEditing(null)}
           onSaved={() => { setEditing(null); load(); }} />
       )}
+
+      <ConfirmModal
+        isOpen={!!toDelete}
+        onClose={() => setToDelete(null)}
+        onConfirm={() => { const id = toDelete!.id; setToDelete(null); remove(id); }}
+        title="Eliminar operación"
+        message={`¿Eliminar la operación de "${toDelete?.client_name || 'este cliente'}" sobre "${toDelete?.property_title || 'esta propiedad'}"? Esta acción no se puede deshacer.`}
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        variant="danger"
+      />
     </div>
   );
 }

@@ -8,6 +8,7 @@ import { api } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { ModernSelect } from '../components/ui/ModernSelect';
+import { ConfirmModal } from '../components/ui/ConfirmModal';
 import PageHint from '../components/ui/PageHint';
 import type { TeamMember, Invitation, TeamRole } from '../types';
 import { ROLE_META as ROLE_INFO, STAFF_ROLES, canManageWorkspace } from '../lib/roles';
@@ -47,6 +48,7 @@ export default function Equipo() {
   const [inviteName, setInviteName] = useState('');
   const [inviteRole, setInviteRole] = useState<TeamRole>('asesor');
   const [inviting, setInviting] = useState(false);
+  const [toCancel, setToCancel] = useState<Invitation | null>(null);
 
   const load = () => {
     setLoading(true);
@@ -138,7 +140,6 @@ export default function Equipo() {
   };
 
   const cancelInvite = async (inv: Invitation) => {
-    if (!confirm(`¿Cancelar la invitación a ${inv.email}?`)) return;
     setBusyId(-inv.id);
     try {
       await api.delete(`/team/invitations/${inv.id}`);
@@ -155,8 +156,8 @@ export default function Equipo() {
     <div className="p-6 lg:p-8 max-w-5xl mx-auto animate-fade-in">
       <PageHint pageId="equipo" />
       <header className="mb-6">
-        <h1 className="text-3xl font-display font-black flex items-center gap-2.5" style={{ color: theme.text }}>
-          <Users className="h-7 w-7" style={{ color: theme.primary }} /> Equipo
+        <h1 className="text-2xl sm:text-3xl font-display font-black tracking-tight flex items-center gap-2" style={{ color: theme.text }}>
+          <Users className="h-6 sm:h-7 w-6 sm:w-7" style={{ color: theme.primary }} /> Equipo
         </h1>
         <p className="mt-1" style={{ color: theme.textSecondary }}>
           Tasadores y colaboradores del workspace. Invitá por email, asigná roles y gestioná la disponibilidad para leads.
@@ -307,7 +308,7 @@ export default function Equipo() {
                       style={{ background: `${theme.primary}12`, color: theme.primary }} title="Reenviar">
                       {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <RotateCw className="h-4 w-4" />}
                     </button>
-                    <button onClick={() => cancelInvite(inv)} disabled={busy}
+                    <button onClick={() => setToCancel(inv)} disabled={busy}
                       className="p-2 rounded-lg active:scale-95 disabled:opacity-50"
                       style={{ background: `${theme.danger}12`, color: theme.danger }} title="Cancelar">
                       <XCircle className="h-4 w-4" />
@@ -327,6 +328,17 @@ export default function Equipo() {
           Solo un administrador puede invitar miembros o cambiar roles. Podés editar tu propia disponibilidad.
         </div>
       )}
+
+      <ConfirmModal
+        isOpen={!!toCancel}
+        onClose={() => setToCancel(null)}
+        onConfirm={() => { const inv = toCancel!; setToCancel(null); cancelInvite(inv); }}
+        title="Cancelar invitación"
+        message={`¿Cancelar la invitación a ${toCancel?.email}?`}
+        confirmText="Sí, cancelar"
+        cancelText="Cerrar"
+        variant="danger"
+      />
     </div>
   );
 }

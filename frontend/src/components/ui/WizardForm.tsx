@@ -3,9 +3,9 @@ import { ChevronLeft, ChevronRight, Check, Sparkles, Loader2, ArrowLeft, X, Mess
 import { useTheme } from '../../contexts/ThemeContext';
 import { chatApi } from '../../lib/api';
 
-// Parser simple de markdown a HTML con emojis y límite de items
+// Parser simple de markdown a HTML con bullets tipográficos (sin emojis, regla
+// dura de la suite) y límite de items.
 function formatMarkdown(text: string, maxItems = 3): string {
-  const emojis = ['📋', '✅', '📝', '💡', '📌', '🔹'];
   let itemCount = 0;
 
   // Primero, limitar items de lista
@@ -39,7 +39,6 @@ function formatMarkdown(text: string, maxItems = 3): string {
   }
 
   // Aplicar transformaciones
-  let emojiIndex = 0;
   return result
     // Headers
     .replace(/^### (.+)$/gm, '<h3 class="font-semibold text-base mt-3 mb-1">$1</h3>')
@@ -49,17 +48,13 @@ function formatMarkdown(text: string, maxItems = 3): string {
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
     .replace(/\*(.+?)\*/g, '<em>$1</em>')
     .replace(/_(.+?)_/g, '<em class="opacity-70">$1</em>')
-    // Listas numeradas con emojis
+    // Listas numeradas — bullet tipográfico, sin emojis
     .replace(/^\d+\.\s+(.+)$/gm, (_match, content) => {
-      const emoji = emojis[emojiIndex % emojis.length];
-      emojiIndex++;
-      return `<div class="flex gap-2 mt-2"><span>${emoji}</span><span>${content}</span></div>`;
+      return `<div class="flex gap-2 mt-2"><span class="opacity-60">&bull;</span><span>${content}</span></div>`;
     })
-    // Listas con bullets con emojis
+    // Listas con bullets — bullet tipográfico, sin emojis
     .replace(/^[-*]\s+(.+)$/gm, (_match, content) => {
-      const emoji = emojis[emojiIndex % emojis.length];
-      emojiIndex++;
-      return `<div class="flex gap-2 mt-2"><span>${emoji}</span><span>${content}</span></div>`;
+      return `<div class="flex gap-2 mt-2"><span class="opacity-60">&bull;</span><span>${content}</span></div>`;
     })
     // Saltos de línea
     .replace(/\n\n/g, '</p><p class="mt-3">')

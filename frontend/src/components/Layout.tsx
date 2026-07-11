@@ -14,6 +14,7 @@ import ThemeSelector from './ThemeSelector';
 import BrandLogo from './BrandLogo';
 import AICoachPanel from './AICoachPanel';
 import MobileBottomBar from './MobileBottomBar';
+import FirstDayTour from './FirstDayTour';
 import { hasMinRole, type StaffRole } from '../lib/roles';
 
 interface NavItem {
@@ -26,6 +27,8 @@ interface NavItem {
   minRole?: StaffRole;
   /** Subnav de la sección: se despliega al entrar (WO F6-04). */
   children?: NavItem[];
+  /** Tooltip nativo (hover) — para jerga técnica que no se explica en el label (WO F6-05). */
+  tooltip?: string;
 }
 
 // Sidebar de TRABAJO (WO F6-04, poda agresiva): 7 entradas planas, única fuente
@@ -51,7 +54,7 @@ const WORK_NAV: NavItem[] = [
     to: '/tasacion-express', icon: Zap, label: 'Tasar',
     children: [
       { to: '/tasaciones', icon: FileCheck2, label: 'Tasaciones' },
-      { to: '/estudios', icon: ClipboardList, label: 'Estudios ACM' },
+      { to: '/estudios', icon: ClipboardList, label: 'Estudios ACM', tooltip: 'ACM = Análisis Comparativo de Mercado, el respaldo técnico de una tasación' },
     ],
   },
   {
@@ -287,6 +290,10 @@ export default function Layout({ children }: { children: ReactNode }) {
       {/* AI Coach global (desktop) */}
       <AICoachPanel />
 
+      {/* Tour de primer día (WO F6-05) — cross-page, se dispara una vez por
+          usuario y es reabrible desde Configuración. */}
+      <FirstDayTour />
+
       {/* Mobile bottom bar (oculta en lg+) */}
       <MobileBottomBar />
     </div>
@@ -311,12 +318,12 @@ function NavSection({ item, active, theme }: { item: NavItem; active: boolean; t
 
 
 function NavItemLink({ item, collapsed, theme, subnav }: { item: NavItem; collapsed: boolean; theme: any; subnav?: boolean }) {
-  const { to, icon: Icon, label, live } = item;
+  const { to, icon: Icon, label, live, tooltip } = item;
   return (
     <NavLink
       to={to}
       end={to === '/'}
-      title={collapsed ? label : undefined}
+      title={collapsed ? label : tooltip}
       className={`relative flex items-center gap-3 rounded-xl font-medium transition-all duration-200 active:scale-[0.98] mb-0.5 ${collapsed ? 'justify-center px-3 py-2.5' : subnav ? 'px-3 py-2 text-[13px]' : 'px-3 py-2.5 text-sm'}`}
       style={({ isActive }) => ({
         background: isActive ? theme.text : 'transparent',

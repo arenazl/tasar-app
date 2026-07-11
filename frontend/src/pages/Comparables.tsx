@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { api } from '../services/api';
 import { useTheme } from '../contexts/ThemeContext';
 import { downloadCSV } from '../utils/csv';
+import PageHint from '../components/ui/PageHint';
 
 interface ComparableResult {
   id: number;
@@ -81,6 +82,7 @@ export default function Comparables() {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto animate-fade-in">
+      <PageHint pageId="comparables" />
       <header className="mb-4">
         <div className="flex items-start justify-between mb-1 gap-3 flex-wrap">
           <div className="min-w-0">

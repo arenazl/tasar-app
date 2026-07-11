@@ -8,6 +8,7 @@ import {
 import { toast } from 'sonner';
 import { api } from '../services/api';
 import { useTheme } from '../contexts/ThemeContext';
+import PageHint from '../components/ui/PageHint';
 
 interface InboxItem {
   id: number;
@@ -103,8 +104,9 @@ export default function Bandeja() {
         style={{ borderRight: `1px solid ${theme.border}` }}>
         {/* Header lista */}
         <div className="flex-shrink-0 p-5" style={{ borderBottom: `1px solid ${theme.border}` }}>
+          <PageHint pageId="bandeja" />
           <div className="flex items-center justify-between mb-1">
-            <h1 className="text-2xl font-black tracking-tight" style={{ color: theme.text }}>Bandeja</h1>
+            <h1 className="text-2xl font-display font-black tracking-tight" style={{ color: theme.text }}>Bandeja</h1>
             <button onClick={readAll}
               className="p-2 rounded-lg transition-all active:scale-95"
               style={{ background: theme.backgroundSecondary, color: theme.textSecondary }}

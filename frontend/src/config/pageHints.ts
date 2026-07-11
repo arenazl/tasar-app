@@ -23,14 +23,6 @@ export const PAGE_HINTS: Record<string, PageHintConfig> = {
       { title: 'PDF listo para mandar', body: 'Cada tasación express se guarda y se puede descargar en PDF brandeado con tu logo, para mandarlo al cliente en el momento.' },
     ],
   },
-  'tasador-ai': {
-    title: 'Tu copiloto de tasación',
-    body: 'Charlá con la IA sobre una propiedad puntual: te ayuda a completar datos, sugiere comparables y explica el razonamiento detrás de un rango de valor.',
-    steps: [
-      { title: 'Preguntas concretas', body: 'Pedile cosas puntuales: "¿qué factores bajan el valor de esta propiedad?" o "compará esto con lo que ya cargué en Palermo".' },
-      { title: 'No reemplaza el ACM', body: 'Es para pensar rápido y destrabar dudas. El estudio defendible (con score de confianza) sigue siendo el ACM formal en Estudios.' },
-    ],
-  },
   dashboard: {
     title: 'Tu día arranca acá',
     body: 'Antes de abrir cualquier ACM, mirá esta pantalla: te dice cuánto facturás, cuántas tasaciones tenés en curso y qué está esperando tu atención.',
@@ -46,7 +38,7 @@ export const PAGE_HINTS: Record<string, PageHintConfig> = {
     steps: [
       { title: 'Cargar bien = trabajar menos', body: 'Si cargás m², ambientes, antigüedad, estado y coords desde el día 1, después la IA te sugiere comparables automáticamente cuando armás un ACM.' },
       { title: 'Filtros que importan', body: 'Pills "Destacadas >300k" (clientes premium), "Recientes" (lo que entró esta semana), "Sin precio" (a completar) y "Completas" (listas para tasar).' },
-      { title: 'Análisis IA por propiedad', body: 'Botón ✨ pide a Claude/Gemini un análisis con segmento, fortalezas comerciales y rango sugerido. Te ahorra 30 min de pensar la propiedad antes del ACM.' },
+      { title: 'Análisis IA por propiedad', body: 'El botón con el ícono de IA pide a Claude/Gemini un análisis con segmento, fortalezas comerciales y rango sugerido. Te ahorra 30 min de pensar la propiedad antes del ACM.' },
     ],
   },
   estudios: {

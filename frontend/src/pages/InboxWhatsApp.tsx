@@ -328,7 +328,7 @@ export default function InboxWhatsApp() {
         <div className="flex-shrink-0 p-4" style={{ borderBottom: `1px solid ${theme.border}` }}>
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-black tracking-tight" style={{ color: theme.text }}>WhatsApp</h1>
+              <h1 className="text-2xl font-display font-black tracking-tight" style={{ color: theme.text }}>WhatsApp</h1>
               <span className="text-[11px] px-1.5 py-0.5 rounded-full font-bold"
                 style={{ background: theme.backgroundSecondary, color: theme.textSecondary }}>{convs.length}</span>
             </div>

@@ -386,7 +386,7 @@ export default function Tasaciones() {
   const stepStudy = (
     <div className="space-y-4 animate-fade-in">
       <ABMInfoPanel title="Estudio de mercado de referencia" icon={<ClipboardList className="h-4 w-4" />} variant="info">
-        Elegí un estudio ACM de la propiedad para ver su valor sugerido y usarlo como referencia al cargar el valor final.
+        Elegí un estudio ACM (Análisis Comparativo de Mercado) de la propiedad para ver su valor sugerido y usarlo como referencia al cargar el valor final.
         Es solo una ayuda de este paso: no queda vinculado a la tasación ni aparece en el PDF.
       </ABMInfoPanel>
       {form.property_id ? (

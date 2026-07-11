@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   Settings, Palette, Bell, Lock, Check, Type, Sparkles, Zap, Brain, Gem, X, Loader2,
-  FlaskConical, Trash2, AlertTriangle,
+  FlaskConical, Trash2, AlertTriangle, Rocket,
   UserCog, Layers, ListChecks, GraduationCap, Bot, LayoutDashboard, ChevronRight, type LucideIcon,
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -13,6 +13,7 @@ import { PushTestButton } from '../components/PushOptIn';
 import PageHint from '../components/ui/PageHint';
 import { BRAND } from '../config/brand';
 import { isManager, canManageWorkspace } from '../lib/roles';
+import { FIRST_DAY_TOUR_RESET_EVENT, tourDoneKey, tourStepKey } from '../config/firstDayTour';
 
 const CLAUDE_MODELS = [
   { value: 'haiku', label: 'Haiku', desc: 'Rápido y económico', icon: Zap, color: '#16a34a' },
@@ -64,6 +65,7 @@ const MANAGE_GROUPS: { title: string; links: { to: string; icon: LucideIcon; lab
 export default function Configuracion() {
   const { mode, toggle, presetId, setPreset, presets, theme, fontId, setFont, fonts } = useTheme();
   const { user } = useAuth();
+  const navigate = useNavigate();
   // Config del workspace + borrados sensibles (datos de ejemplo) = administrador+
   // (WO F6-06). Ver/entrar a Configuración = coordinador+ (canConfig).
   const canManage = canManageWorkspace(user?.role);
@@ -93,6 +95,18 @@ export default function Configuracion() {
     api.get('/settings/notify_appraisal').then(r => { if (r.data?.value != null) setNotifyAppraisal(r.data.value === 'true'); }).catch(() => {});
     api.get('/settings/notify_comment').then(r => { if (r.data?.value != null) setNotifyComment(r.data.value === 'true'); }).catch(() => {});
   }, []);
+
+  // Tour de primer día (WO F6-05) — limpia el flag de "ya lo vi" y el paso
+  // guardado, avisa a FirstDayTour (montado en Layout) que se re-evalúe, y
+  // lleva a Hoy para arrancar desde el paso 1.
+  const reopenTour = () => {
+    if (!user) return;
+    localStorage.removeItem(tourDoneKey(user.id));
+    localStorage.setItem(tourStepKey(user.id), '0');
+    window.dispatchEvent(new Event(FIRST_DAY_TOUR_RESET_EVENT));
+    navigate('/');
+    toast.success('Tour reiniciado — mirá la tarjeta abajo a la izquierda');
+  };
 
   const toggleNotify = (key: string, current: boolean, setter: (v: boolean) => void, label: string) => {
     const next = !current;
@@ -174,6 +188,15 @@ export default function Configuracion() {
       </header>
 
       <div className="space-y-3">
+        {/* TOUR DE PRIMER DÍA (WO F6-05) — reabrible por cualquier rol. */}
+        <Item icon={Rocket} title="Tour de bienvenida" desc="Volvé a recorrer Hoy, Chat, Clientes, Pipeline y Tasar">
+          <button onClick={reopenTour}
+            className="px-4 py-2 rounded-lg text-sm font-medium transition-all active:scale-95"
+            style={{ background: theme.primary, color: theme.primaryText }}>
+            Reabrir tour
+          </button>
+        </Item>
+
         {/* GESTIÓN DEL WORKSPACE (WO F6-04) — coordinador+.
             Concentra los accesos que salieron del top-level de la nav. */}
         {canConfig && (
