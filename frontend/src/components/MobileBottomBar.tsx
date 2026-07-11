@@ -2,7 +2,7 @@ import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
   MessageSquare, Users, Workflow, Sunrise, Plus, LogOut,
   Building2, FileCheck2, ClipboardList, Store, Database, FileText, Settings,
-  Map as MapIcon, Zap, UserPlus, CalendarPlus, type LucideIcon,
+  Map as MapIcon, Zap, UserPlus, CalendarPlus, FileSignature, type LucideIcon,
 } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -41,6 +41,7 @@ const MORE_ITEMS: SheetItem[] = [
   { to: '/propiedades', icon: Building2, label: 'Propiedades' },
   { to: '/tasaciones', icon: FileCheck2, label: 'Tasaciones' },
   { to: '/estudios', icon: ClipboardList, label: 'Estudios ACM' },
+  { to: '/autorizaciones', icon: FileSignature, label: 'Autorizaciones', minRole: 'coordinador' },
   { to: '/mercado', icon: Store, label: 'Mercado', minRole: 'coordinador' },
   { to: '/comparables', icon: Database, label: 'Comparables', minRole: 'coordinador' },
   { to: '/mapa', icon: MapIcon, label: 'Mapa', minRole: 'coordinador' },

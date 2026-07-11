@@ -39,7 +39,6 @@ import Tasaciones from './pages/Tasaciones';
 import TasacionDetail from './pages/TasacionDetail';
 import TasacionExpress from './pages/TasacionExpress';
 import MapaCalor from './pages/MapaCalor';
-import TasadorAI from './pages/TasadorAI';
 import Configuracion from './pages/Configuracion';
 import DatosIA from './pages/DatosIA';
 import Mercado from './pages/Mercado';
@@ -102,7 +101,6 @@ export default function App() {
                   <Route path="/reportes" element={<Reportes />} />
                   <Route path="/reportes/:id" element={<EstudioEditorial />} />
                   <Route path="/mapa" element={<MapaCalor />} />
-                  <Route path="/tasador-ai" element={<TasadorAI />} />
                   <Route path="/datos-ia" element={<DatosIA />} />
                   <Route path="/configuracion" element={<Configuracion />} />
                 </Routes>

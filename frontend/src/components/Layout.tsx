@@ -3,7 +3,7 @@ import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import {
   Inbox, FileCheck2, Building2, Workflow, Users, Map as MapIcon,
   ClipboardList, FileText, Database, Settings, LogOut, ChevronDown, ChevronLeft, ChevronRight,
-  Zap, MessageSquare, Store, Sunrise, type LucideIcon,
+  Zap, MessageSquare, Store, Sunrise, FileSignature, type LucideIcon,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { api } from '../services/api';
@@ -43,7 +43,10 @@ const WORK_NAV: NavItem[] = [
   { to: '/clientes', icon: Users, label: 'Clientes' },
   // Antes supervisor+; ahora todos cargan (el scoping real lo da el backend).
   { to: '/propiedades', icon: Building2, label: 'Propiedades' },
-  { to: '/pipeline', icon: Workflow, label: 'Pipeline' },
+  {
+    to: '/pipeline', icon: Workflow, label: 'Pipeline',
+    children: [{ to: '/autorizaciones', icon: FileSignature, label: 'Autorizaciones', minRole: 'coordinador' }],
+  },
   {
     to: '/tasacion-express', icon: Zap, label: 'Tasar',
     children: [
