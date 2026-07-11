@@ -3,7 +3,7 @@
 `workspace_id` NO va en los Create/Update: lo deriva el endpoint del contexto
 de auth del tenant. Solo aparece en los Out.
 """
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 from typing import Optional, List
 from datetime import time, date, datetime
 
@@ -111,6 +111,12 @@ class VendorOut(BaseModel):
     email: str
     role: str
     daily_conversations_goal: int = 0
+
+    @field_validator("daily_conversations_goal", mode="before")
+    @classmethod
+    def _goal_default(cls, v):
+        # los usuarios legacy tienen la columna en NULL; el endpoint no debe romper
+        return 0 if v is None else v
 
 
 # ---------- Asignacion vendedor -> template ----------
