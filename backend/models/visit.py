@@ -28,7 +28,7 @@ class Visit(Base):
     # agendada | concretada | cancelada | ausente
 
     # AgentFlow.resultado -> result
-    result = Column(String(20), nullable=True)
+    result = Column(String(64), nullable=True)
     # interesado | no_interesado | hizo_oferta | indeciso | sin_resultado
 
     # AgentFlow.notas_voz -> voice_notes

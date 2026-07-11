@@ -7,6 +7,11 @@ from core.database import get_db
 from core.security import get_current_user, require_role
 from models.user import User
 from models.property import Property, PropertyPhoto
+from models.visit import Visit
+from models.deal import Deal
+from models.authorization import Authorization
+from models.appraisal import Appraisal
+from models.market_study import MarketStudy, Comparable
 from schemas.property import PropertyCreate, PropertyUpdate, PropertyOut, PropertyPhotoOut
 from services.cloudinary_service import upload_image, delete_image
 from services.ai_router import analyze_property
@@ -122,6 +127,22 @@ async def delete_property(
     p = res.scalar_one_or_none()
     if not p:
         raise HTTPException(404, "Propiedad no encontrada")
+    # Guard FK: si la propiedad esta referenciada por datos reales, el DELETE
+    # violaria la constraint (pymysql IntegrityError 1451 -> 500). Mismas FKs
+    # que services/demo_service._referenced_property_ids. Devolvemos 409 en vez
+    # de destruir esos datos (visitas, operaciones, autorizaciones, tasaciones,
+    # estudios de mercado).
+    for col in (
+        Visit.property_id, Deal.property_id, Authorization.property_id,
+        Appraisal.property_id, MarketStudy.property_id, Comparable.source_property_id,
+    ):
+        ref = await db.execute(select(col).where(col == p.id).limit(1))
+        if ref.first() is not None:
+            raise HTTPException(
+                409,
+                "No se puede borrar: la propiedad tiene datos asociados "
+                "(visitas, operaciones, autorizaciones, tasaciones o estudios de mercado).",
+            )
     # Borrar fotos en Cloudinary
     photos = (await db.execute(
         select(PropertyPhoto).where(PropertyPhoto.property_id == p.id)

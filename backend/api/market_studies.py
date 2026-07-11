@@ -141,9 +141,11 @@ async def create_market_study(
     )
     db.add(ms)
     await db.commit()
-    # ms.comparables ya es [] en memoria (objeto recien creado, sin hijos) --
-    # solo faltan las columnas generadas por la DB (created_at/updated_at).
-    await db.refresh(ms, attribute_names=["created_at", "updated_at"])
+    # Recargar con selectinload (mismo patron que _load_study en el resto del
+    # router): trae created_at/updated_at generados por la DB y deja
+    # ms.comparables EAGER-LOADED ([]), evitando el lazy load post-commit que
+    # dispara MissingGreenlet en contexto async.
+    ms = await _load_study(db, ms.id, user.workspace_id)
     return _serialize(ms)
 
 
@@ -174,7 +176,10 @@ async def add_comparable(
 
     await _recalc_in_place(db, ms)
     await db.commit()
-    await db.refresh(ms, attribute_names=["updated_at"])
+    # Re-cargar con selectinload: tras commit el comparable recien creado tiene
+    # su collection `adjustments` SIN cargar; _serialize la tocaria en lazy-load
+    # (MissingGreenlet en async). _load_study trae comparables+adjustments eager.
+    ms = await _load_study(db, study_id, user.workspace_id)
     return _serialize(ms)
 
 
@@ -388,7 +393,10 @@ async def accept_suggestion(
 
     await _recalc_in_place(db, ms)
     await db.commit()
-    await db.refresh(ms, attribute_names=["updated_at"])
+    # Re-cargar con selectinload (mismo bug que add_comparable): el comparable
+    # recien creado tiene `adjustments` sin cargar y _serialize dispararia un
+    # lazy-load fuera del greenlet async -> MissingGreenlet.
+    ms = await _load_study(db, study_id, user.workspace_id)
     return _serialize(ms)
 
 
