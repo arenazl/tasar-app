@@ -1,9 +1,8 @@
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
-  MessageSquare, FileCheck2, Users, Store, LayoutGrid,
-  LayoutDashboard, Building2, Workflow, ClipboardList, FileText, Database, Settings, LogOut,
-  CalendarDays, FileSignature, Sparkles, Zap, Bot, Map as MapIcon, Layers, GraduationCap,
-  ListChecks, TrendingUp, Sunrise, type LucideIcon,
+  MessageSquare, Users, Workflow, Sunrise, Plus, LogOut,
+  Building2, FileCheck2, ClipboardList, Store, Database, FileText, Settings,
+  Map as MapIcon, Zap, UserPlus, CalendarPlus, type LucideIcon,
 } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -19,44 +18,34 @@ interface SheetItem {
   roles?: Role[];
 }
 
-// Tabs primarios (esqueleto fijo de la app en mobile): Chat, Captar, FAB, Equipo, Mercado.
+// Tabs primarios (esqueleto fijo en mobile, WO F6-04): Hoy · Chat · FAB · Pipeline · Clientes.
 const TABS_LEFT = [
-  { to: '/bandeja', icon: MessageSquare, label: 'Chat' },
-  { to: '/tasaciones', icon: FileCheck2, label: 'Captar' },
+  { to: '/', icon: Sunrise, label: 'Hoy' },
+  { to: '/whatsapp', icon: MessageSquare, label: 'Chat' },
 ];
 const TABS_RIGHT = [
-  { to: '/dmo', icon: Users, label: 'Equipo' },
-  { to: '/mercado', icon: Store, label: 'Mercado' },
+  { to: '/pipeline', icon: Workflow, label: 'Pipeline' },
+  { to: '/clientes', icon: Users, label: 'Clientes' },
 ];
 
-// Sheet "Más" — el resto de las pantallas, agrupadas por módulo y filtradas por rol.
+// Acciones rápidas del FAB (WO F6-04) — navegan a la superficie de creación
+// correspondiente (no abren modales nuevos: sin features nuevas).
+const QUICK_ACTIONS: { to: string; icon: LucideIcon; label: string }[] = [
+  { to: '/tasacion-express', icon: Zap, label: 'Tasación express' },
+  { to: '/clientes', icon: UserPlus, label: 'Nuevo cliente' },
+  { to: '/visitas', icon: CalendarPlus, label: 'Nueva visita' },
+];
+
+// Sheet "Más" — el resto de las pantallas fuera de los tabs, filtradas por rol.
+// Equipo/DMO/Bot/Métricas viven dentro de Configuración; Mi DMO se abre desde Hoy.
 const MORE_ITEMS: SheetItem[] = [
-  // Sueltos
-  { to: '/', icon: Sunrise, label: 'Hoy' },
-  { to: '/metricas', icon: LayoutDashboard, label: 'Métricas' },
-  { to: '/tasador-ai', icon: Sparkles, label: 'Tasador AI' },
-  // Captar
-  { to: '/tasacion-express', icon: Zap, label: 'Express' },
+  { to: '/propiedades', icon: Building2, label: 'Propiedades' },
+  { to: '/tasaciones', icon: FileCheck2, label: 'Tasaciones' },
   { to: '/estudios', icon: ClipboardList, label: 'Estudios ACM' },
-  // Cartera
-  { to: '/propiedades', icon: Building2, label: 'Propiedades', roles: ['supervisor', 'admin'] },
-  { to: '/autorizaciones', icon: FileSignature, label: 'Autorizaciones', roles: ['supervisor', 'admin'] },
-  // Equipo
-  { to: '/pipeline', icon: Workflow, label: 'Pipeline' },
-  { to: '/visitas', icon: CalendarDays, label: 'Visitas' },
-  { to: '/clientes', icon: Users, label: 'Clientes' },
-  { to: '/dmo-templates', icon: Layers, label: 'Templates DMO', roles: ['supervisor', 'admin'] },
-  { to: '/dmo-asignaciones', icon: ListChecks, label: 'Asignaciones', roles: ['supervisor', 'admin'] },
-  { to: '/coaches', icon: GraduationCap, label: 'Coaches', roles: ['supervisor', 'admin'] },
-  // Chat
-  { to: '/whatsapp', icon: MessageSquare, label: 'WhatsApp' },
-  { to: '/datos-ia', icon: Bot, label: 'Datos IA · Bot', roles: ['supervisor', 'admin'] },
-  // Mercado
+  { to: '/mercado', icon: Store, label: 'Mercado', roles: ['supervisor', 'admin'] },
   { to: '/comparables', icon: Database, label: 'Comparables', roles: ['supervisor', 'admin'] },
   { to: '/mapa', icon: MapIcon, label: 'Mapa', roles: ['supervisor', 'admin'] },
   { to: '/reportes', icon: FileText, label: 'Reportes', roles: ['supervisor', 'admin'] },
-  { to: '/mercado', icon: TrendingUp, label: 'Mercado', roles: ['supervisor', 'admin'] },
-  // Config
   { to: '/configuracion', icon: Settings, label: 'Configuración', roles: ['supervisor', 'admin'] },
 ];
 
@@ -95,11 +84,11 @@ export default function MobileBottomBar() {
           <TabLink key={to} to={to} Icon={Icon} label={label} theme={theme} />
         ))}
 
-        {/* FAB central elevado — sube/baja con animación */}
+        {/* FAB central elevado — abre el sheet de acciones + navegación */}
         <div className="flex-1 flex items-start justify-center relative">
           <button
             onClick={() => setMoreOpen(o => !o)}
-            aria-label="Más opciones"
+            aria-label="Acciones y más"
             className="absolute w-14 h-14 rounded-full flex items-center justify-center active:scale-90"
             style={{
               background: theme.primary,
@@ -107,14 +96,14 @@ export default function MobileBottomBar() {
               boxShadow: `0 8px 24px -4px ${theme.primary}80, 0 4px 12px -2px rgba(0,0,0,0.2)`,
               border: `3px solid ${theme.card}`,
               top: moreOpen ? '-32px' : '-24px',
-              transform: moreOpen ? 'rotate(135deg) scale(1.05)' : 'rotate(0deg) scale(1)',
+              transform: moreOpen ? 'rotate(45deg) scale(1.05)' : 'rotate(0deg) scale(1)',
               transition: 'top 300ms cubic-bezier(0.34, 1.56, 0.64, 1), transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1), background 200ms',
             }}
           >
-            <LayoutGrid className="h-6 w-6" strokeWidth={2.2} />
+            <Plus className="h-6 w-6" strokeWidth={2.4} />
           </button>
           <span className="absolute bottom-1.5 text-[10px] font-semibold uppercase tracking-wider"
-            style={{ color: theme.textSecondary }}>Más</span>
+            style={{ color: theme.textSecondary }}>Crear</span>
         </div>
 
         {TABS_RIGHT.map(({ to, icon: Icon, label }) => (
@@ -122,7 +111,7 @@ export default function MobileBottomBar() {
         ))}
       </nav>
 
-      {/* Bottom sheet "Más" */}
+      {/* Bottom sheet: acciones rápidas + "Más" */}
       {moreOpen && (
         <>
           <div
@@ -159,8 +148,38 @@ export default function MobileBottomBar() {
               </button>
             </div>
 
-            {/* Grid 3-cols */}
-            <div className="px-4 py-5 grid grid-cols-3 gap-2">
+            {/* Acciones rápidas */}
+            <div className="px-5 pt-4">
+              <div className="text-[10px] uppercase tracking-wider font-bold mb-2.5" style={{ color: theme.textSecondary }}>
+                Crear
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                {QUICK_ACTIONS.map(({ to, icon: Icon, label }) => (
+                  <button
+                    key={to}
+                    onClick={() => go(to)}
+                    className="flex flex-col items-center justify-center gap-2 p-3 rounded-2xl transition-all active:scale-95"
+                    style={{ background: `${theme.primary}12`, border: `1px solid ${theme.primary}25` }}
+                  >
+                    <div className="w-11 h-11 rounded-2xl flex items-center justify-center"
+                      style={{ background: theme.primary, color: theme.primaryText || '#fff' }}>
+                      <Icon className="h-5 w-5" strokeWidth={2.1} />
+                    </div>
+                    <span className="text-[11px] font-semibold text-center leading-tight" style={{ color: theme.primary }}>
+                      {label}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Más — navegación */}
+            <div className="px-5 pt-5 pb-1">
+              <div className="text-[10px] uppercase tracking-wider font-bold mb-2.5" style={{ color: theme.textSecondary }}>
+                Ir a
+              </div>
+            </div>
+            <div className="px-4 pb-5 grid grid-cols-3 gap-2">
               {sheetItems.map(({ to, icon: Icon, label }) => {
                 const active = location.pathname === to;
                 return (

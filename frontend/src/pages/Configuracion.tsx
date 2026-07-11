@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
   Settings, Palette, Bell, Lock, Check, Type, Sparkles, Zap, Brain, Gem, X, Loader2,
   FlaskConical, Trash2, AlertTriangle,
+  UserCog, Layers, ListChecks, GraduationCap, Bot, LayoutDashboard, ChevronRight, type LucideIcon,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTheme } from '../contexts/ThemeContext';
@@ -27,10 +29,44 @@ const AI_PROVIDERS = [
   { value: 'gemini', label: 'Gemini (Google)', desc: 'Rápido · API cloud', icon: Sparkles, color: '#2563eb' },
 ];
 
+// Accesos de gestión reubicados desde el top-level de la nav (WO F6-04, poda
+// agresiva). Cada uno linkea a su ruta viva. Agrupados por área.
+const MANAGE_GROUPS: { title: string; links: { to: string; icon: LucideIcon; label: string; desc: string }[] }[] = [
+  {
+    title: 'Equipo',
+    links: [
+      { to: '/equipo', icon: UserCog, label: 'Gestión de equipo', desc: 'Usuarios, roles e invitaciones' },
+    ],
+  },
+  {
+    title: 'DMO',
+    links: [
+      { to: '/dmo-templates', icon: Layers, label: 'Templates DMO', desc: 'Plantillas de actividad diaria' },
+      { to: '/dmo-asignaciones', icon: ListChecks, label: 'Asignaciones', desc: 'DMO por vendedor' },
+      { to: '/coaches', icon: GraduationCap, label: 'Coaches', desc: 'Acompañamiento del equipo' },
+    ],
+  },
+  {
+    title: 'Bot',
+    links: [
+      { to: '/datos-ia', icon: Bot, label: 'Datos IA · Bot', desc: 'Conocimiento que usa el asistente' },
+    ],
+  },
+  {
+    title: 'Métricas',
+    links: [
+      { to: '/metricas', icon: LayoutDashboard, label: 'Tablero de KPIs', desc: 'Indicadores del workspace' },
+    ],
+  },
+];
+
 export default function Configuracion() {
   const { mode, toggle, presetId, setPreset, presets, theme, fontId, setFont, fonts } = useTheme();
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin';
+  // Gestión del workspace (WO F6-04): Configuración concentra los accesos que
+  // salieron del top-level de la nav. Supervisor+admin.
+  const isManager = user?.role === 'admin' || user?.role === 'supervisor';
   const [aiProvider, setAiProvider] = useState<string>('claude');
   const [claudeModel, setClaudeModel] = useState<string>('haiku');
   const [geminiModel, setGeminiModel] = useState<string>('gemini-2.5-flash');
@@ -135,6 +171,48 @@ export default function Configuracion() {
       </header>
 
       <div className="space-y-3">
+        {/* GESTIÓN DEL WORKSPACE (WO F6-04) — solo supervisor/admin.
+            Concentra los accesos que salieron del top-level de la nav. */}
+        {isManager && (
+          <div className="p-5 rounded-xl" style={{ background: theme.card, border: `1px solid ${theme.border}` }}>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: `${theme.primary}15` }}>
+                <UserCog className="h-5 w-5" style={{ color: theme.primary }} />
+              </div>
+              <div className="flex-1">
+                <div className="font-semibold" style={{ color: theme.text }}>Gestión del workspace</div>
+                <div className="text-sm" style={{ color: theme.textSecondary }}>Equipo, DMO, bot y métricas</div>
+              </div>
+            </div>
+            <div className="space-y-4">
+              {MANAGE_GROUPS.map(group => (
+                <div key={group.title}>
+                  <div className="text-[10px] uppercase tracking-wider font-bold mb-2" style={{ color: theme.textSecondary }}>
+                    {group.title}
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {group.links.map(({ to, icon: Icon, label, desc }) => (
+                      <Link key={to} to={to}
+                        className="flex items-center gap-3 p-3 rounded-lg transition-all hover:scale-[1.01] active:scale-95"
+                        style={{ background: theme.backgroundSecondary, border: `1px solid ${theme.border}` }}>
+                        <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
+                          style={{ background: `${theme.primary}15`, color: theme.primary }}>
+                          <Icon className="h-4 w-4" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-semibold truncate" style={{ color: theme.text }}>{label}</div>
+                          <div className="text-xs truncate" style={{ color: theme.textSecondary }}>{desc}</div>
+                        </div>
+                        <ChevronRight className="h-4 w-4 flex-shrink-0" style={{ color: theme.textSecondary }} />
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* TEMA */}
         <Item icon={Palette} title="Tema visual" desc="Elegí paleta + modo light/dark">
           <button onClick={toggle}
