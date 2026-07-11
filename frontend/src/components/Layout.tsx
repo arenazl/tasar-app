@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Inbox, FileCheck2, Building2, Workflow, Users, Map as MapIcon,
   ClipboardList, FileText, Database, Settings, LogOut, ChevronDown, ChevronLeft, ChevronRight,
   Zap, Target, Layers, GraduationCap, CalendarDays, FileSignature, Bot, MessageSquare,
-  Sparkles, Store, TrendingUp, ListChecks, UserCog, type LucideIcon,
+  Sparkles, Store, TrendingUp, ListChecks, UserCog, Sunrise, type LucideIcon,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { api } from '../services/api';
@@ -37,9 +37,12 @@ interface NavModule {
   items: NavItem[];
 }
 
-// Items sueltos (sin módulo) — home y asistente, visibles a todos los roles.
+// Items sueltos (sin módulo) — home "Hoy", métricas y asistente, a todos los roles.
+// "Hoy" (WO F6-01) es la home accionable: ordena el día. "Métricas" es el
+// Dashboard de KPIs, reubicado a vista secundaria (ruta /metricas).
 const NAV_TOP: NavItem[] = [
-  { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
+  { to: '/', icon: Sunrise, label: 'Hoy' },
+  { to: '/metricas', icon: LayoutDashboard, label: 'Métricas' },
   { to: '/tasador-ai', icon: Sparkles, label: 'Tasador AI' },
 ];
 

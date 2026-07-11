@@ -1,81 +1,13 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ClipboardList, Check, Flame, Clock, AlertCircle, Minus, Plus } from 'lucide-react';
-import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
-import { api } from '../services/api';
 import { useTheme } from '../contexts/ThemeContext';
-import type { DmoDay, DmoBlock, DmoLog } from '../types';
-
-function fechaHoy(): string {
-  return new Date().toISOString().slice(0, 10);
-}
-function ahoraHHMM(): string {
-  const d = new Date();
-  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
-}
-function hhmmToMin(hhmm: string): number {
-  const [h, m] = hhmm.split(':').map(Number);
-  return h * 60 + m;
-}
-
-type BlockStatus = 'done' | 'now' | 'pending' | 'overdue';
-
-function getStatus(b: DmoBlock, log: DmoLog | undefined, nowMin: number): BlockStatus {
-  const ini = hhmmToMin(b.start_time.slice(0, 5));
-  const fin = hhmmToMin(b.end_time.slice(0, 5));
-  if (log?.completed) return 'done';
-  if (nowMin >= ini && nowMin < fin) return 'now';
-  if (nowMin >= fin) return 'overdue';
-  return 'pending';
-}
+import { useDmoDia, type BlockStatus } from '../hooks/useDmoDia';
 
 export default function DMO() {
   const { theme } = useTheme();
-  const [data, setData] = useState<DmoDay | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [now, setNow] = useState(ahoraHHMM());
-  const fecha = fechaHoy();
-
-  const load = async () => {
-    try {
-      const r = await api.get<DmoDay>('/dmo/dia', { params: { fecha } });
-      setData(r.data);
-    } catch {
-      toast.error('Error al cargar el DMO');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    load();
-    const t = setInterval(() => setNow(ahoraHHMM()), 60_000);
-    return () => clearInterval(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const toggleBloque = async (block: DmoBlock, completed: boolean, metric_value: number) => {
-    try {
-      await api.post('/dmo/log', { block_id: block.id, date: fecha, completed, metric_value, notes: null });
-      toast.success(completed ? `${block.name}: completado` : `${block.name}: desmarcado`);
-      load();
-    } catch {
-      toast.error('Error al guardar');
-    }
-  };
-
-  const logsByBlock = useMemo(() => {
-    const m = new Map<number, DmoLog>();
-    data?.logs.forEach((l) => m.set(l.block_id, l));
-    return m;
-  }, [data]);
-
-  const nowMin = hhmmToMin(now);
-
-  const blockStatuses = useMemo(() => {
-    if (!data) return [];
-    return data.blocks.map((b) => ({ block: b, status: getStatus(b, logsByBlock.get(b.id), nowMin), log: logsByBlock.get(b.id) }));
-  }, [data, logsByBlock, nowMin]);
+  // Fetch + derivación de estados compartidos con Hoy.tsx (hook único, WO F6-01).
+  const { data, loading, now, blockStatuses, doneCount, toggleBloque } = useDmoDia();
 
   const statusColor: Record<BlockStatus, string> = {
     done: theme.success,
@@ -113,8 +45,6 @@ export default function DMO() {
       </div>
     );
   }
-
-  const doneCount = data.logs.filter((l) => l.completed).length;
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-screen-xl mx-auto animate-fade-in">

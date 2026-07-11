@@ -28,6 +28,7 @@ import Login from './pages/Login';
 import Registro from './pages/Registro';
 import AceptarInvitacion from './pages/AceptarInvitacion';
 import Equipo from './pages/Equipo';
+import Hoy from './pages/Hoy';
 import Dashboard from './pages/Dashboard';
 import Bandeja from './pages/Bandeja';
 import InboxWhatsApp from './pages/InboxWhatsApp';
@@ -74,7 +75,10 @@ export default function App() {
               <PushOptIn />
               <Layout>
                 <Routes>
-                  <Route path="/" element={<Dashboard />} />
+                  {/* Home "Hoy" accionable por rol (WO F6-01): al entrar la app ORDENA
+                      EL DÍA. El Dashboard de KPIs pasa a vista secundaria en /metricas. */}
+                  <Route path="/" element={<Hoy />} />
+                  <Route path="/metricas" element={<Dashboard />} />
                   <Route path="/bandeja" element={<Bandeja />} />
                   <Route path="/whatsapp" element={<InboxWhatsApp />} />
                   <Route path="/propiedades" element={<Propiedades />} />

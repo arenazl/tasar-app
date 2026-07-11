@@ -3,7 +3,7 @@ import {
   MessageSquare, FileCheck2, Users, Store, LayoutGrid,
   LayoutDashboard, Building2, Workflow, ClipboardList, FileText, Database, Settings, LogOut,
   CalendarDays, FileSignature, Sparkles, Zap, Bot, Map as MapIcon, Layers, GraduationCap,
-  ListChecks, TrendingUp, type LucideIcon,
+  ListChecks, TrendingUp, Sunrise, type LucideIcon,
 } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -32,7 +32,8 @@ const TABS_RIGHT = [
 // Sheet "Más" — el resto de las pantallas, agrupadas por módulo y filtradas por rol.
 const MORE_ITEMS: SheetItem[] = [
   // Sueltos
-  { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
+  { to: '/', icon: Sunrise, label: 'Hoy' },
+  { to: '/metricas', icon: LayoutDashboard, label: 'Métricas' },
   { to: '/tasador-ai', icon: Sparkles, label: 'Tasador AI' },
   // Captar
   { to: '/tasacion-express', icon: Zap, label: 'Express' },
