@@ -66,17 +66,17 @@ async def main():
         db.add(ws)
         await db.flush()
 
-        # Usuarios demo (admin, supervisor, vendedor)
+        # Usuarios demo (broker, coordinador, asesor) — jerarquia del rubro (WO F6-06).
         users = [
             User(workspace_id=ws.id, email="admin@tasar.demo",
                  password_hash=hash_password("admin123"),
-                 full_name="Lucas Admin", role="admin", license_number="MAT-1234"),
+                 full_name="Lucas Broker", role="broker", license_number="MAT-1234"),
             User(workspace_id=ws.id, email="supervisor@tasar.demo",
                  password_hash=hash_password("supervisor123"),
-                 full_name="Pato Supervisor", role="supervisor", license_number="MAT-5678"),
+                 full_name="Pato Coordinador", role="coordinador", license_number="MAT-5678"),
             User(workspace_id=ws.id, email="vendedor@tasar.demo",
                  password_hash=hash_password("vendedor123"),
-                 full_name="BUEPROP Vendedor", role="vendedor"),
+                 full_name="BUEPROP Asesor", role="asesor"),
         ]
         for u in users:
             db.add(u)

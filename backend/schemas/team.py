@@ -5,9 +5,13 @@ from typing import Optional
 from pydantic import BaseModel, EmailStr, Field
 
 
-# Vocabulario de roles UNICO de la suite (WO F1-01). Se valida contra este set
-# tanto al invitar como al editar el rol de un miembro.
-VALID_ROLES = {"admin", "supervisor", "vendedor"}
+# Vocabulario de roles CANONICO de la suite (WO F6-06): jerarquia del rubro
+# inmobiliario (broker > administrador > coordinador > asesor). Se valida contra
+# este set tanto al invitar como al editar el rol de un miembro. Fuente unica del
+# vocabulario: core.security.ROLE_HIERARCHY.
+from core.security import ROLE_HIERARCHY
+
+VALID_ROLES = set(ROLE_HIERARCHY)
 
 
 class TeamMemberOut(BaseModel):

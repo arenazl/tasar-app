@@ -1,8 +1,8 @@
 """Authorizations — autorizaciones de venta firmadas (WO F2-02).
 
-CRUD del CRM unificado. Multi-tenant + scoping por rol:
-  - vendedor: ve/gestiona SOLO las que captó (captador_id == user.id).
-  - supervisor|admin: todo el workspace.
+CRUD del CRM unificado. Multi-tenant + scoping por rol (WO F6-06):
+  - asesor: ve/gestiona SOLO las que captó (captador_id == user.id).
+  - coordinador+: todo el workspace.
 
 Nombre de propiedad + captador resueltos con JOIN en la misma query (sin N+1).
 """
@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
 from core.database import get_db
-from core.security import get_current_user, require_role
+from core.security import get_current_user, require_min_role
 from models.user import User
 from models.property import Property
 from models.authorization import Authorization
@@ -29,7 +29,7 @@ def _base_query(user: User):
         .join(User, User.id == Authorization.captador_id)
         .where(Authorization.workspace_id == user.workspace_id)
     )
-    if user.role == "vendedor":
+    if user.role == "asesor":
         q = q.where(Authorization.captador_id == user.id)
     return q
 
@@ -50,7 +50,7 @@ async def _fetch_one(db: AsyncSession, user: User, auth_id: int) -> Authorizatio
 
 
 async def _resolve_captador_id(db: AsyncSession, user: User, requested: int) -> int:
-    if user.role == "vendedor":
+    if user.role == "asesor":
         return user.id
     v = (await db.execute(
         select(User).where(User.id == requested, User.workspace_id == user.workspace_id)
@@ -72,7 +72,7 @@ async def _get_editable(db: AsyncSession, user: User, auth_id: int) -> Authoriza
     q = select(Authorization).where(
         Authorization.id == auth_id, Authorization.workspace_id == user.workspace_id
     )
-    if user.role == "vendedor":
+    if user.role == "asesor":
         q = q.where(Authorization.captador_id == user.id)
     a = (await db.execute(q)).scalar_one_or_none()
     if not a:
@@ -149,9 +149,9 @@ async def delete_authorization(
     auth_id: int,
     db: AsyncSession = Depends(get_db),
     # Borrar una autorizacion (documento legal de venta con comision) = accion
-    # sensible (WO F4-05): solo admin/supervisor. Crear/editar la propia sigue
-    # abierto al vendedor captador (diseno F2-02, ownership in-handler).
-    user: User = Depends(require_role("admin", "supervisor")),
+    # sensible (WO F6-06): solo administrador+. Crear/editar la propia sigue
+    # abierto al asesor captador (diseno F2-02, ownership in-handler).
+    user: User = Depends(require_min_role("administrador")),
 ):
     a = await _get_editable(db, user, auth_id)
     await db.delete(a)

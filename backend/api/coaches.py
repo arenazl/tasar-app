@@ -1,30 +1,28 @@
 """Coaches — catalogo GLOBAL de metodologias DMO (WO F2-01).
 
 Portado de `AgentFlow/backend/api/coaches.py`. Los coaches son un catalogo
-compartido por todos los tenants (sin workspace_id). Solo admin|supervisor
-gestionan; cualquier usuario autenticado puede listarlos.
+compartido por todos los tenants (sin workspace_id). Solo coordinador+ gestiona
+(herramienta comercial de manager); cualquier usuario autenticado puede listarlos.
 
-Nota de roles (WO): la suite unifico los roles en admin|supervisor|vendedor.
-El `gerente` de AgentFlow mapea a `supervisor`.
+Vocabulario de roles: jerarquia del rubro (broker>administrador>coordinador>asesor),
+ver core.security.ROLE_HIERARCHY (WO F6-06).
 """
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 
 from core.database import get_db
-from core.security import get_current_user
+from core.security import get_current_user, has_min_role
 from models.user import User
 from models.dmo import Coach, DmoTemplate
 from schemas.dmo import CoachCreate, CoachUpdate, CoachOut
 
 router = APIRouter(prefix="/api/coaches", tags=["coaches"])
 
-MANAGER_ROLES = ("admin", "supervisor")
-
 
 def _require_manager(user: User) -> None:
-    if user.role not in MANAGER_ROLES:
-        raise HTTPException(status_code=403, detail="Solo admin o supervisor puede modificar coaches")
+    if not has_min_role(user, "coordinador"):
+        raise HTTPException(status_code=403, detail="Solo coordinador o superior puede modificar coaches")
 
 
 @router.get("", response_model=list[CoachOut])

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
-  Users, UserPlus, Mail, Shield, Eye, User as UserIcon, Send, RotateCw,
-  XCircle, Power, Loader2, Clock, CircleCheck,
+  Users, UserPlus, Mail, Crown, ShieldCheck, ClipboardList, User as UserIcon, Send, RotateCw,
+  XCircle, Power, Loader2, Clock, CircleCheck, type LucideIcon,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { api } from '../services/api';
@@ -10,21 +10,32 @@ import { useTheme } from '../contexts/ThemeContext';
 import { ModernSelect } from '../components/ui/ModernSelect';
 import PageHint from '../components/ui/PageHint';
 import type { TeamMember, Invitation, TeamRole } from '../types';
+import { ROLE_META as ROLE_INFO, STAFF_ROLES, canManageWorkspace } from '../lib/roles';
 
-const ROLE_META: Record<TeamRole, { label: string; icon: typeof Shield; color: string; desc: string }> = {
-  admin: { label: 'Administrador', icon: Shield, color: '#ef4444', desc: 'Acceso total + equipo' },
-  supervisor: { label: 'Supervisor', icon: Eye, color: '#8b5cf6', desc: 'Revisión + cartera' },
-  vendedor: { label: 'Vendedor', icon: UserIcon, color: '#10b981', desc: 'Carga + ventas' },
+// Iconos por rol (el resto de la metadata — label/color/desc — viene de lib/roles).
+const ROLE_ICON: Record<TeamRole, LucideIcon> = {
+  broker: Crown,
+  administrador: ShieldCheck,
+  coordinador: ClipboardList,
+  asesor: UserIcon,
 };
 
-const ROLE_OPTIONS = (Object.keys(ROLE_META) as TeamRole[]).map(r => ({
+const ROLE_META: Record<TeamRole, { label: string; icon: LucideIcon; color: string; desc: string }> =
+  STAFF_ROLES.reduce((acc, r) => {
+    acc[r] = { ...ROLE_INFO[r], icon: ROLE_ICON[r] };
+    return acc;
+  }, {} as Record<TeamRole, { label: string; icon: LucideIcon; color: string; desc: string }>);
+
+const ROLE_OPTIONS = STAFF_ROLES.map(r => ({
   value: r, label: ROLE_META[r].label, color: ROLE_META[r].color,
 }));
 
 export default function Equipo() {
   const { user, refreshUser } = useAuth();
   const { theme } = useTheme();
-  const isAdmin = user?.role === 'admin';
+  // Gestion de equipo (invitar / cambiar roles / (des)activar) = administrador+
+  // (WO F6-06). El coordinador VE el equipo pero no lo gestiona.
+  const canManage = canManageWorkspace(user?.role);
 
   const [members, setMembers] = useState<TeamMember[]>([]);
   const [invitations, setInvitations] = useState<Invitation[]>([]);
@@ -34,7 +45,7 @@ export default function Equipo() {
   // Formulario de invitación
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteName, setInviteName] = useState('');
-  const [inviteRole, setInviteRole] = useState<TeamRole>('vendedor');
+  const [inviteRole, setInviteRole] = useState<TeamRole>('asesor');
   const [inviting, setInviting] = useState(false);
 
   const load = () => {
@@ -63,7 +74,7 @@ export default function Equipo() {
         email, role: inviteRole, full_name: inviteName.trim() || undefined,
       });
       toast.success(`Invitación enviada a ${email}`);
-      setInviteEmail(''); setInviteName(''); setInviteRole('vendedor');
+      setInviteEmail(''); setInviteName(''); setInviteRole('asesor');
       load();
     } catch (e: any) {
       toast.error(e.response?.data?.detail || 'No se pudo invitar');
@@ -152,8 +163,8 @@ export default function Equipo() {
         </p>
       </header>
 
-      {/* Invitar (solo admin) */}
-      {isAdmin && (
+      {/* Invitar (administrador+) */}
+      {canManage && (
         <section className="mb-8 p-5 rounded-2xl" style={{ background: theme.card, border: `1px solid ${theme.border}` }}>
           <div className="flex items-center gap-2 mb-4">
             <UserPlus className="h-5 w-5" style={{ color: theme.primary }} />
@@ -198,7 +209,7 @@ export default function Equipo() {
         ) : (
           <div className="space-y-2.5">
             {members.map(m => {
-              const meta = ROLE_META[m.role] ?? ROLE_META.vendedor;
+              const meta = ROLE_META[m.role] ?? ROLE_META.asesor;
               const RoleIcon = meta.icon;
               const isSelf = m.id === user?.id;
               const busy = busyId === m.id;
@@ -235,7 +246,7 @@ export default function Equipo() {
                   </button>
 
                   {/* Rol: select editable por admin (excepto se enforce en backend); indicador si no */}
-                  {isAdmin ? (
+                  {canManage ? (
                     <div className="w-44 flex-shrink-0">
                       <ModernSelect value={m.role} onChange={(v) => changeRole(m, v as TeamRole)} options={ROLE_OPTIONS} disabled={busy} />
                     </div>
@@ -247,7 +258,7 @@ export default function Equipo() {
                   )}
 
                   {/* Activar / desactivar (admin, no sobre sí mismo) */}
-                  {isAdmin && !isSelf && (
+                  {canManage && !isSelf && (
                     <button onClick={() => toggleActive(m)} disabled={busy}
                       title={m.is_active ? 'Desactivar' : 'Activar'}
                       className="p-2 rounded-lg flex-shrink-0 active:scale-95 disabled:opacity-50"
@@ -266,14 +277,14 @@ export default function Equipo() {
       </section>
 
       {/* Invitaciones pendientes */}
-      {isAdmin && pendingInvitations.length > 0 && (
+      {canManage && pendingInvitations.length > 0 && (
         <section>
           <h2 className="text-xs font-bold uppercase tracking-wider mb-3" style={{ color: theme.textSecondary }}>
             Invitaciones pendientes ({pendingInvitations.length})
           </h2>
           <div className="space-y-2.5">
             {pendingInvitations.map(inv => {
-              const meta = ROLE_META[inv.role] ?? ROLE_META.vendedor;
+              const meta = ROLE_META[inv.role] ?? ROLE_META.asesor;
               const busy = busyId === -inv.id;
               return (
                 <div key={inv.id} className="p-4 rounded-xl flex flex-col sm:flex-row sm:items-center gap-3"
@@ -309,7 +320,7 @@ export default function Equipo() {
         </section>
       )}
 
-      {!loading && members.length > 0 && !isAdmin && (
+      {!loading && members.length > 0 && !canManage && (
         <div className="mt-6 p-4 rounded-xl flex items-center gap-2.5 text-sm"
           style={{ background: theme.backgroundSecondary, color: theme.textSecondary, border: `1px solid ${theme.border}` }}>
           <CircleCheck className="h-4 w-4 flex-shrink-0" style={{ color: theme.success }} />

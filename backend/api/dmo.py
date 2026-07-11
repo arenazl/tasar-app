@@ -10,8 +10,8 @@ Multi-tenant:
     los oficiales: solo clonarlos a su workspace.
   - Assignments, logs y el "office default" son siempre por workspace.
 
-Roles: solo admin|supervisor gestionan templates/asignaciones. El vendedor ve y
-registra SU dia. (El `gerente` de AgentFlow mapea a `supervisor`.)
+Roles (WO F6-06): coordinador+ gestiona templates/asignaciones/coaches (es la
+herramienta comercial de manager). El asesor ve y registra SU dia.
 """
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -20,7 +20,7 @@ from sqlalchemy.orm import selectinload
 from datetime import date as date_cls
 
 from core.database import get_db
-from core.security import get_current_user
+from core.security import get_current_user, has_min_role
 from models.user import User
 from models.dmo import (
     Coach, DmoTemplate, DmoBlock, DmoAssignment, DmoLog,
@@ -34,12 +34,10 @@ from schemas.dmo import (
 
 router = APIRouter(prefix="/api/dmo", tags=["dmo"])
 
-MANAGER_ROLES = ("admin", "supervisor")
-
 
 def _require_manager(user: User) -> None:
-    if user.role not in MANAGER_ROLES:
-        raise HTTPException(status_code=403, detail="Solo admin o supervisor puede gestionar el DMO")
+    if not has_min_role(user, "coordinador"):
+        raise HTTPException(status_code=403, detail="Solo coordinador o superior puede gestionar el DMO")
 
 
 def _visible_templates_filter(workspace_id: int):
@@ -311,7 +309,7 @@ async def list_vendors(
     rows = (await db.execute(
         select(User).where(
             User.workspace_id == user.workspace_id,
-            User.role == "vendedor",
+            User.role == "asesor",
         ).order_by(User.full_name)
     )).scalars().all()
     return [VendorOut.model_validate(v) for v in rows]
@@ -360,8 +358,8 @@ async def upsert_assignment(
     )).scalar_one_or_none()
     if not v:
         raise HTTPException(404, "Vendedor no encontrado")
-    if v.role != "vendedor":
-        raise HTTPException(400, "El usuario no es vendedor")
+    if v.role != "asesor":
+        raise HTTPException(400, "El usuario no es asesor")
     # Template debe ser visible al workspace.
     if not (await db.execute(
         select(DmoTemplate).where(
@@ -451,8 +449,8 @@ async def get_day(
 ):
     day = fecha or date_cls.today()
     vid = vendor_id or user.id
-    if user.role == "vendedor":
-        vid = user.id  # el vendedor solo ve su propio dia
+    if user.role == "asesor":
+        vid = user.id  # el asesor solo ve su propio dia
 
     # El target vendor debe estar en el mismo workspace (anti cross-tenant).
     target = (await db.execute(

@@ -1,8 +1,8 @@
 """Visits — visitas de clientes a propiedades (WO F2-02).
 
-CRUD del CRM unificado. Multi-tenant + scoping por rol:
-  - vendedor: ve/gestiona SOLO sus visitas (vendor_id == user.id).
-  - supervisor|admin: ven/gestionan todo el workspace.
+CRUD del CRM unificado. Multi-tenant + scoping por rol (WO F6-06):
+  - asesor: ve/gestiona SOLO sus visitas (vendor_id == user.id).
+  - coordinador+: ven/gestionan todo el workspace.
 
 Los nombres de display (cliente / propiedad / vendedor) se resuelven con un
 JOIN en la MISMA query del listado (una sola consulta, sin N+1). Los modelos
@@ -24,7 +24,6 @@ from schemas.visit import VisitCreate, VisitUpdate, VisitOut
 
 router = APIRouter(prefix="/api/visits", tags=["visits"])
 
-MANAGER_ROLES = ("admin", "supervisor")
 VALID_STATUS = {"agendada", "concretada", "cancelada", "ausente"}
 
 
@@ -38,7 +37,7 @@ def _base_query(user: User):
         .join(User, User.id == Visit.vendor_id)
         .where(Visit.workspace_id == user.workspace_id)
     )
-    if user.role == "vendedor":
+    if user.role == "asesor":
         q = q.where(Visit.vendor_id == user.id)
     return q
 
@@ -60,9 +59,9 @@ async def _fetch_one(db: AsyncSession, user: User, visit_id: int) -> VisitOut:
 
 
 async def _resolve_vendor_id(db: AsyncSession, user: User, requested: int) -> int:
-    """El vendedor solo puede agendar para si mismo; el manager para cualquier
-    vendedor del workspace."""
-    if user.role == "vendedor":
+    """El asesor solo puede agendar para si mismo; el manager (coordinador+) para
+    cualquier vendedor del workspace."""
+    if user.role == "asesor":
         return user.id
     v = (await db.execute(
         select(User).where(User.id == requested, User.workspace_id == user.workspace_id)
@@ -129,7 +128,7 @@ async def create_visit(
 async def _get_editable(db: AsyncSession, user: User, visit_id: int) -> Visit:
     """Trae la visita respetando scoping (vendedor solo la suya)."""
     q = select(Visit).where(Visit.id == visit_id, Visit.workspace_id == user.workspace_id)
-    if user.role == "vendedor":
+    if user.role == "asesor":
         q = q.where(Visit.vendor_id == user.id)
     v = (await db.execute(q)).scalar_one_or_none()
     if not v:

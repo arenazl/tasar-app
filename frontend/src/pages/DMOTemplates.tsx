@@ -7,8 +7,7 @@ import { useAuth } from '../contexts/AuthContext';
 import SideModal from '../components/SideModal';
 import { ConfirmModal } from '../components/ui/ConfirmModal';
 import type { Coach, DmoTemplate, DmoBlock, MetricType } from '../types';
-
-const MANAGER_ROLES = ['admin', 'supervisor'];
+import { isManager } from '../lib/roles';
 
 type BlockDraft = Omit<DmoBlock, 'id' | 'template_id'> & { id?: number };
 
@@ -42,7 +41,7 @@ function addHour(hhmmss: string): string {
 export default function DMOTemplates() {
   const { theme } = useTheme();
   const { user } = useAuth();
-  const canEdit = MANAGER_ROLES.includes(user?.role || '');
+  const canEdit = isManager(user?.role);
   const [templates, setTemplates] = useState<DmoTemplate[]>([]);
   const [coaches, setCoaches] = useState<Coach[]>([]);
   const [loading, setLoading] = useState(true);

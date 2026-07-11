@@ -1,9 +1,10 @@
 """Gestion de equipo del workspace (WO F4-05).
 
-Todo scoped al workspace del JWT (anti-cross-tenant). Autorizacion por rol real
-(core.security.require_role):
-  - VER equipo/invitaciones: admin | supervisor
-  - INVITAR / reenviar / cancelar / editar rol / (des)activar: admin
+Todo scoped al workspace del JWT (anti-cross-tenant). Autorizacion por jerarquia
+de roles (core.security.require_min_role, WO F6-06):
+  - VER equipo/invitaciones: coordinador+ (ve todo el workspace)
+  - INVITAR / reenviar / cancelar / editar rol / (des)activar: administrador+
+    (gestion de equipo = nivel administrador o broker)
 
 El alta via token (aceptar invitacion) es PUBLICA y vive en api/auth.py (reusa
 el flujo de registro). Aca solo se emiten/gestionan las invitaciones.
@@ -19,7 +20,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.config import settings
 from core.database import get_db
-from core.security import get_current_user, require_role
+from core.security import get_current_user, require_min_role, role_level
 from models.user import User
 from models.invitation import (
     Invitation, STATUS_PENDIENTE, STATUS_ACEPTADA, STATUS_CANCELADA,
@@ -40,7 +41,7 @@ INVITE_TTL = timedelta(days=7)
 @router.get("/members", response_model=list[TeamMemberOut])
 async def list_members(
     db: AsyncSession = Depends(get_db),
-    user: User = Depends(require_role("admin", "supervisor")),
+    user: User = Depends(require_min_role("coordinador")),
 ):
     rows = (await db.execute(
         select(User).where(User.workspace_id == user.workspace_id).order_by(User.full_name)
@@ -53,9 +54,10 @@ async def update_member(
     user_id: int,
     body: MemberUpdate,
     db: AsyncSession = Depends(get_db),
-    user: User = Depends(require_role("admin")),
+    user: User = Depends(require_min_role("administrador")),
 ):
-    """Cambia rol y/o (des)activa un miembro. Solo admin. Scoped al workspace."""
+    """Cambia rol y/o (des)activa un miembro. Gestion de equipo = administrador+
+    (administrador|broker). Scoped al workspace."""
     target = (await db.execute(
         select(User).where(User.id == user_id, User.workspace_id == user.workspace_id)
     )).scalar_one_or_none()
@@ -66,18 +68,20 @@ async def update_member(
     if "role" in data and data["role"] is not None:
         if data["role"] not in VALID_ROLES:
             raise HTTPException(400, f"Rol invalido (debe ser uno de {sorted(VALID_ROLES)})")
-        # No permitir que el admin se quite el ultimo admin activo del workspace.
-        if target.id == user.id and data["role"] != "admin":
+        # No permitir quedarse sin nadie que pueda gestionar el workspace: si el
+        # user se auto-degrada por debajo de administrador, tiene que quedar OTRO
+        # miembro activo con nivel >= administrador (administrador|broker).
+        if target.id == user.id and role_level(data["role"]) < role_level("administrador"):
             others = (await db.execute(
                 select(User).where(
                     User.workspace_id == user.workspace_id,
-                    User.role == "admin",
+                    User.role.in_(["administrador", "broker"]),
                     User.is_active == True,   # noqa: E712
                     User.id != user.id,
                 )
             )).scalars().first()
             if not others:
-                raise HTTPException(400, "No podes quitarte el rol admin: sos el unico admin activo del workspace")
+                raise HTTPException(400, "No podes bajarte de administrador: sos el unico con gestion plena del workspace")
         target.role = data["role"]
 
     if "is_active" in data and data["is_active"] is not None:
@@ -116,7 +120,7 @@ async def _emit_invitation(db: AsyncSession, inv: Invitation, inviter: User) -> 
 @router.get("/invitations", response_model=list[InvitationOut])
 async def list_invitations(
     db: AsyncSession = Depends(get_db),
-    user: User = Depends(require_role("admin", "supervisor")),
+    user: User = Depends(require_min_role("coordinador")),
 ):
     rows = (await db.execute(
         select(Invitation)
@@ -130,7 +134,7 @@ async def list_invitations(
 async def create_invitation(
     body: InviteCreate,
     db: AsyncSession = Depends(get_db),
-    user: User = Depends(require_role("admin")),
+    user: User = Depends(require_min_role("administrador")),
 ):
     email = body.email.lower().strip()
     if body.role not in VALID_ROLES:
@@ -186,7 +190,7 @@ async def _get_invitation_scoped(db: AsyncSession, inv_id: int, user: User) -> I
 async def resend_invitation(
     inv_id: int,
     db: AsyncSession = Depends(get_db),
-    user: User = Depends(require_role("admin")),
+    user: User = Depends(require_min_role("administrador")),
 ):
     inv = await _get_invitation_scoped(db, inv_id, user)
     if inv.status == STATUS_ACEPTADA:
@@ -201,7 +205,7 @@ async def resend_invitation(
 async def cancel_invitation(
     inv_id: int,
     db: AsyncSession = Depends(get_db),
-    user: User = Depends(require_role("admin")),
+    user: User = Depends(require_min_role("administrador")),
 ):
     inv = await _get_invitation_scoped(db, inv_id, user)
     if inv.status == STATUS_ACEPTADA:

@@ -14,9 +14,7 @@ import ThemeSelector from './ThemeSelector';
 import BrandLogo from './BrandLogo';
 import AICoachPanel from './AICoachPanel';
 import MobileBottomBar from './MobileBottomBar';
-
-// Vocabulario de roles UNIFICADO de la suite (WO F1-01): admin | supervisor | vendedor.
-type Role = 'vendedor' | 'supervisor' | 'admin';
+import { hasMinRole, type StaffRole } from '../lib/roles';
 
 interface NavItem {
   to: string;
@@ -24,8 +22,8 @@ interface NavItem {
   label: string;
   badge?: 'unread';
   live?: boolean;
-  /** Roles que ven el item. Omitido = todos. */
-  roles?: Role[];
+  /** Nivel minimo de la jerarquia que ve el item (WO F6-06). Omitido = todos. */
+  minRole?: StaffRole;
   /** Subnav de la sección: se despliega al entrar (WO F6-04). */
   children?: NavItem[];
 }
@@ -54,7 +52,7 @@ const WORK_NAV: NavItem[] = [
     ],
   },
   {
-    to: '/mercado', icon: Store, label: 'Mercado', roles: ['supervisor', 'admin'],
+    to: '/mercado', icon: Store, label: 'Mercado', minRole: 'coordinador',
     children: [
       { to: '/comparables', icon: Database, label: 'Comparables', live: true },
       { to: '/mapa', icon: MapIcon, label: 'Mapa' },
@@ -63,25 +61,27 @@ const WORK_NAV: NavItem[] = [
   },
 ];
 
-// Configuración — separada abajo (supervisor+). Adentro concentra la gestión
-// (Equipo, DMO, Bot, Métricas) además de estética/notificaciones.
+// Configuración — separada abajo (coordinador+). Adentro concentra la gestión
+// (Equipo, DMO, Bot, Métricas) además de estética/notificaciones. El asesor NO
+// la ve; las secciones sensibles de adentro (equipo/config/borrados) se gatean
+// aparte a administrador+ (WO F6-06).
 const CONFIG_ITEM: NavItem = {
-  to: '/configuracion', icon: Settings, label: 'Configuración', roles: ['supervisor', 'admin'],
+  to: '/configuracion', icon: Settings, label: 'Configuración', minRole: 'coordinador',
 };
 
 const LS_COLLAPSED = 'tasar_sidebar_collapsed';
 
-function roleAllows(roles: Role[] | undefined, userRole?: string): boolean {
-  if (!roles || roles.length === 0) return true;
-  return !!userRole && (roles as string[]).includes(userRole);
+function roleAllows(minRole: StaffRole | undefined, userRole?: string): boolean {
+  if (!minRole) return true;
+  return hasMinRole(userRole, minRole);
 }
 
 /** Items de trabajo visibles según rol, con sus children ya filtrados. */
 function visibleWorkNav(role?: string): NavItem[] {
   return WORK_NAV
-    .filter(it => roleAllows(it.roles, role))
+    .filter(it => roleAllows(it.minRole, role))
     .map(it => (it.children
-      ? { ...it, children: it.children.filter(c => roleAllows(c.roles, role)) }
+      ? { ...it, children: it.children.filter(c => roleAllows(c.minRole, role)) }
       : it));
 }
 
@@ -115,7 +115,7 @@ export default function Layout({ children }: { children: ReactNode }) {
 
   const role = user?.role;
   const workNav = visibleWorkNav(role);
-  const showConfig = roleAllows(CONFIG_ITEM.roles, role);
+  const showConfig = roleAllows(CONFIG_ITEM.minRole, role);
 
   useEffect(() => {
     localStorage.setItem(LS_COLLAPSED, collapsed ? '1' : '0');

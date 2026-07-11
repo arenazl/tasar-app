@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { api } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
+import { isManager as roleIsManager } from '../lib/roles';
 import { useTheme } from '../contexts/ThemeContext';
 import { useDmoDia, type BlockStatus, type BlockWithStatus } from '../hooks/useDmoDia';
 import type { CrmKpis, Visit } from '../types';
@@ -61,7 +62,7 @@ function saludo(): string {
 export default function Hoy() {
   const { user } = useAuth();
   const { theme } = useTheme();
-  const isManager = user?.role === 'supervisor' || user?.role === 'admin';
+  const isManager = roleIsManager(user?.role);
   const nombre = user?.full_name?.split(' ')[0] || '';
 
   return (

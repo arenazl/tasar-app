@@ -113,7 +113,7 @@ async def _run_subscribe_checks(report: Report) -> None:
         await session.flush()
         user = User(
             workspace_id=ws.id, email=f"vendedor-{stamp}@tasar.local",
-            password_hash=hash_password("test12345"), full_name="Vendedor Test", role="vendedor",
+            password_hash=hash_password("test12345"), full_name="Vendedor Test", role="asesor",
             is_active=True,
         )
         session.add(user)
@@ -188,7 +188,7 @@ async def _run_push_cleanup_checks(report: Report) -> None:
         await session.flush()
         user = User(
             workspace_id=ws.id, email=f"u-{stamp}@tasar.local",
-            password_hash="x", full_name="U", role="vendedor", is_active=True,
+            password_hash="x", full_name="U", role="asesor", is_active=True,
         )
         session.add(user)
         await session.flush()
@@ -260,11 +260,11 @@ async def _run_cron_checks(report: Report) -> None:
 
         u_on = User(
             workspace_id=ws_on.id, email=f"on-{stamp}@tasar.local",
-            password_hash="x", full_name="Vendedor ON", role="vendedor", is_active=True,
+            password_hash="x", full_name="Vendedor ON", role="asesor", is_active=True,
         )
         u_off = User(
             workspace_id=ws_off.id, email=f"off-{stamp}@tasar.local",
-            password_hash="x", full_name="Vendedor OFF", role="vendedor", is_active=True,
+            password_hash="x", full_name="Vendedor OFF", role="asesor", is_active=True,
         )
         session.add_all([u_on, u_off])
         await session.commit()

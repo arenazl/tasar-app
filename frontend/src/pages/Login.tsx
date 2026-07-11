@@ -10,9 +10,9 @@ import { useTheme } from '../contexts/ThemeContext';
 import { BRAND } from '../config/brand';
 
 const PROFILES = [
-  { email: 'admin@tasar.demo', password: 'admin123', label: 'Admin', desc: 'Acceso total', icon: Shield, initials: 'LA' },
-  { email: 'supervisor@tasar.demo', password: 'supervisor123', label: 'Supervisor', desc: 'Revisión + firmas', icon: Eye, initials: 'PS' },
-  { email: 'vendedor@tasar.demo', password: 'vendedor123', label: 'Vendedor', desc: 'Carga + ACM', icon: UserIcon, initials: 'BV' },
+  { email: 'admin@tasar.demo', password: 'admin123', label: 'Broker', desc: 'Titular · acceso total', icon: Shield, initials: 'LB' },
+  { email: 'supervisor@tasar.demo', password: 'supervisor123', label: 'Coordinador', desc: 'Ve todo + comercial', icon: Eye, initials: 'PC' },
+  { email: 'vendedor@tasar.demo', password: 'vendedor123', label: 'Asesor', desc: 'Carga + ACM', icon: UserIcon, initials: 'BA' },
 ];
 
 export default function Login() {

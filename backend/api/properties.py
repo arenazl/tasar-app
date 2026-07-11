@@ -4,7 +4,7 @@ from sqlalchemy import select, delete
 from typing import List, Optional
 
 from core.database import get_db
-from core.security import get_current_user, require_role
+from core.security import get_current_user, require_min_role
 from models.user import User
 from models.property import Property, PropertyPhoto
 from models.visit import Visit
@@ -115,8 +115,9 @@ async def update_property(
 async def delete_property(
     property_id: int,
     db: AsyncSession = Depends(get_db),
-    # Borrar propiedades = accion sensible (WO F4-05): solo admin/supervisor.
-    user: User = Depends(require_role("admin", "supervisor")),
+    # Borrar propiedades = accion sensible (WO F6-06): solo administrador+
+    # (el coordinador ve todo pero NO borra).
+    user: User = Depends(require_min_role("administrador")),
 ):
     res = await db.execute(
         select(Property).where(

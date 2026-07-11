@@ -7,15 +7,14 @@ import { useAuth } from '../contexts/AuthContext';
 import SideModal from '../components/SideModal';
 import { ConfirmModal } from '../components/ui/ConfirmModal';
 import type { Coach } from '../types';
-
-const MANAGER_ROLES = ['admin', 'supervisor'];
+import { isManager } from '../lib/roles';
 
 const empty: Partial<Coach> = { name: '', description: '', photo_url: '', source_url: '', is_official: false };
 
 export default function Coaches() {
   const { theme } = useTheme();
   const { user } = useAuth();
-  const canEdit = MANAGER_ROLES.includes(user?.role || '');
+  const canEdit = isManager(user?.role);
   const [items, setItems] = useState<Coach[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');

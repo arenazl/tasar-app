@@ -129,7 +129,7 @@ async def _run_study_detail_checks(report: Report) -> None:
         await session.flush()
         user = User(
             workspace_id=ws.id, email=f"tasador-{stamp}@tasar.local",
-            password_hash=hash_password("test12345"), full_name="Tasador Test", role="vendedor",
+            password_hash=hash_password("test12345"), full_name="Tasador Test", role="asesor",
             is_active=True,
         )
         session.add(user)
@@ -214,7 +214,7 @@ async def _run_dashboard_checks(report: Report) -> None:
         await session.flush()
         user = User(
             workspace_id=ws.id, email=f"dash-{stamp}@tasar.local",
-            password_hash=hash_password("test12345"), full_name="Dash Test", role="vendedor",
+            password_hash=hash_password("test12345"), full_name="Dash Test", role="asesor",
             is_active=True,
         )
         session.add(user)
@@ -288,7 +288,7 @@ async def _run_delete_cascade_checks(report: Report) -> None:
         await session.flush()
         user = User(
             workspace_id=ws.id, email=f"del-{stamp}@tasar.local",
-            password_hash=hash_password("test12345"), full_name="Del Test", role="vendedor",
+            password_hash=hash_password("test12345"), full_name="Del Test", role="asesor",
             is_active=True,
         )
         session.add(user)

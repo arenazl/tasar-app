@@ -2,11 +2,11 @@ export interface User {
   id: number;
   email: string;
   full_name: string;
-  // Vocabulario de roles UNICO de la suite (WO F1-01, normalizado en fix
-  // transversal post F2-01). Legacy TasAR "tasador" -> "vendedor" (ver
-  // migracion f4a5b6c7d8e9_normalize_user_roles). "cliente" no es un rol de
-  // staff: los clientes viven en su propio modelo (models/client.py).
-  role: 'admin' | 'supervisor' | 'vendedor' | 'cliente';
+  // Vocabulario de roles CANONICO de la suite: jerarquia del rubro inmobiliario
+  // (WO F6-06), broker > administrador > coordinador > asesor. Ver lib/roles.ts
+  // (fuente unica) y backend core.security.ROLE_HIERARCHY. "cliente" no es un rol
+  // de staff: los clientes viven en su propio modelo (models/client.py).
+  role: 'broker' | 'administrador' | 'coordinador' | 'asesor' | 'cliente';
   workspace_id: number;
   license_number?: string;
   avatar_url?: string;
@@ -22,7 +22,7 @@ export interface User {
 
 // ==================== Equipo / invitaciones (WO F4-05) ====================
 
-export type TeamRole = 'admin' | 'supervisor' | 'vendedor';
+export type TeamRole = 'broker' | 'administrador' | 'coordinador' | 'asesor';
 
 export interface TeamMember {
   id: number;
@@ -217,7 +217,7 @@ export interface Authorization {
 }
 
 export interface CrmKpis {
-  scope: 'vendedor' | 'team';
+  scope: 'asesor' | 'team';
   active_clients: number;
   visits_7d: number;
   open_deals: number;

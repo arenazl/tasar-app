@@ -5,13 +5,12 @@ import { api } from '../services/api';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import type { DmoTemplate, DmoAssignment, VendorOut } from '../types';
-
-const MANAGER_ROLES = ['admin', 'supervisor'];
+import { isManager } from '../lib/roles';
 
 export default function AsignacionesDMO() {
   const { theme } = useTheme();
   const { user } = useAuth();
-  const canEdit = MANAGER_ROLES.includes(user?.role || '');
+  const canEdit = isManager(user?.role);
   const [vendors, setVendors] = useState<VendorOut[]>([]);
   const [templates, setTemplates] = useState<DmoTemplate[]>([]);
   const [assignments, setAssignments] = useState<DmoAssignment[]>([]);

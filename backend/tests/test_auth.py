@@ -4,10 +4,11 @@ import pytest
 from tests.conftest import register_workspace, unique_stamp
 
 
-async def test_register_creates_workspace_and_admin_user(client):
+async def test_register_creates_workspace_and_broker_user(client):
+    # El que registra la inmobiliaria es el titular: broker (WO F6-06).
     data = await register_workspace(client)
 
-    assert data["user"]["role"] == "admin"
+    assert data["user"]["role"] == "broker"
     assert data["access_token"]
 
 

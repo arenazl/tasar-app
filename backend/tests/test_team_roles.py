@@ -1,10 +1,10 @@
 """Tests de autorizacion por rol + round-robin de disponibilidad (WO F4-05).
 
-Cubre la aceptacion del WO:
-  - un vendedor NO puede tocar settings ni equipo (403 real via require_role);
+Cubre la aceptacion del WO (vocabulario de roles: jerarquia del rubro, F6-06):
+  - un asesor NO puede tocar settings ni equipo (403 real via require_min_role);
   - el flujo de invitacion end-to-end (invitar -> token -> alta con el rol
     correcto en el workspace correcto);
-  - el round-robin saltea a los vendedores con is_available=False.
+  - el round-robin saltea a los asesores con is_available=False.
 
 Corre in-process contra SQLite (mismo patron que el resto de tests/), sin
 MySQL ni servidor levantado.
@@ -22,7 +22,7 @@ from tests.conftest import register_workspace, unique_stamp
 
 async def _make_vendor(db, workspace_id: int, *, email: str | None = None,
                        is_available: bool = True, last_assigned_at=None,
-                       role: str = "vendedor") -> User:
+                       role: str = "asesor") -> User:
     u = User(
         workspace_id=workspace_id,
         email=email or f"vendor-{unique_stamp()}@example.com",
@@ -66,7 +66,7 @@ async def test_vendedor_cannot_invite(client, db_session):
     vendor = await _make_vendor(db_session, admin["user"]["workspace_id"])
 
     r = await client.post("/api/team/invitations", headers=_auth(vendor),
-                          json={"email": "x@example.com", "role": "vendedor"})
+                          json={"email": "x@example.com", "role": "asesor"})
     assert r.status_code == 403
 
 
@@ -78,7 +78,7 @@ async def test_admin_can_list_team(client, db_session):
     assert r.status_code == 200
     emails = [m["email"] for m in r.json()]
     assert admin["user"]["email"] in emails
-    assert len(r.json()) == 2  # admin + vendedor
+    assert len(r.json()) == 2  # broker (register) + asesor
 
 
 # ── Vendedor edita SU PROPIA disponibilidad (self-service) ───────────────────
@@ -100,10 +100,10 @@ async def test_invitation_flow_creates_user_in_right_workspace_and_role(client, 
 
     invited_email = f"invitee-{unique_stamp()}@example.com"
     r = await client.post("/api/team/invitations", headers=admin["headers"],
-                          json={"email": invited_email, "role": "supervisor", "full_name": "Pato Nuevo"})
+                          json={"email": invited_email, "role": "coordinador", "full_name": "Pato Nuevo"})
     assert r.status_code == 200, r.text
     assert r.json()["status"] == "pendiente"
-    assert r.json()["role"] == "supervisor"
+    assert r.json()["role"] == "coordinador"
 
     # El token NO se expone en la API (seguridad): se lee de la fila para el test.
     inv = (await db_session.execute(
@@ -116,14 +116,14 @@ async def test_invitation_flow_creates_user_in_right_workspace_and_role(client, 
     assert info.status_code == 200
     assert info.json()["valid"] is True
     assert info.json()["email"] == invited_email
-    assert info.json()["role"] == "supervisor"
+    assert info.json()["role"] == "coordinador"
 
     # Alta via token.
     acc = await client.post("/api/auth/accept-invitation",
                             json={"token": token, "password": "nueva12345"})
     assert acc.status_code == 200, acc.text
     new_user = acc.json()["user"]
-    assert new_user["role"] == "supervisor"           # rol del token, no del cliente
+    assert new_user["role"] == "coordinador"          # rol del token, no del cliente
     assert new_user["workspace_id"] == ws_id          # workspace del token
     assert acc.json()["access_token"]
 
@@ -140,7 +140,7 @@ async def test_invitation_flow_creates_user_in_right_workspace_and_role(client, 
 async def test_expired_invitation_rejected(client, db_session):
     admin = await register_workspace(client)
     r = await client.post("/api/team/invitations", headers=admin["headers"],
-                          json={"email": f"exp-{unique_stamp()}@example.com", "role": "vendedor"})
+                          json={"email": f"exp-{unique_stamp()}@example.com", "role": "asesor"})
     inv = (await db_session.execute(
         select(Invitation).where(Invitation.id == r.json()["id"])
     )).scalar_one()

@@ -216,8 +216,9 @@ def _phone_from_jid(jid: Optional[str]) -> Optional[str]:
 async def asignar_round_robin(db: AsyncSession, workspace_id: int) -> Optional[User]:
     """Proximo asesor disponible del WORKSPACE (menos recientemente asignado primero).
 
-    Scoping duro por workspace_id: nunca asigna un usuario de otro tenant. Elegibles:
-    vendedor/supervisor activos y disponibles. Orden: last_assigned_at ASC (NULL primero).
+    Scoping duro por workspace_id: nunca asigna un usuario de otro tenant. Elegibles
+    (WO F6-06): asesor/coordinador activos y disponibles (los que reciben leads).
+    Orden: last_assigned_at ASC (NULL primero).
     """
     r = await db.execute(
         select(User)
@@ -226,7 +227,7 @@ async def asignar_round_robin(db: AsyncSession, workspace_id: int) -> Optional[U
                 User.workspace_id == workspace_id,
                 User.is_active == True,       # noqa: E712
                 User.is_available == True,    # noqa: E712
-                User.role.in_(["vendedor", "supervisor"]),
+                User.role.in_(["asesor", "coordinador"]),
             )
         )
         .order_by(User.last_assigned_at.is_(None).desc(), User.last_assigned_at.asc())

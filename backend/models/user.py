@@ -11,14 +11,16 @@ class User(Base):
     email = Column(String(150), unique=True, nullable=False, index=True)
     password_hash = Column(String(255), nullable=False)
     full_name = Column(String(150), nullable=False)
-    role = Column(String(30), default="vendedor")
-    # Vocabulario de roles UNIFICADO y UNICO de la suite (WO F1-01, normalizado
-    # en fix transversal post F2-01): admin | supervisor | vendedor.
-    # Mapeo desde legado: TasAR.tasador -> vendedor (el agente que tasa/vende es
-    # el rol operativo base); AgentFlow.gerente / .coordinador -> supervisor;
-    # vendedor -> vendedor; admin -> admin. Ver migracion de datos
-    # f4a5b6c7d8e9_normalize_user_roles (down_revision=e6f7a8b9c0d1).
-    license_number = Column(String(80), nullable=True)  # matrícula (vendedor/tasador)
+    role = Column(String(30), default="asesor")
+    # Vocabulario de roles CANONICO y UNICO de la suite: jerarquia del rubro
+    # inmobiliario, 4 niveles (WO F6-06):
+    #   broker > administrador > coordinador > asesor
+    # Cada nivel incluye el alcance de los de abajo (ver core.security.ROLE_HIERARCHY,
+    # fuente unica). Mapeo desde el vocabulario anterior (admin|supervisor|vendedor):
+    # admin->broker, supervisor->coordinador, vendedor->asesor; `administrador` es
+    # un nivel NUEVO (se asigna a mano desde Equipo). Migracion de datos:
+    # f1e2d3c4b5a6_rework_role_hierarchy.
+    license_number = Column(String(80), nullable=True)  # matrícula (broker/asesor)
     avatar_url = Column(String(500), nullable=True)
     is_active = Column(Boolean, default=True)
 

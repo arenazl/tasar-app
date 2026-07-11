@@ -60,7 +60,9 @@ async def register(body: RegisterRequest, db: AsyncSession = Depends(get_db)):
         email=body.email,
         password_hash=hash_password(body.password),
         full_name=body.full_name,
-        role="admin",
+        # El que registra la inmobiliaria es el titular: broker (nivel maximo,
+        # WO F6-06).
+        role="broker",
         license_number=body.license_number,
     )
     db.add(user)

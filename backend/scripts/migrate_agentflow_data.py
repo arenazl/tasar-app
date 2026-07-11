@@ -59,11 +59,13 @@ DEFAULT_WORKSPACE_SLUG = "beyker"
 
 # ── Mapeos de valores (enum/rol). NO se inventan valores: si un valor origen no
 #    matchea un valor valido de destino, se REPORTA y se aborta (no se adivina).
+# Mapeo a la jerarquia canonica del rubro (WO F6-06):
+# broker > administrador > coordinador > asesor.
 ROLE_MAP = {
-    "admin": "admin",
-    "gerente": "supervisor",
-    "coordinador": "supervisor",
-    "vendedor": "vendedor",
+    "admin": "broker",
+    "gerente": "coordinador",
+    "coordinador": "coordinador",
+    "vendedor": "asesor",
 }
 METRIC_TYPE_MAP = {"checkbox": "checkbox", "cantidad": "quantity"}
 DIRECTION_MAP = {

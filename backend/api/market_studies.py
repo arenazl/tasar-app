@@ -6,7 +6,7 @@ from pydantic import BaseModel
 from typing import List, Optional
 
 from core.database import get_db
-from core.security import get_current_user, require_role
+from core.security import get_current_user, require_min_role
 from models.user import User
 from models.property import Property
 from models.market_study import MarketStudy, Comparable, Adjustment
@@ -408,8 +408,9 @@ async def accept_suggestion(
 async def delete_market_study(
     study_id: int,
     db: AsyncSession = Depends(get_db),
-    # Borrar estudios ACM = accion sensible (WO F4-05): solo admin/supervisor.
-    user: User = Depends(require_role("admin", "supervisor")),
+    # Borrar estudios ACM = accion sensible (WO F6-06): solo administrador+
+    # (el coordinador ve todo pero NO borra).
+    user: User = Depends(require_min_role("administrador")),
 ):
     res = await db.execute(
         select(MarketStudy).where(

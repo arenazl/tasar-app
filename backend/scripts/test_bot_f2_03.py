@@ -67,14 +67,14 @@ async def build_fixture(session: AsyncSession):
     # Vendedores de A: uno nunca asignado, uno asignado hace rato, uno no disponible.
     now = datetime.now(timezone.utc)
     v1 = User(workspace_id=wa.id, email="v1@a.com", password_hash="x", full_name="Vendedor Uno",
-              role="vendedor", is_active=True, is_available=True, last_assigned_at=None, personal_phone="5491100000001")
+              role="asesor", is_active=True, is_available=True, last_assigned_at=None, personal_phone="5491100000001")
     v2 = User(workspace_id=wa.id, email="v2@a.com", password_hash="x", full_name="Vendedor Dos",
-              role="vendedor", is_active=True, is_available=True, last_assigned_at=now - timedelta(hours=1))
+              role="asesor", is_active=True, is_available=True, last_assigned_at=now - timedelta(hours=1))
     v3 = User(workspace_id=wa.id, email="v3@a.com", password_hash="x", full_name="Vendedor Tres",
-              role="vendedor", is_active=True, is_available=False)  # no disponible
+              role="asesor", is_active=True, is_available=False)  # no disponible
     # Vendedor de B disponible (NO debe aparecer nunca en el round-robin de A).
     vb = User(workspace_id=wb.id, email="vb@b.com", password_hash="x", full_name="Vendedor B",
-              role="vendedor", is_active=True, is_available=True, last_assigned_at=None)
+              role="asesor", is_active=True, is_available=True, last_assigned_at=None)
     session.add_all([v1, v2, v3, vb])
     await session.flush()
 

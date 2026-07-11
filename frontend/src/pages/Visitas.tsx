@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { api } from '../services/api';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
+import { isManager as roleIsManager } from '../lib/roles';
 import type { Visit, VisitStatus, Property } from '../types';
 
 const STATUS_META: Record<VisitStatus, { label: string; color: string }> = {
@@ -42,7 +43,7 @@ function hhmm(iso: string): string {
 export default function Visitas() {
   const { theme } = useTheme();
   const { user } = useAuth();
-  const isManager = user?.role === 'admin' || user?.role === 'supervisor';
+  const isManager = roleIsManager(user?.role);
 
   const [view, setView] = useState<'month' | 'week'>('month');
   const [anchor, setAnchor] = useState(() => new Date());

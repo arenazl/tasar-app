@@ -7,15 +7,14 @@ import {
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useState } from 'react';
-
-type Role = 'vendedor' | 'supervisor' | 'admin';
+import { hasMinRole, type StaffRole } from '../lib/roles';
 
 interface SheetItem {
   to: string;
   icon: LucideIcon;
   label: string;
-  /** Roles que ven el item en el sheet. Omitido = todos. */
-  roles?: Role[];
+  /** Nivel minimo de la jerarquia que ve el item (WO F6-06). Omitido = todos. */
+  minRole?: StaffRole;
 }
 
 // Tabs primarios (esqueleto fijo en mobile, WO F6-04): Hoy · Chat · FAB · Pipeline · Clientes.
@@ -42,16 +41,16 @@ const MORE_ITEMS: SheetItem[] = [
   { to: '/propiedades', icon: Building2, label: 'Propiedades' },
   { to: '/tasaciones', icon: FileCheck2, label: 'Tasaciones' },
   { to: '/estudios', icon: ClipboardList, label: 'Estudios ACM' },
-  { to: '/mercado', icon: Store, label: 'Mercado', roles: ['supervisor', 'admin'] },
-  { to: '/comparables', icon: Database, label: 'Comparables', roles: ['supervisor', 'admin'] },
-  { to: '/mapa', icon: MapIcon, label: 'Mapa', roles: ['supervisor', 'admin'] },
-  { to: '/reportes', icon: FileText, label: 'Reportes', roles: ['supervisor', 'admin'] },
-  { to: '/configuracion', icon: Settings, label: 'Configuración', roles: ['supervisor', 'admin'] },
+  { to: '/mercado', icon: Store, label: 'Mercado', minRole: 'coordinador' },
+  { to: '/comparables', icon: Database, label: 'Comparables', minRole: 'coordinador' },
+  { to: '/mapa', icon: MapIcon, label: 'Mapa', minRole: 'coordinador' },
+  { to: '/reportes', icon: FileText, label: 'Reportes', minRole: 'coordinador' },
+  { to: '/configuracion', icon: Settings, label: 'Configuración', minRole: 'coordinador' },
 ];
 
-function roleAllows(roles: Role[] | undefined, userRole?: string): boolean {
-  if (!roles || roles.length === 0) return true;
-  return !!userRole && (roles as string[]).includes(userRole);
+function roleAllows(minRole: StaffRole | undefined, userRole?: string): boolean {
+  if (!minRole) return true;
+  return hasMinRole(userRole, minRole);
 }
 
 export default function MobileBottomBar() {
@@ -67,7 +66,7 @@ export default function MobileBottomBar() {
     .split(' ').map(s => s.charAt(0)).slice(0, 2).join('').toUpperCase();
 
   const go = (to: string) => { setMoreOpen(false); navigate(to); };
-  const sheetItems = MORE_ITEMS.filter(it => roleAllows(it.roles, user?.role));
+  const sheetItems = MORE_ITEMS.filter(it => roleAllows(it.minRole, user?.role));
 
   return (
     <>

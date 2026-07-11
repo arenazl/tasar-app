@@ -12,6 +12,7 @@ import { api } from '../services/api';
 import { PushTestButton } from '../components/PushOptIn';
 import PageHint from '../components/ui/PageHint';
 import { BRAND } from '../config/brand';
+import { isManager, canManageWorkspace } from '../lib/roles';
 
 const CLAUDE_MODELS = [
   { value: 'haiku', label: 'Haiku', desc: 'Rápido y económico', icon: Zap, color: '#16a34a' },
@@ -63,10 +64,12 @@ const MANAGE_GROUPS: { title: string; links: { to: string; icon: LucideIcon; lab
 export default function Configuracion() {
   const { mode, toggle, presetId, setPreset, presets, theme, fontId, setFont, fonts } = useTheme();
   const { user } = useAuth();
-  const isAdmin = user?.role === 'admin';
+  // Config del workspace + borrados sensibles (datos de ejemplo) = administrador+
+  // (WO F6-06). Ver/entrar a Configuración = coordinador+ (canConfig).
+  const canManage = canManageWorkspace(user?.role);
   // Gestión del workspace (WO F6-04): Configuración concentra los accesos que
-  // salieron del top-level de la nav. Supervisor+admin.
-  const isManager = user?.role === 'admin' || user?.role === 'supervisor';
+  // salieron del top-level de la nav. Coordinador+.
+  const canConfig = isManager(user?.role);
   const [aiProvider, setAiProvider] = useState<string>('claude');
   const [claudeModel, setClaudeModel] = useState<string>('haiku');
   const [geminiModel, setGeminiModel] = useState<string>('gemini-2.5-flash');
@@ -171,9 +174,9 @@ export default function Configuracion() {
       </header>
 
       <div className="space-y-3">
-        {/* GESTIÓN DEL WORKSPACE (WO F6-04) — solo supervisor/admin.
+        {/* GESTIÓN DEL WORKSPACE (WO F6-04) — coordinador+.
             Concentra los accesos que salieron del top-level de la nav. */}
-        {isManager && (
+        {canConfig && (
           <div className="p-5 rounded-xl" style={{ background: theme.card, border: `1px solid ${theme.border}` }}>
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: `${theme.primary}15` }}>
@@ -427,8 +430,8 @@ export default function Configuracion() {
           <PushTestButton />
         </div>
 
-        {/* DATOS DE EJEMPLO (WO F5-03) — solo admin */}
-        {isAdmin && (
+        {/* DATOS DE EJEMPLO (WO F5-03) — administrador+ */}
+        {canManage && (
           <div className="p-5 rounded-xl" style={{ background: theme.card, border: `1px solid ${theme.border}` }}>
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: `${theme.primary}15` }}>

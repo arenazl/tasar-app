@@ -11,10 +11,10 @@ Convive con:
   - `api/inbox.py`     -> Bandeja de EVENTOS (inbox_messages). Otra cosa: esto es el
     chat de WhatsApp; aquello son las notificaciones del sistema.
 
-Scoping (multi-tenant + rol):
+Scoping (multi-tenant + rol, WO F6-06):
   - Siempre `workspace_id == user.workspace_id` (anti cross-tenant).
-  - vendedor: ve lo SUYO (assignee == el) + lo SIN asignar (para poder tomarlo).
-  - supervisor/admin: ven TODO el workspace.
+  - asesor: ve lo SUYO (assignee == el) + lo SIN asignar (para poder tomarlo).
+  - coordinador+: ven TODO el workspace.
 
 Anti N+1: el "ultimo mensaje" de cada conversacion sale en la MISMA query del list
 (subquery de max(id) por conversacion + join), no una query por fila como hacian el
@@ -31,7 +31,7 @@ from sqlalchemy import and_, desc, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.database import get_db
-from core.security import get_current_user
+from core.security import get_current_user, has_min_role
 from models.user import User
 from models.client import Client
 from models.conversation import (
@@ -62,9 +62,9 @@ def _aware(dt: Optional[datetime]) -> Optional[datetime]:
 
 def _role_filter(user: User):
     """Predicado de scoping por rol para el WHERE del list/get."""
-    if user.role in ("supervisor", "admin"):
+    if has_min_role(user, "coordinador"):
         return None
-    # vendedor: lo suyo + lo sin asignar (nuevas que puede tomar).
+    # asesor: lo suyo + lo sin asignar (nuevas que puede tomar).
     return or_(WaConversation.assignee_id == user.id, WaConversation.assignee_id.is_(None))
 
 
@@ -152,7 +152,7 @@ async def list_assignees(
         .where(
             User.workspace_id == user.workspace_id,
             User.is_active == True,  # noqa: E712
-            User.role.in_(["vendedor", "supervisor", "admin"]),
+            User.role.in_(["asesor", "coordinador", "administrador", "broker"]),
         )
         .order_by(User.full_name.asc())
     )).all()
@@ -356,7 +356,7 @@ async def update_conversation(
 ):
     """Reasignar / cambiar estado / vincular cliente.
 
-    Reasignar a OTRA persona es solo de supervisor/admin; un vendedor solo puede
+    Reasignar a OTRA persona es solo de coordinador+; un asesor solo puede
     tomar/soltar la conv (asignarse a si mismo o desasignar).
     """
     c = await _get_scoped(db, conv_id, user)
@@ -364,8 +364,8 @@ async def update_conversation(
 
     if "assignee_id" in data:
         target = data["assignee_id"]
-        if user.role == "vendedor" and target not in (None, user.id):
-            raise HTTPException(403, "Un vendedor solo puede tomar o soltar la conversación")
+        if not has_min_role(user, "coordinador") and target not in (None, user.id):
+            raise HTTPException(403, "Un asesor solo puede tomar o soltar la conversación")
         if target is not None:
             valid = (await db.execute(
                 select(User.id).where(User.id == target, User.workspace_id == user.workspace_id)

@@ -4,6 +4,7 @@ import { Bell, X } from 'lucide-react';
 import { api } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
+import { canManageWorkspace } from '../lib/roles';
 
 // Convierte base64url -> Uint8Array (formato que pide PushManager.subscribe).
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
@@ -17,10 +18,11 @@ const DISMISS_KEY = 'tasar_push_dismissed_until';
 const DISMISS_DAYS_MS = 7 * 86400000;
 
 /**
- * Banner de opt-in para Web Push (WO F3-03). Se muestra a vendedores/
- * supervisores (los que reciben leads/derivaciones/visitas del bot) — el rol
- * admin no gestiona conversaciones y no lo necesita. Registra la suscripción
- * contra POST /api/push/subscribe; el SW ya se registró en main.tsx.
+ * Banner de opt-in para Web Push (WO F3-03). Se muestra a asesores/
+ * coordinadores (los que reciben leads/derivaciones/visitas del bot) — la
+ * gestión (administrador/broker) no atiende conversaciones y no lo necesita.
+ * Registra la suscripción contra POST /api/push/subscribe; el SW ya se
+ * registró en main.tsx.
  */
 export function PushOptIn() {
   const { user } = useAuth();
@@ -29,7 +31,7 @@ export function PushOptIn() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    if (!user || user.role === 'admin') return;
+    if (!user || canManageWorkspace(user.role)) return;
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
     if (Notification.permission === 'denied') return;
 

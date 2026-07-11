@@ -239,7 +239,7 @@ def _server_reachable(base_url: str) -> tuple[bool, str]:
 # [1] Aislamiento multi-tenant — requiere DB + servidor.
 # ---------------------------------------------------------------------------
 async def _make_fixture_workspaces(session):
-    """Crea 2 workspaces + 1 user admin c/u, prefijo [SMOKE] + timestamp para
+    """Crea 2 workspaces + 1 user broker c/u, prefijo [SMOKE] + timestamp para
     no chocar ni ensuciar datos reales/demo. Devuelve dicts livianos (no ORM)
     para no arrastrar la sesion fuera de este scope."""
     from models.workspace import Workspace
@@ -253,9 +253,9 @@ async def _make_fixture_workspaces(session):
     await session.flush()
 
     ua = User(workspace_id=wa.id, email=f"smoke-a-{stamp}@tasar.local",
-              password_hash=hash_password("smoke12345"), full_name="[SMOKE] User A", role="admin")
+              password_hash=hash_password("smoke12345"), full_name="[SMOKE] User A", role="broker")
     ub = User(workspace_id=wb.id, email=f"smoke-b-{stamp}@tasar.local",
-              password_hash=hash_password("smoke12345"), full_name="[SMOKE] User B", role="admin")
+              password_hash=hash_password("smoke12345"), full_name="[SMOKE] User B", role="broker")
     session.add_all([ua, ub])
     await session.commit()
     await session.refresh(ua)

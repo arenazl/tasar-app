@@ -1,6 +1,7 @@
 """Bot-config API (WO F2-03) — configuracion del bot POR WORKSPACE.
 
-Todo scoped al workspace del JWT (anti-cross-tenant). Restringido a admin/supervisor.
+Todo scoped al workspace del JWT (anti-cross-tenant). Escritura restringida a
+administrador+ (config del workspace, WO F6-06).
 El GET auto-crea la fila con los defaults del gate del dueño si no existe, asi la
 pantalla funciona sin depender del seed.
 """
@@ -15,7 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.config import settings
 from core.database import get_db
-from core.security import get_current_user, require_role
+from core.security import get_current_user, require_min_role
 from models.user import User
 from models.workspace import Workspace
 from models.bot_config import (
@@ -126,7 +127,7 @@ class BotConfigUpdate(BaseModel):
     default_voice_mode: Optional[str] = None
     # Canal Meta Cloud API oficial (WO F3-02). channel_provider = baileys|meta;
     # meta_phone_number_id es la clave de ruteo (NO un secreto -- el token vive
-    # en env, ver _cfg_dict). Editable solo por admin/supervisor, igual que el
+    # en env, ver _cfg_dict). Editable solo por administrador+, igual que el
     # resto de esta config.
     channel_provider: Optional[str] = None
     meta_phone_number_id: Optional[str] = None
@@ -139,7 +140,7 @@ _VALID_VOICE_MODES = {"off", "auto", "mirror"}
 async def update_config(
     body: BotConfigUpdate,
     db: AsyncSession = Depends(get_db),
-    user: User = Depends(require_role("admin", "supervisor")),
+    user: User = Depends(require_min_role("administrador")),
 ):
     cfg = await _get_or_create(db, user.workspace_id)
     data = body.model_dump(exclude_unset=True)
@@ -195,7 +196,7 @@ class FaqBody(BaseModel):
 async def create_faq(
     body: FaqBody,
     db: AsyncSession = Depends(get_db),
-    user: User = Depends(require_role("admin", "supervisor")),
+    user: User = Depends(require_min_role("administrador")),
 ):
     f = BotFaq(
         workspace_id=user.workspace_id, question=body.question, answer=body.answer,
@@ -221,7 +222,7 @@ async def update_faq(
     faq_id: int,
     body: FaqBody,
     db: AsyncSession = Depends(get_db),
-    user: User = Depends(require_role("admin", "supervisor")),
+    user: User = Depends(require_min_role("administrador")),
 ):
     f = await _get_faq_scoped(db, faq_id, user)
     f.question = body.question
@@ -236,7 +237,7 @@ async def update_faq(
 async def delete_faq(
     faq_id: int,
     db: AsyncSession = Depends(get_db),
-    user: User = Depends(require_role("admin", "supervisor")),
+    user: User = Depends(require_min_role("administrador")),
 ):
     f = await _get_faq_scoped(db, faq_id, user)
     await db.delete(f)

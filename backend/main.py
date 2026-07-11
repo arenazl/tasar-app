@@ -98,9 +98,9 @@ app.include_router(push.router)
 # scheduler externo (Infra) lo dispara, este backend solo arma y despacha.
 app.include_router(cron.router)
 # Gestion de equipo (WO F4-05): miembros (ver/editar rol/desactivar) e
-# invitaciones por email (invitar/reenviar/cancelar). Autorizacion por rol
-# real (require_role): ver = admin/supervisor, gestionar = admin. El alta via
-# token es publica y vive en auth.py.
+# invitaciones por email (invitar/reenviar/cancelar). Autorizacion por jerarquia
+# (require_min_role, WO F6-06): ver = coordinador+, gestionar = administrador+.
+# El alta via token es publica y vive en auth.py.
 app.include_router(team.router)
 # Knowledge Share Protocol (WO F5-01): GET /api/knowledge-base(+/health) para
 # SalesBot/Media Studio, protegido por X-KB-Key (KB_CLAVE_SALESBOT/

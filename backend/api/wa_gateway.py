@@ -5,7 +5,8 @@ browser). Pega a estos endpoints autenticados con JWT y la suite reenvia al
 gateway con `X-API-Key`, usando `settings.WA_GATEWAY_URL` + `settings.WA_GATEWAY_KEY`.
 
 El tenant SIEMPRE es el workspace del usuario del JWT (nunca se acepta un slug
-arbitrario del cliente -> anti-IDOR). Restringido a rol admin via require_role.
+arbitrario del cliente -> anti-IDOR). Restringido a administrador+ (config del
+canal WhatsApp del workspace, WO F6-06) via require_min_role.
 
 Patron portado de AgentFlow/backend/api/baileys_gateway.py, adaptado a
 multi-tenant (slug = workspace del JWT en vez de un tenant fijo).
@@ -17,7 +18,7 @@ from sqlalchemy import select
 
 from core.config import settings
 from core.database import get_db
-from core.security import require_role
+from core.security import require_min_role
 from models.user import User
 from models.workspace import Workspace
 
@@ -48,7 +49,7 @@ async def _workspace_slug(user: User, db: AsyncSession) -> str:
 
 @router.get("/status")
 async def wa_status(
-    user: User = Depends(require_role("admin")),
+    user: User = Depends(require_min_role("administrador")),
     db: AsyncSession = Depends(get_db),
 ):
     """Estado de la sesion WhatsApp del workspace del usuario."""
@@ -65,7 +66,7 @@ async def wa_status(
 
 @router.post("/start")
 async def wa_start(
-    user: User = Depends(require_role("admin")),
+    user: User = Depends(require_min_role("administrador")),
     db: AsyncSession = Depends(get_db),
 ):
     """Arranca/asegura la sesion del workspace (idempotente)."""
@@ -82,7 +83,7 @@ async def wa_start(
 
 @router.post("/stop")
 async def wa_stop(
-    user: User = Depends(require_role("admin")),
+    user: User = Depends(require_min_role("administrador")),
     db: AsyncSession = Depends(get_db),
 ):
     """Detiene la sesion (conserva credenciales). Reconecta con /start."""
@@ -99,7 +100,7 @@ async def wa_stop(
 
 @router.get("/qr.html")
 async def wa_qr_page(
-    user: User = Depends(require_role("admin")),
+    user: User = Depends(require_min_role("administrador")),
     db: AsyncSession = Depends(get_db),
 ):
     """HTML del QR del gateway. El frontend lo muestra en un iframe."""

@@ -79,7 +79,13 @@ def _wrap(title: str, body_html: str) -> str:
     """
 
 
-_ROLE_LABEL = {"admin": "Administrador", "supervisor": "Supervisor", "vendedor": "Vendedor"}
+# Labels del rubro inmobiliario (WO F6-06): broker>administrador>coordinador>asesor.
+_ROLE_LABEL = {
+    "broker": "Broker",
+    "administrador": "Administrador",
+    "coordinador": "Coordinador",
+    "asesor": "Asesor",
+}
 
 
 async def send_team_invitation(

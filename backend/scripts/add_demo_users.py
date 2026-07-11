@@ -1,5 +1,6 @@
-"""Asegura que existan admin / supervisor / vendedor con el workspace tasar-demo.
+"""Asegura que existan broker / coordinador / asesor en el workspace tasar-demo.
 Idempotente: crea el workspace si no existe, agrega/actualiza usuarios.
+Vocabulario de roles: jerarquia del rubro (WO F6-06).
 """
 import asyncio, sys, os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -13,9 +14,9 @@ from models.user import User
 
 
 USERS = [
-    ("admin@tasar.demo", "admin123", "Lucas Admin", "admin", "MAT-1234"),
-    ("supervisor@tasar.demo", "supervisor123", "Pato Supervisor", "supervisor", "MAT-5678"),
-    ("vendedor@tasar.demo", "vendedor123", "BUEPROP Vendedor", "vendedor", None),
+    ("admin@tasar.demo", "admin123", "Lucas Broker", "broker", "MAT-1234"),
+    ("supervisor@tasar.demo", "supervisor123", "Pato Coordinador", "coordinador", "MAT-5678"),
+    ("vendedor@tasar.demo", "vendedor123", "BUEPROP Asesor", "asesor", None),
 ]
 
 

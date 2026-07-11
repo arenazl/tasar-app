@@ -145,7 +145,7 @@ def gen_demo_vendors(workspace_id: int, suffix: str) -> list[User]:
             email=f"demo.vendedor{i}.{suffix}@tasar-demo.local",
             password_hash=hash_password(secrets.token_urlsafe(24)),
             full_name=f"[DEMO] {name}",
-            role="vendedor",
+            role="asesor",
             is_active=True,
             is_available=True,
             daily_conversations_goal=20,

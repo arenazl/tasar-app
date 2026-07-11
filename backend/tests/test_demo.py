@@ -56,7 +56,7 @@ async def test_generate_demo_marks_everything_is_demo(client, db_session):
     assert all(p.title.startswith("[DEMO]") for p in props)
 
     vendors = (await db_session.execute(
-        select(User).where(User.workspace_id == ws_id, User.role == "vendedor")
+        select(User).where(User.workspace_id == ws_id, User.role == "asesor")
     )).scalars().all()
     assert len(vendors) == 3
     assert all(v.is_demo for v in vendors)
@@ -118,7 +118,7 @@ async def test_purge_confirm_deletes_demo_but_not_real_mixed_data(client, db_ses
     real_vendor = User(
         workspace_id=ws_id, email=f"real-vendor-{unique_stamp()}@example.com",
         password_hash=hash_password("vendedor123"), full_name="Vendedor Real",
-        role="vendedor", is_active=True, is_demo=False,
+        role="asesor", is_active=True, is_demo=False,
     )
     db_session.add(real_vendor)
     await db_session.commit()
@@ -143,7 +143,7 @@ async def test_purge_confirm_deletes_demo_but_not_real_mixed_data(client, db_ses
     assert [p.id for p in props_left] == [real_prop_id]
 
     users_left = (await db_session.execute(
-        select(User).where(User.workspace_id == ws_id, User.role == "vendedor")
+        select(User).where(User.workspace_id == ws_id, User.role == "asesor")
     )).scalars().all()
     assert len(users_left) == 1
     assert users_left[0].id == real_vendor.id
@@ -198,7 +198,7 @@ async def test_vendedor_cannot_generate_or_purge_demo(client, db_session):
         workspace_id=ws["user"]["workspace_id"],
         email=f"vendor-{unique_stamp()}@example.com",
         password_hash=hash_password("vendedor123"), full_name="Vendedor",
-        role="vendedor", is_active=True,
+        role="asesor", is_active=True,
     )
     db_session.add(vendor)
     await db_session.commit()

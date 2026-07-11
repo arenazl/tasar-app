@@ -7,6 +7,7 @@ import {
 import { toast } from 'sonner';
 import { api } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
+import { isManager as roleIsManager } from '../lib/roles';
 import { useTheme } from '../contexts/ThemeContext';
 
 // ── Tipos ────────────────────────────────────────────────────────────────
@@ -103,7 +104,7 @@ export default function InboxWhatsApp() {
   const audioChunksRef = useRef<Blob[]>([]);
   const audioStreamRef = useRef<MediaStream | null>(null);
 
-  const isManager = user?.role === 'supervisor' || user?.role === 'admin';
+  const isManager = roleIsManager(user?.role);
 
   const load = useCallback(async () => {
     try {

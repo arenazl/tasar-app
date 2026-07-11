@@ -5,9 +5,9 @@ Las 6 etapas legales del circuito inmobiliario argentino:
 
     captado -> publicado -> visita -> reserva -> boleto -> escrituracion
 
-Multi-tenant + scoping por rol (igual que visits):
-  - vendedor: ve/gestiona SOLO sus deals (vendor_id == user.id).
-  - supervisor|admin: todo el workspace.
+Multi-tenant + scoping por rol (igual que visits, WO F6-06):
+  - asesor: ve/gestiona SOLO sus deals (vendor_id == user.id).
+  - coordinador+: todo el workspace.
 
 Nombres de display resueltos con JOIN en la misma query (sin N+1).
 """
@@ -38,7 +38,7 @@ def _base_query(user: User):
         .join(User, User.id == Deal.vendor_id)
         .where(Deal.workspace_id == user.workspace_id)
     )
-    if user.role == "vendedor":
+    if user.role == "asesor":
         q = q.where(Deal.vendor_id == user.id)
     return q
 
@@ -60,7 +60,7 @@ async def _fetch_one(db: AsyncSession, user: User, deal_id: int) -> DealOut:
 
 
 async def _resolve_vendor_id(db: AsyncSession, user: User, requested: int) -> int:
-    if user.role == "vendedor":
+    if user.role == "asesor":
         return user.id
     v = (await db.execute(
         select(User).where(User.id == requested, User.workspace_id == user.workspace_id)
@@ -85,7 +85,7 @@ async def _assert_in_workspace(db: AsyncSession, user: User, client_id: int, pro
 
 async def _get_editable(db: AsyncSession, user: User, deal_id: int) -> Deal:
     q = select(Deal).where(Deal.id == deal_id, Deal.workspace_id == user.workspace_id)
-    if user.role == "vendedor":
+    if user.role == "asesor":
         q = q.where(Deal.vendor_id == user.id)
     d = (await db.execute(q)).scalar_one_or_none()
     if not d:

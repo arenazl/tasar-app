@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { api } from '../services/api';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
+import { isManager as roleIsManager } from '../lib/roles';
 import { ABMPage, ABMCard } from '../components/ui/ABMPage';
 import type { Authorization, AuthorizationStatus, Property } from '../types';
 
@@ -32,7 +33,7 @@ function plusMonths(months: number): string {
 export default function Autorizaciones() {
   const { theme } = useTheme();
   const { user } = useAuth();
-  const isManager = user?.role === 'admin' || user?.role === 'supervisor';
+  const isManager = roleIsManager(user?.role);
 
   const [items, setItems] = useState<Authorization[]>([]);
   const [loading, setLoading] = useState(true);

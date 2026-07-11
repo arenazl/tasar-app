@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { api } from '../services/api';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
+import { isManager as roleIsManager } from '../lib/roles';
 import type { Deal, DealStage, Property } from '../types';
 
 // Las 6 etapas legales, EN ORDEN (mismo contrato que backend api/deals.LEGAL_STAGES).
@@ -33,7 +34,7 @@ function fmtMoney(v?: number | null, currency = 'USD'): string {
 export default function PipelineVentas() {
   const { theme } = useTheme();
   const { user } = useAuth();
-  const isManager = user?.role === 'admin' || user?.role === 'supervisor';
+  const isManager = roleIsManager(user?.role);
 
   const [deals, setDeals] = useState<Deal[]>([]);
   const [loading, setLoading] = useState(true);

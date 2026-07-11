@@ -6,7 +6,7 @@ from typing import List, Optional, Dict
 from datetime import datetime, date as date_cls, timedelta, timezone
 
 from core.database import get_db
-from core.security import get_current_user
+from core.security import get_current_user, has_min_role
 from models.user import User
 from models.property import Property
 from models.market_study import MarketStudy
@@ -19,7 +19,6 @@ from models.dmo import DmoLog
 
 router = APIRouter(prefix="/api/dashboard", tags=["dashboard"])
 
-MANAGER_ROLES = ("admin", "supervisor")
 # Etapas legales del pipeline (mismo orden que api/deals.LEGAL_STAGES).
 LEGAL_STAGES = ["captado", "publicado", "visita", "reserva", "boleto", "escrituracion"]
 CLOSED_STAGE = "escrituracion"
@@ -104,7 +103,7 @@ async def get_dashboard(
 # =========================== CRM (WO F2-02) ===========================
 
 class CrmKpis(BaseModel):
-    scope: str  # "vendedor" | "team"
+    scope: str  # "asesor" | "team"
     active_clients: int
     visits_7d: int
     open_deals: int
@@ -118,11 +117,11 @@ async def get_crm_kpis(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
-    """KPIs del CRM con scoping por rol: el vendedor ve LO SUYO; el
-    supervisor/admin ve todo el workspace. Cada metrica es una consulta
-    agregada (no hay loops por entidad)."""
+    """KPIs del CRM con scoping por rol (WO F6-06): el asesor ve LO SUYO; el
+    coordinador+ ve todo el workspace. Cada metrica es una consulta agregada
+    (no hay loops por entidad)."""
     ws = user.workspace_id
-    is_vendedor = user.role == "vendedor"
+    is_asesor = user.role == "asesor"
     now = datetime.now(timezone.utc)
     week_ago = now - timedelta(days=7)
     today = date_cls.today()
@@ -132,7 +131,7 @@ async def get_crm_kpis(
         select(func.count(Client.id))
         .where(Client.workspace_id == ws, Client.lead_status.notin_(INACTIVE_LEAD_STATUS))
     )
-    if is_vendedor:
+    if is_asesor:
         q_clients = q_clients.where(Client.assigned_to == user.id)
     active_clients = (await db.execute(q_clients)).scalar() or 0
 
@@ -141,7 +140,7 @@ async def get_crm_kpis(
         select(func.count(Visit.id))
         .where(Visit.workspace_id == ws, Visit.scheduled_at >= week_ago)
     )
-    if is_vendedor:
+    if is_asesor:
         q_visits = q_visits.where(Visit.vendor_id == user.id)
     visits_7d = (await db.execute(q_visits)).scalar() or 0
 
@@ -151,7 +150,7 @@ async def get_crm_kpis(
         .where(Deal.workspace_id == ws)
         .group_by(Deal.stage)
     )
-    if is_vendedor:
+    if is_asesor:
         q_deals = q_deals.where(Deal.vendor_id == user.id)
     stage_counts = {stage: 0 for stage in LEGAL_STAGES}
     for stage, cnt in (await db.execute(q_deals)).all():
@@ -163,21 +162,21 @@ async def get_crm_kpis(
         select(func.coalesce(func.sum(DmoLog.metric_value), 0))
         .where(DmoLog.workspace_id == ws, DmoLog.date == today)
     )
-    if is_vendedor:
+    if is_asesor:
         q_conv = q_conv.where(DmoLog.vendor_id == user.id)
     conversations_today = int((await db.execute(q_conv)).scalar() or 0)
 
-    # Meta de conversaciones: propia (vendedor) o suma del equipo (manager).
-    if is_vendedor:
+    # Meta de conversaciones: propia (asesor) o suma del equipo (manager).
+    if is_asesor:
         conversations_goal = user.daily_conversations_goal or 0
     else:
         conversations_goal = int((await db.execute(
             select(func.coalesce(func.sum(User.daily_conversations_goal), 0))
-            .where(User.workspace_id == ws, User.role == "vendedor")
+            .where(User.workspace_id == ws, User.role == "asesor")
         )).scalar() or 0)
 
     return CrmKpis(
-        scope="vendedor" if is_vendedor else "team",
+        scope="asesor" if is_asesor else "team",
         active_clients=active_clients,
         visits_7d=visits_7d,
         open_deals=open_deals,
@@ -203,7 +202,7 @@ async def get_ranking(
     user: User = Depends(get_current_user),
 ):
     """Ranking de vendedores de los ultimos 30 dias (herramienta de equipo:
-    solo supervisor/admin).
+    solo coordinador+).
 
     ANTI N+1: en AgentFlow el ranking hacia 3 queries POR vendedor (loop). Aca
     son 4 consultas AGREGADAS totales, CONSTANTES sin importar cuantos
@@ -214,17 +213,17 @@ async def get_ranking(
       (d) conversaciones 30d-> GROUP BY vendor_id.
     El merge por vendor_id se hace en memoria.
     """
-    if user.role not in MANAGER_ROLES:
-        raise HTTPException(403, "Solo supervisor o admin ven el ranking del equipo")
+    if not has_min_role(user, "coordinador"):
+        raise HTTPException(403, "Solo coordinador o superior ve el ranking del equipo")
 
     ws = user.workspace_id
     since_dt = datetime.now(timezone.utc) - timedelta(days=30)
     since_date = date_cls.today() - timedelta(days=30)
 
-    # (a) Vendedores del workspace.
+    # (a) Vendedores (asesores) del workspace.
     vendors = (await db.execute(
         select(User.id, User.full_name, User.daily_conversations_goal)
-        .where(User.workspace_id == ws, User.role == "vendedor")
+        .where(User.workspace_id == ws, User.role == "asesor")
     )).all()
 
     # (b) Visitas 30d por vendedor.

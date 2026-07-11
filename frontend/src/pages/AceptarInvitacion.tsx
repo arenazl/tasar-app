@@ -10,7 +10,8 @@ import { BRAND } from '../config/brand';
 import type { InvitationInfo } from '../types';
 
 const ROLE_LABEL: Record<string, string> = {
-  admin: 'Administrador', supervisor: 'Supervisor', vendedor: 'Vendedor',
+  broker: 'Broker', administrador: 'Administrador',
+  coordinador: 'Coordinador', asesor: 'Asesor',
 };
 const REASON_LABEL: Record<string, string> = {
   usada: 'Esta invitación ya fue utilizada.',

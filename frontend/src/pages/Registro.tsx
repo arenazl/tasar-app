@@ -12,6 +12,7 @@ import BrandLogo from '../components/BrandLogo';
 import { BRAND } from '../config/brand';
 import { ModernSelect } from '../components/ui/ModernSelect';
 import type { TeamRole } from '../types';
+import { STAFF_ROLES, ROLE_META } from '../lib/roles';
 
 type WizardStep = 1 | 2 | 3 | 4;
 
@@ -22,11 +23,10 @@ const STEP_LABELS: Record<WizardStep, string> = {
   4: 'Listo',
 };
 
-const ROLE_OPTIONS: { value: TeamRole; label: string }[] = [
-  { value: 'vendedor', label: 'Vendedor' },
-  { value: 'supervisor', label: 'Supervisor' },
-  { value: 'admin', label: 'Administrador' },
-];
+// Roles invitables, del mas operativo al de mayor jerarquia (WO F6-06).
+const ROLE_OPTIONS: { value: TeamRole; label: string }[] = [...STAFF_ROLES]
+  .reverse()
+  .map(r => ({ value: r, label: ROLE_META[r].label }));
 
 /**
  * Wizard de onboarding self-service (WO F5-03). Ruta publica `/registro`
@@ -63,7 +63,7 @@ export default function Registro() {
 
   // Paso 3 — invitar equipo
   const [inviteEmail, setInviteEmail] = useState('');
-  const [inviteRole, setInviteRole] = useState<TeamRole>('vendedor');
+  const [inviteRole, setInviteRole] = useState<TeamRole>('asesor');
   const [inviteBusy, setInviteBusy] = useState(false);
   const [invited, setInvited] = useState(false);
 

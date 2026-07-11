@@ -7,7 +7,7 @@ from typing import List, Optional
 from datetime import datetime
 
 from core.database import get_db
-from core.security import get_current_user
+from core.security import get_current_user, has_min_role
 from models.user import User
 from models.inbox import InboxMessage
 
@@ -16,11 +16,11 @@ router = APIRouter(prefix="/api/inbox", tags=["inbox"])
 
 
 def _scope(user: User):
-    """Scoping por rol de la Bandeja: supervisor/admin ven todo el workspace;
-    el vendedor ve lo del workspace (user_id NULL) + lo dirigido a él (user_id == él).
+    """Scoping por rol de la Bandeja (WO F6-06): coordinador+ ve todo el workspace;
+    el asesor ve lo del workspace (user_id NULL) + lo dirigido a él (user_id == él).
     Los eventos con destinatario (F2-04) respetan así el aislamiento por rol."""
     base = InboxMessage.workspace_id == user.workspace_id
-    if user.role in ("supervisor", "admin"):
+    if has_min_role(user, "coordinador"):
         return base
     return base & or_(InboxMessage.user_id.is_(None), InboxMessage.user_id == user.id)
 
