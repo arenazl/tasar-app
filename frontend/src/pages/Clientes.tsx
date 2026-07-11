@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Users, Mail, Phone, Building2, FileCheck2, X, Save, Trash2, Edit3, MapPin, Plus, ArrowUpDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { api } from '../services/api';
@@ -39,6 +40,7 @@ const TYPE_LABEL = Object.fromEntries(TYPE_OPTIONS.map(o => [o.value, o.label]))
 
 export default function Clientes() {
   const { theme } = useTheme();
+  const navigate = useNavigate();
   const [items, setItems] = useState<Cliente[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -141,7 +143,7 @@ export default function Clientes() {
         {filtered.map((c, i) => {
           const color = TYPE_COLOR[c.type] || theme.primary;
           return (
-            <ABMCard key={c.id} index={i}>
+            <ABMCard key={c.id} index={i} onClick={() => navigate(`/clientes/${c.id}`)}>
               <div className="flex items-start gap-3 mb-3">
                 <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
                   style={{ background: `${color}20` }}>

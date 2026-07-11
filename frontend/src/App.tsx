@@ -50,6 +50,7 @@ import PipelineVentas from './pages/PipelineVentas';
 import Visitas from './pages/Visitas';
 import Autorizaciones from './pages/Autorizaciones';
 import Clientes from './pages/Clientes';
+import ClienteDetail from './pages/ClienteDetail';
 import DMO from './pages/DMO';
 import Coaches from './pages/Coaches';
 import DMOTemplates from './pages/DMOTemplates';
@@ -91,6 +92,8 @@ export default function App() {
                   <Route path="/autorizaciones" element={<Autorizaciones />} />
                   <Route path="/tasaciones/pipeline" element={<PipelineTasaciones />} />
                   <Route path="/clientes" element={<Clientes />} />
+                  {/* Ficha de cliente eje: timeline unificado (WO F6-02) */}
+                  <Route path="/clientes/:id" element={<ClienteDetail />} />
                   <Route path="/equipo" element={<Equipo />} />
                   <Route path="/dmo" element={<DMO />} />
                   <Route path="/dmo-templates" element={<DMOTemplates />} />
