@@ -2,11 +2,14 @@ FROM node:20-slim
 
 WORKDIR /app
 
-# Baileys instala deps transitivas desde git (libsignal de GitHub) -> el instalador
-# necesita `git`, que no viene en node:20-slim. Sin esto, npm install corta con
-# "npm error syscall spawn git / enoent". NO sacar.
+# Baileys trae deps transitivas desde git (libsignal, eslint-config, etc.) -> se
+# necesita `git` (no viene en node:20-slim). Ademas algunas usan URLs git+ssh
+# (ssh://git@github.com/...) que en un build sin ssh-key fallan con "ssh: not found":
+# las reescribimos a HTTPS (repos publicos, sin credenciales). NO sacar ninguna de las dos.
 RUN apt-get update && apt-get install -y --no-install-recommends git \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && git config --global url."https://github.com/".insteadOf "ssh://git@github.com/" \
+    && git config --global url."https://github.com/".insteadOf "git@github.com:"
 
 # Instala solo deps de produccion (usa el lockfile si esta presente).
 COPY package*.json ./
